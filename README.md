@@ -33,7 +33,7 @@ In any case, **remember to document your task selection, implementation details,
 ### Feature Additions
 
 - [ ] Add media sharing capabilities (photos preferably, with a optimized/compressed preview instead of the original image)
-- [ ] Add read receipts for messages along with status indicators (sent, read)
+- [ X ] Add read receipts for messages along with status indicators (sent, read)
 - [ ] Implement message reactions (emoji responses, easy but still gets points)
 - [ ] Create group chat creation and management
 - [ ] Implement message search functionality
