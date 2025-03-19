@@ -12,8 +12,11 @@ export const chatParticipants = sqliteTable("chat_participants", {
 
 export const messages = sqliteTable("messages", {
   id: text("id").primaryKey(),
-  chatId: text("chat_id").notNull().references(() => chats.id),
+  chatId: text("chat_id")
+    .notNull()
+    .references(() => chats.id),
   senderId: text("sender_id").notNull(),
   text: text("text").notNull(),
   timestamp: integer("timestamp").notNull(),
+  status: text("status").notNull().default("sent"),
 }); 

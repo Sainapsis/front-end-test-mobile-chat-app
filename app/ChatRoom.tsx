@@ -37,8 +37,12 @@ export default function ChatRoomScreen() {
 
   const handleSendMessage = () => {
     if (messageText.trim() && currentUser && chat) {
-      sendMessage(chat.id, messageText.trim(), currentUser.id);
-      setMessageText('');
+      sendMessage({
+        chatId: chat.id,
+        text: messageText.trim(),
+        senderId: currentUser.id,
+      });
+      setMessageText("");
     }
   };
 
@@ -61,19 +65,15 @@ export default function ChatRoomScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
       <StatusBar style="auto" />
-      <Stack.Screen 
+      <Stack.Screen
         options={{
           headerTitle: () => (
             <View style={styles.headerContainer}>
-              <Avatar 
-                user={chatParticipants[0]} 
-                size={32} 
-                showStatus={false}
-              />
+              <Avatar user={chatParticipants[0]} size={32} showStatus={false} />
               <ThemedText type="defaultSemiBold" numberOfLines={1}>
                 {chatName}
               </ThemedText>
@@ -84,7 +84,7 @@ export default function ChatRoomScreen() {
               <IconSymbol name="chevron.left" size={24} color="#007AFF" />
             </Pressable>
           ),
-        }} 
+        }}
       />
 
       <FlatList
@@ -93,6 +93,7 @@ export default function ChatRoomScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <MessageBubble
+            chatId={chat.id}
             message={item}
             isCurrentUser={item.senderId === currentUser.id}
           />
@@ -114,7 +115,10 @@ export default function ChatRoomScreen() {
           multiline
         />
         <Pressable
-          style={[styles.sendButton, !messageText.trim() && styles.disabledButton]}
+          style={[
+            styles.sendButton,
+            !messageText.trim() && styles.disabledButton,
+          ]}
           onPress={handleSendMessage}
           disabled={!messageText.trim()}
         >

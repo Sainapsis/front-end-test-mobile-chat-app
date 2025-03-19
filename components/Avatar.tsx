@@ -28,24 +28,24 @@ const getAvatarColor = (identifier?: string): string => {
 };
 
 const getInitials = (name?: string): string => {
-  if (!name) return '?';
-  
-  const parts = name.split(' ');
-  if (parts.length === 1) {
-    return parts[0].charAt(0).toUpperCase();
+  if (!name) return "?";
+
+  const names = name.split(" ");
+  if (names.length === 1) {
+    return names[0].charAt(0).toUpperCase();
   }
-  
-  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+
+  return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
 };
 
 export function Avatar({ user, size = 40, showStatus = true }: AvatarProps) {
   const backgroundColor = getAvatarColor(user?.id || user?.name);
   const initials = getInitials(user?.name);
-  
+
   const statusColors = {
-    online: '#4CAF50',
-    offline: '#9E9E9E',
-    away: '#FFC107',
+    online: "#4CAF50",
+    offline: "#9E9E9E",
+    away: "#FFC107",
   };
 
   return (
@@ -53,13 +53,15 @@ export function Avatar({ user, size = 40, showStatus = true }: AvatarProps) {
       <View
         style={[
           styles.avatar,
-          { width: size, height: size, borderRadius: size / 2, backgroundColor }
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            backgroundColor,
+          },
         ]}
       >
-        <ThemedText style={[
-          styles.initials,
-          { fontSize: size * 0.4 }
-        ]}>
+        <ThemedText style={[styles.initials, { fontSize: size * 0.4 }]}>
           {initials}
         </ThemedText>
       </View>

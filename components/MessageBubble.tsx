@@ -1,43 +1,88 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { ThemedText } from './ThemedText';
-import { Message } from '@/hooks/useChats';
-import { useColorScheme } from '@/hooks/useColorScheme';
+// TP
+import React, { useEffect } from "react";
+import { View, StyleSheet } from "react-native";
 
-interface MessageBubbleProps {
-  message: Message;
-  isCurrentUser: boolean;
-}
+// BL
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { MessageBubbleProps } from "@/interfaces/Messages.interface";
+import { useChats } from "@/hooks/useChats";
+import { formatTimeTo2HourDigit } from "@/helpers/formatTimeTo2HourDigit";
 
-export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
+// UI
+import { ThemedText } from "./ThemedText";
+import { IconSymbol } from "./ui/IconSymbol.ios";
+
+export function MessageBubble({
+  message,
+  isCurrentUser,
+  chatId,
+}: MessageBubbleProps) {
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const isDark = colorScheme === "dark";
+  const { setMessageAsRead } = useChats(message.senderId);
 
-  const formatTime = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+  useEffect(() => {
+    if (!isCurrentUser && message.status === "sent") {
+      setMessageAsRead({ id: message.id, chatId });
+    }
+  }, [message]);
+
+  const isMessageRead = message.status === "read" && isCurrentUser;
 
   return (
-    <View style={[
-      styles.container,
-      isCurrentUser ? styles.selfContainer : styles.otherContainer
-    ]}>
-      <View style={[
-        styles.bubble,
-        isCurrentUser 
-          ? [styles.selfBubble, { backgroundColor: isDark ? '#235A4A' : '#DCF8C6' }]
-          : [styles.otherBubble, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }]
-      ]}>
-        <ThemedText style={[
-          styles.messageText,
-          isCurrentUser && !isDark && styles.selfMessageText
-        ]}>
-          {message.text}
-        </ThemedText>
+    <View
+      style={[
+        styles.container,
+        isCurrentUser ? styles.selfContainer : styles.otherContainer,
+      ]}
+    >
+      <View
+        style={[
+          styles.bubble,
+          isCurrentUser
+            ? [
+                styles.selfBubble,
+                { backgroundColor: isDark ? "#235A4A" : "#DCF8C6" },
+              ]
+            : [
+                styles.otherBubble,
+                { backgroundColor: isDark ? "#2A2C33" : "#FFFFFF" },
+              ],
+        ]}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          <ThemedText
+            style={[
+              styles.messageText,
+              isCurrentUser && !isDark && styles.selfMessageText,
+            ]}
+          >
+            {message.text}
+          </ThemedText>
+          {isCurrentUser &&
+            (isMessageRead ? (
+              <IconSymbol
+                size={15}
+                name="checkmark.message.fill"
+                color={isDark ? "#FFFFFF" : "#000000"}
+              />
+            ) : (
+              <IconSymbol
+                size={15}
+                name="checkmark.message"
+                color={isDark ? "#FFFFFF" : "#000000"}
+              />
+            ))}
+        </View>
         <View style={styles.timeContainer}>
           <ThemedText style={styles.timeText}>
-            {formatTime(message.timestamp)}
+            {formatTimeTo2HourDigit(message.timestamp)}
           </ThemedText>
         </View>
       </View>
@@ -48,13 +93,13 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
 const styles = StyleSheet.create({
   container: {
     marginVertical: 4,
-    maxWidth: '80%',
+    maxWidth: "80%",
   },
   selfContainer: {
-    alignSelf: 'flex-end',
+    alignSelf: "flex-end",
   },
   otherContainer: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   bubble: {
     borderRadius: 16,
@@ -75,15 +120,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   selfMessageText: {
-    color: '#000000',
+    color: "#000000",
   },
   timeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
     marginTop: 2,
   },
   timeText: {
     fontSize: 11,
     opacity: 0.7,
   },
-}); 
+});
