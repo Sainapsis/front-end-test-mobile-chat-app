@@ -20,6 +20,12 @@ export interface Chat {
 export function useChatsDb(currentUserId: string | null) {
   const [userChats, setUserChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updateTrigger, setUpdateTrigger] = useState(0);
+
+  // Callback to change update trigger value
+  const refreshChats = useCallback(() => {
+    setUpdateTrigger(prev => prev + 1);
+  }, []);
 
   // Load chats for the current user
   useEffect(() => {
@@ -91,7 +97,12 @@ export function useChatsDb(currentUserId: string | null) {
             lastMessage,
           });
         }
-        
+        // Sort chats by timestamp
+        loadedChats.sort((a, b) => {
+          const timeA = a.lastMessage?.timestamp ?? 0;
+          const timeB = b.lastMessage?.timestamp ?? 0;
+          return timeB - timeA;
+        });
         setUserChats(loadedChats);
       } catch (error) {
         console.error('Error loading chats:', error);
@@ -101,7 +112,7 @@ export function useChatsDb(currentUserId: string | null) {
     };
     
     loadChats();
-  }, [currentUserId]);
+  }, [currentUserId, updateTrigger]);
 
   const createChat = useCallback(async (participantIds: string[]) => {
     if (!currentUserId || !participantIds.includes(currentUserId)) {
@@ -175,13 +186,13 @@ export function useChatsDb(currentUserId: string | null) {
           return chat;
         });
       });
-      
+      refreshChats();
       return true;
     } catch (error) {
       console.error('Error sending message:', error);
       return false;
     }
-  }, []);
+  }, [refreshChats]);
 
   return {
     chats: userChats,
