@@ -93,6 +93,7 @@ const styles = StyleSheet.create({
   initials: {
     color: 'white',
     fontWeight: 'bold',
+    lineHeight: 0
   },
   statusIndicator: {
     position: 'absolute',
