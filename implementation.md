@@ -23,3 +23,32 @@ The goal of this feature was to add read receipts to the chat messages, providin
   - Added a "read" icon (✅✅ double check).
 
 - Conditionally Rendered Icons: Rendered the appropriate icon based on the message status and if is the current user.
+
+
+
+---------------------------------
+
+🗑️ **Delete and edit Messages**
+
+🎯 **Feature Overview**
+
+The goal of this feature was to add a delete and edit message functionality to the chat messages.
+
+✅ **Task:** "Add message deletion and editing"
+
+🔧 **Implementation Breakdown**
+
+🛠️ **Data Handling**
+
+- Backend Integration:
+  - Created a handler to delete a message.
+  - Created a handler to edit a message.
+
+🎨 **UI/UX Changes**
+
+- Icons for Status Indicators:
+  - Added a input to edit the message.
+  - When press long on a message, the options to edit or delete will be shown.
+  - When the delete option is selected, an alert will display to confirm and if confirms the message will be deleted.
+  - When the edit option is selected, the input will be shown and the message will be replaced by the input.
+
