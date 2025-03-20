@@ -1,5 +1,5 @@
 import { db } from './db';
-import { users, chats, chatParticipants, messages } from './schema';
+import { users, chats, chatParticipants, messages, messagesReadBy } from './schema';
 
 // Mock user data from the original useUser hook
 const mockUsers = [
@@ -76,7 +76,6 @@ async function isDataSeeded() {
 
 export async function seedDatabase() {
   try {
-    // Check if database already has data
     const alreadySeeded = await isDataSeeded();
     if (alreadySeeded) {
       console.log('Database already seeded, skipping...');
@@ -93,6 +92,7 @@ export async function seedDatabase() {
     
     // Insert chats and their relationships
     console.log('Seeding chats...');
+    let messageReadById = 1
     for (const chat of initialChats) {
       // Insert chat
       await db.insert(chats).values({ id: chat.id }).onConflictDoNothing();
@@ -117,6 +117,16 @@ export async function seedDatabase() {
           text: message.text,
           timestamp: message.timestamp,
         }).onConflictDoNothing();
+        // TO REFACTOR
+        for (const userId of chat.participants) {
+          await db.insert(messagesReadBy).values({
+            id: messageReadById.toString(),
+            messageId: message.id,
+            userId,
+            readed: true,
+          }).onConflictDoNothing();
+          messageReadById++;
+        }
       }
     }
     

@@ -10,7 +10,7 @@ export const db = drizzle(sqlite, { schema });
 
 // Initialize function to create tables if they don't exist
 export async function initializeDatabase() {
-  try {
+  try {''
     console.log('Creating users table...');
     await sqlite.execAsync(`
       CREATE TABLE IF NOT EXISTS users (
@@ -34,6 +34,7 @@ export async function initializeDatabase() {
         id TEXT PRIMARY KEY,
         chat_id TEXT NOT NULL,
         user_id TEXT NOT NULL,
+        unreaded_messages INTEGER NOT NULL,
         FOREIGN KEY (chat_id) REFERENCES chats (id)
       );
     `);
@@ -47,6 +48,16 @@ export async function initializeDatabase() {
         text TEXT NOT NULL,
         timestamp INTEGER NOT NULL,
         FOREIGN KEY (chat_id) REFERENCES chats (id)
+      );
+    `);
+
+    console.log('Creating messages read by table...');
+    await sqlite.execAsync(`
+      CREATE TABLE IF NOT EXISTS messages_read_by (
+        id TEXT PRIMARY KEY,
+        message_id TEXT NOT NULL,
+        user_id TEXT NOT NULL, 
+        readed INTEGER NOT NULL
       );
     `);
     
