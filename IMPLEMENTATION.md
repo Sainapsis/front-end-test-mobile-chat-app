@@ -1,6 +1,7 @@
 # Change Log for Chat App
 
 ## Features
+- Design system for Chat App using styles as shown in the Bridge app.
 
 ## Bug Fixes
 - Fixed a bug where after login the list of users may appear before the messages are shown

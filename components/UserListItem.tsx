@@ -37,9 +37,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E1E1E1',
+    padding: 12
   },
   selectedContainer: {
     backgroundColor: 'rgba(0, 122, 255, 0.1)',

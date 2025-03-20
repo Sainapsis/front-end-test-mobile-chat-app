@@ -53,7 +53,7 @@ export function Avatar({ user, size = 40, showStatus = true }: AvatarProps) {
       <View
         style={[
           styles.avatar,
-          { width: size, height: size, borderRadius: size / 2, backgroundColor }
+          { width: size, height: size, borderRadius: size / 2 }
         ]}
       >
         <ThemedText style={[
@@ -89,10 +89,11 @@ const styles = StyleSheet.create({
   avatar: {
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#F1D6FE'
   },
   initials: {
-    color: 'white',
-    fontWeight: 'bold',
+    color: '#9542B9',
+    fontWeight: 500,
     lineHeight: 0
   },
   statusIndicator: {
