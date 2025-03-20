@@ -94,8 +94,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 12,
     alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E1E1E1',
   },
   contentContainer: {
     flex: 1,
@@ -126,6 +124,5 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   currentUserMessage: {
-    fontStyle: 'italic',
   },
 }); 

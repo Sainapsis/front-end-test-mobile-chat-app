@@ -6,7 +6,8 @@ import {
   TextInput, 
   Pressable, 
   KeyboardAvoidingView, 
-  Platform
+  Platform,
+  useColorScheme
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -23,6 +24,7 @@ export default function ChatRoomScreen() {
   const [messageText, setMessageText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
+  const colorScheme = useColorScheme();
   
   const chat = chats.find(c => c.id === chatId);
   
@@ -105,9 +107,9 @@ export default function ChatRoomScreen() {
         )}
       />
 
-      <ThemedView style={styles.inputContainer}>
+      <ThemedView style={[styles.inputContainer, {paddingBottom: Platform.OS === 'ios'? 30 : 10}]}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, {color: colorScheme === 'dark' ? '#FFF' : '#000'}]}
           value={messageText}
           onChangeText={setMessageText}
           placeholder="Type a message..."
@@ -118,7 +120,7 @@ export default function ChatRoomScreen() {
           onPress={handleSendMessage}
           disabled={!messageText.trim()}
         >
-          <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />
+          <IconSymbol name="arrow.up.circle" size={32} color="#007AFF" />
         </Pressable>
       </ThemedView>
     </KeyboardAvoidingView>
@@ -152,18 +154,15 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     padding: 10,
-    alignItems: 'flex-end',
-    borderTopWidth: 1,
-    borderTopColor: '#E1E1E1',
+    alignItems: 'flex-end'
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#E1E1E1',
-    borderRadius: 20,
+    borderColor: '#808080',
+    borderRadius: 10,
     padding: 10,
     maxHeight: 100,
-    backgroundColor: '#F9F9F9',
   },
   sendButton: {
     marginLeft: 10,
