@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../database/db';
 import { users } from '../../database/schema';
 import { eq } from 'drizzle-orm';
+import * as SecureStore from 'expo-secure-store';
 
 export interface User {
   id: string;
@@ -15,28 +16,59 @@ export function useUserDb() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load all users from the database
+  // Check if there is a current session
   useEffect(() => {
-    const loadUsers = async () => {
+    const checkSession = async () => {
+      const sessionId = await SecureStore.getItemAsync('userSession');
+      if (sessionId && !currentUser) {
+        try {
+          // Call Login only if there is a session
+          await login(JSON.parse(sessionId));
+        } catch (error) {
+          console.error('Error during login', error);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        // If there is no session, users will be loaded
+        try {
+          const usersData = await db.select().from(users);
+          setAllUsers(usersData);
+        } catch (error) {
+          console.error('Error loading users:', error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    checkSession();
+  }, []);
+
+  // Effect to load users
+  useEffect(() => {
+    const loadAllUsers = async () => {
       try {
         const usersData = await db.select().from(users);
         setAllUsers(usersData);
       } catch (error) {
         console.error('Error loading users:', error);
-      } finally {
-        setLoading(false);
       }
     };
-    
-    loadUsers();
-  }, []);
-  
+
+    // If current user exists, all users will be loaded 
+    if (currentUser) {
+      loadAllUsers();
+    }
+  }, [currentUser]);
+
   const login = useCallback(async (userId: string) => {
     try {
       const user = await db.select().from(users).where(eq(users.id, userId));
-      
+      // At login, userSession will be updated
       if (user && user.length > 0) {
         setCurrentUser(user[0]);
+        await SecureStore.setItemAsync('userSession', JSON.stringify(userId));
         return true;
       }
       return false;
@@ -46,8 +78,9 @@ export function useUserDb() {
     }
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     setCurrentUser(null);
+    await SecureStore.deleteItemAsync('userSession');
   }, []);
 
   return {
