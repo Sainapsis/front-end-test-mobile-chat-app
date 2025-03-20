@@ -1,8 +1,15 @@
 import { useChatsDb } from "./db/useChatsDb";
 
 export function useChats(currentUserId: string | null) {
-  const { chats, createChat, sendMessage, loading, setMessageAsRead } =
-    useChatsDb(currentUserId);
+  const {
+    chats,
+    createChat,
+    deleteMessage,
+    sendMessage,
+    loading,
+    setMessageAsRead,
+    editMessage,
+  } = useChatsDb(currentUserId);
 
   return {
     chats,
@@ -10,5 +17,7 @@ export function useChats(currentUserId: string | null) {
     sendMessage,
     loading,
     setMessageAsRead,
+    deleteMessage,
+    editMessage,
   };
 }

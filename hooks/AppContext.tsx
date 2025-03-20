@@ -6,7 +6,12 @@ import { useUser, User } from "./useUser";
 import { useChats } from "./useChats";
 import { DatabaseProvider } from "../database/DatabaseProvider";
 import { useDatabase } from "./useDatabase";
-import { SendMessageInterface, Chat } from "@/interfaces/Messages.interface";
+import {
+  SendMessageInterface,
+  ChatInterface,
+  EditMessageProps,
+  DeleteMessageProps,
+} from "@/interfaces/Messages.interface";
 
 type AppContextType = {
   users: User[];
@@ -14,11 +19,13 @@ type AppContextType = {
   isLoggedIn: boolean;
   login: (userId: string) => Promise<boolean>;
   logout: () => void;
-  chats: Chat[];
-  createChat: (participantIds: string[]) => Promise<Chat | null>;
+  chats: ChatInterface[];
+  createChat: (participantIds: string[]) => Promise<ChatInterface | null>;
   sendMessage: (message: SendMessageInterface) => Promise<boolean>;
   loading: boolean;
+  deleteMessage: (props: DeleteMessageProps) => Promise<void>;
   dbInitialized: boolean;
+  editMessage: (props: EditMessageProps) => Promise<void>;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);

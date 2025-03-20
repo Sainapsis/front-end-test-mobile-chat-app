@@ -1,16 +1,26 @@
 // TP
-import React, { useEffect } from "react";
-import { View, StyleSheet } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  StyleSheet,
+  Pressable,
+  Alert,
+  KeyboardAvoidingView,
+} from "react-native";
+import Toast from "react-native-toast-message";
 
 // BL
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { MessageBubbleProps } from "@/interfaces/Messages.interface";
 import { useChats } from "@/hooks/useChats";
+import { useAppContext } from "@/hooks/AppContext";
 import { formatTimeTo2HourDigit } from "@/helpers/formatTimeTo2HourDigit";
 
 // UI
 import { ThemedText } from "./ThemedText";
 import { IconSymbol } from "./ui/IconSymbol.ios";
+import EditableMessageInput from "./EditableMessageInput";
+import MessageOptions from "./MessageOptions";
 
 export function MessageBubble({
   message,
@@ -18,8 +28,15 @@ export function MessageBubble({
   chatId,
 }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { deleteMessage, editMessage } = useAppContext();
   const { setMessageAsRead } = useChats(message.senderId);
+
+  const [showMessageOptions, setShowMessageOptions] = useState(false);
+  const [showInputToEditMessage, setShowInputToEditMessage] = useState(false);
+  const [messageTextToEdit, setMessageTextToEdit] = useState(message.text);
+
+  const isDark = colorScheme === "dark";
+  const isMessageRead = message.status === "read" && isCurrentUser;
 
   useEffect(() => {
     if (!isCurrentUser && message.status === "sent") {
@@ -27,66 +44,122 @@ export function MessageBubble({
     }
   }, [message]);
 
-  const isMessageRead = message.status === "read" && isCurrentUser;
+  const handleDeleteMessage = async () => {
+    Alert.alert(
+      "Delete message",
+      "Are you sure you want to delete this message?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            await deleteMessage({ chatId, messageId: message.id });
+            Toast.show({
+              text1: "Message deleted",
+              type: "success",
+              position: "top",
+            });
+          },
+        },
+      ]
+    );
+  };
+
+  const handleEditMessage = async () => {
+    await editMessage({
+      chatId,
+      messageId: message.id,
+      newText: messageTextToEdit,
+    });
+    setShowInputToEditMessage(false);
+    Toast.show({
+      text1: "Message edited",
+      type: "success",
+    });
+  };
 
   return (
-    <View
-      style={[
-        styles.container,
-        isCurrentUser ? styles.selfContainer : styles.otherContainer,
-      ]}
-    >
-      <View
+    <KeyboardAvoidingView keyboardVerticalOffset={100} behavior="padding">
+      <Pressable
+        onLongPress={() => {
+          if (isCurrentUser) setShowMessageOptions(!showMessageOptions);
+        }}
+        onPress={() => {
+          if (isCurrentUser) setShowMessageOptions(false);
+        }}
         style={[
-          styles.bubble,
-          isCurrentUser
-            ? [
-                styles.selfBubble,
-                { backgroundColor: isDark ? "#235A4A" : "#DCF8C6" },
-              ]
-            : [
-                styles.otherBubble,
-                { backgroundColor: isDark ? "#2A2C33" : "#FFFFFF" },
-              ],
+          styles.container,
+          isCurrentUser ? styles.selfContainer : styles.otherContainer,
         ]}
       >
         <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 4,
-          }}
+          style={[
+            styles.bubble,
+            isCurrentUser
+              ? [
+                  styles.selfBubble,
+                  { backgroundColor: isDark ? "#235A4A" : "#DCF8C6" },
+                ]
+              : [
+                  styles.otherBubble,
+                  { backgroundColor: isDark ? "#2A2C33" : "#FFFFFF" },
+                ],
+          ]}
         >
-          <ThemedText
-            style={[
-              styles.messageText,
-              isCurrentUser && !isDark && styles.selfMessageText,
-            ]}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 4,
+            }}
           >
-            {message.text}
-          </ThemedText>
-          {isCurrentUser &&
-            (isMessageRead ? (
-              <IconSymbol
-                size={15}
-                name="checkmark.message.fill"
-                color={isDark ? "#FFFFFF" : "#000000"}
+            {showInputToEditMessage ? (
+              <EditableMessageInput
+                prevMessageText={message.text}
+                messageTextToEdit={messageTextToEdit}
+                setMessageTextToEdit={setMessageTextToEdit}
+                setShowInputToEditMessage={setShowInputToEditMessage}
+                handleEditMessage={handleEditMessage}
               />
             ) : (
+              <ThemedText
+                style={[
+                  styles.messageText,
+                  isCurrentUser && !isDark && styles.selfMessageText,
+                ]}
+              >
+                {message.text}
+              </ThemedText>
+            )}
+
+            {isCurrentUser && (
               <IconSymbol
+                style={{ alignSelf: "flex-start" }}
                 size={15}
-                name="checkmark.message"
+                name={
+                  isMessageRead ? "checkmark.message.fill" : "checkmark.message"
+                }
                 color={isDark ? "#FFFFFF" : "#000000"}
               />
-            ))}
+            )}
+          </View>
+          <View style={styles.timeContainer}>
+            <ThemedText style={styles.timeText}>
+              {formatTimeTo2HourDigit(message.timestamp)}
+            </ThemedText>
+          </View>
         </View>
-        <View style={styles.timeContainer}>
-          <ThemedText style={styles.timeText}>
-            {formatTimeTo2HourDigit(message.timestamp)}
-          </ThemedText>
-        </View>
-      </View>
-    </View>
+      </Pressable>
+
+      {showMessageOptions && (
+        <MessageOptions
+          handleDeleteMessage={handleDeleteMessage}
+          setShowInputToEditMessage={setShowInputToEditMessage}
+          setShowMessageOptions={setShowMessageOptions}
+        />
+      )}
+    </KeyboardAvoidingView>
   );
 }
 

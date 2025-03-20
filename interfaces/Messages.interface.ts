@@ -4,7 +4,7 @@ export interface SendMessageInterface {
   senderId: string;
 }
 
-export interface Message {
+export interface MessageInterface {
   id: string;
   senderId: string;
   text: string;
@@ -12,11 +12,11 @@ export interface Message {
   status: "sent" | "read";
 }
 
-export interface Chat {
+export interface ChatInterface {
   id: string;
   participants: string[];
-  messages: Message[];
-  lastMessage?: Message;
+  messages: MessageInterface[];
+  lastMessage?: MessageInterface;
 }
 
 export interface SetMessageAsReadInterface {
@@ -24,8 +24,25 @@ export interface SetMessageAsReadInterface {
   chatId: string;
 }
 
+export interface DeleteMessageProps {
+  chatId: string;
+  messageId: string;
+}
+
+export interface EditMessageProps {
+  chatId: string;
+  messageId: string;
+  newText: string;
+}
+
 export interface MessageBubbleProps {
-  message: Message;
+  message: MessageInterface;
   chatId: string;
   isCurrentUser: boolean;
+}
+
+export interface MessageOptionsProps {
+  handleDeleteMessage: () => void;
+  setShowInputToEditMessage: (show: boolean) => void;
+  setShowMessageOptions: (show: boolean) => void;
 }
