@@ -3,13 +3,16 @@ import { View, StyleSheet } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { Message } from '@/hooks/useChats';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { Avatar } from './Avatar';
+import { User } from '@/hooks/useUser';
 
 interface MessageBubbleProps {
   message: Message;
   isCurrentUser: boolean;
+  otherUser: User | undefined;
 }
 
-export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
+export function MessageBubble({ message, isCurrentUser, otherUser }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -23,26 +26,31 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
       <View style={styles.timeContainer}>
         <ThemedText style={[styles.timeText, isCurrentUser
           ? [styles.selfContainer]
-          : [styles.otherContainer]]}>
-          {formatTime(message.timestamp)}
+          : [styles.otherContainer, styles.otherText]]}>
+          {isCurrentUser ? '' : otherUser?.name + ' '}{formatTime(message.timestamp)}
         </ThemedText>
       </View>
       <View style={[
         styles.container,
         isCurrentUser ? styles.selfContainer : styles.otherContainer
       ]}>
-        <View style={[
-          styles.bubble,
-          isCurrentUser
-            ? [styles.selfBubble, { backgroundColor: isDark ? '#235A4A' : '#DCF8C6' }]
-            : [styles.otherBubble, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }]
-        ]}>
-          <ThemedText style={[
-            styles.messageText,
-            isCurrentUser && !isDark && styles.selfMessageText
+        <View style={styles.bubbleContainer}>
+          <View style={styles.avatar}>
+            {isCurrentUser ? <></> : <Avatar user={otherUser} size={30}></Avatar>}
+          </View>
+          <View style={[
+            styles.bubble,
+            isCurrentUser
+              ? [styles.selfBubble, { backgroundColor: isDark ? '#235A4A' : '#EEF6FF' }]
+              : [styles.otherBubble, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }]
           ]}>
-            {message.text}
-          </ThemedText>
+            <ThemedText style={[
+              styles.messageText,
+              isCurrentUser && !isDark && styles.selfMessageText
+            ]}>
+              {message.text}
+            </ThemedText>
+          </View>
         </View>
       </View>
     </View>
@@ -63,14 +71,21 @@ const styles = StyleSheet.create({
   otherContainer: {
     alignSelf: 'flex-start',
   },
+  otherText:{
+    marginLeft: 45
+  },
   bubble: {
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
     elevation: 1,
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 1, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 1
+  },
+  bubbleContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
   },
   selfBubble: {
   },
@@ -91,4 +106,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     lineHeight: 11,
   },
+  avatar: {
+    marginRight: 5
+  }
 }); 

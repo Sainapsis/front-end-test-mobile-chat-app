@@ -30,5 +30,6 @@ const styles = StyleSheet.create({
     },
     boldText: {
         marginLeft: 10,
+        color: "#FFF"
     }
 })

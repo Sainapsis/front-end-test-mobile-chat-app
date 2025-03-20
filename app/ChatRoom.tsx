@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  View, 
-  StyleSheet, 
-  FlatList, 
-  TextInput, 
-  Pressable, 
-  KeyboardAvoidingView, 
+import {
+  View,
+  StyleSheet,
+  FlatList,
+  TextInput,
+  Pressable,
+  KeyboardAvoidingView,
   Platform,
   useColorScheme
 } from 'react-native';
@@ -25,16 +25,16 @@ export default function ChatRoomScreen() {
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
   const colorScheme = useColorScheme();
-  
+
   const chat = chats.find(c => c.id === chatId);
-  
+
   const chatParticipants = chat?.participants
     .filter(id => id !== currentUser?.id)
     .map(id => users.find(user => user.id === id))
     .filter(Boolean) || [];
-  
-  const chatName = chatParticipants.length === 1 
-    ? chatParticipants[0]?.name 
+
+  const chatName = chatParticipants.length === 1
+    ? chatParticipants[0]?.name
     : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
 
   const handleSendMessage = () => {
@@ -67,14 +67,14 @@ export default function ChatRoomScreen() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <StatusBar style="auto" />
-      <Stack.Screen 
+      <Stack.Screen
         options={{
           headerTitle: () => (
             <View style={styles.headerContainer}>
-              <Avatar 
-                user={chatParticipants[0]} 
-                size={32} 
-                showStatus={false}
+              <Avatar
+                user={chatParticipants[0]}
+                size={32}
+                showStatus={true}
               />
               <ThemedText type="defaultSemiBold" numberOfLines={1}>
                 {chatName}
@@ -86,7 +86,7 @@ export default function ChatRoomScreen() {
               <IconSymbol name="chevron.left" size={24} color="#007AFF" />
             </Pressable>
           ),
-        }} 
+        }}
       />
 
       <FlatList
@@ -97,6 +97,7 @@ export default function ChatRoomScreen() {
           <MessageBubble
             message={item}
             isCurrentUser={item.senderId === currentUser.id}
+            otherUser={chatParticipants[0]}
           />
         )}
         contentContainerStyle={styles.messagesContainer}
@@ -107,12 +108,12 @@ export default function ChatRoomScreen() {
         )}
       />
 
-      <ThemedView style={[styles.inputContainer, {paddingBottom: Platform.OS === 'ios'? 30 : 10}]}>
+      <ThemedView style={[styles.inputContainer, { paddingBottom: Platform.OS === 'ios' ? 30 : 10 }]}>
         <TextInput
-          style={[styles.input, {color: colorScheme === 'dark' ? '#FFF' : '#000'}]}
+          style={[styles.input, { color: colorScheme === 'dark' ? '#FFF' : '#000' }]}
           value={messageText}
           onChangeText={setMessageText}
-          placeholder="Type a message..."
+          placeholder="Write a message"
           multiline
         />
         <Pressable
