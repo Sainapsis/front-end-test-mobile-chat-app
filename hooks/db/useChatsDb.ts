@@ -3,13 +3,13 @@ import { useState, useEffect, useCallback } from "react";
 
 //BL
 import { db } from "../../database/db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { chats, chatParticipants, messages } from "../../database/schema";
 import {
   Chat,
   SendMessageInterface,
   Message,
-  SetMessageAsReadInterface,
+  SetMessageAsReadProps,
 } from "@/interfaces/Messages.interface";
 
 export function useChatsDb(currentUserId: string | null) {
@@ -185,10 +185,7 @@ export function useChatsDb(currentUserId: string | null) {
     []
   );
 
-  const setMessageAsRead = async ({
-    id,
-    chatId,
-  }: SetMessageAsReadInterface) => {
+  const setMessageAsRead = async ({ id, chatId }: SetMessageAsReadProps) => {
     try {
       await db
         .update(messages)

@@ -4,28 +4,28 @@ import { users, chats, chatParticipants, messages } from './schema';
 // Mock user data from the original useUser hook
 const mockUsers = [
   {
-    id: '1',
-    name: 'John Doe',
-    avatar: 'https://i.pravatar.cc/150?img=1',
-    status: 'online' as const,
+    id: "1",
+    name: "John Doe",
+    avatar: "https://i.pravatar.cc/150?img=1",
+    status: "online" as const,
   },
   {
-    id: '2',
-    name: 'Jane Smith',
-    avatar: 'https://i.pravatar.cc/150?img=2',
-    status: 'offline' as const,
+    id: "2",
+    name: "Jane Smith",
+    avatar: "https://i.pravatar.cc/150?img=2",
+    status: "offline" as const,
   },
   {
-    id: '3',
-    name: 'Mike Johnson',
-    avatar: 'https://i.pravatar.cc/150?img=3',
-    status: 'away' as const,
+    id: "3",
+    name: "Mike Johnson",
+    avatar: "https://i.pravatar.cc/150?img=3",
+    status: "away" as const,
   },
   {
-    id: '4',
-    name: 'Sarah Williams',
-    avatar: 'https://i.pravatar.cc/150?img=4',
-    status: 'online' as const,
+    id: "7",
+    name: "Sarah Williams",
+    avatar: "https://i.pravatar.cc/150?img=4",
+    status: "online" as const,
   },
 ];
 

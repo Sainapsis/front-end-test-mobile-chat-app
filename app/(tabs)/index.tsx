@@ -1,9 +1,11 @@
 // TP
 import React, { useState } from "react";
 import { FlatList, StyleSheet, Pressable, Modal } from "react-native";
+import Toast from "react-native-toast-message";
 
 // BL
 import { useAppContext } from "@/hooks/AppContext";
+import { handleCreateChat } from "@/bl/handlers/handleCreateChat";
 
 // UI
 import { ThemedText } from "@/components/ThemedText";
@@ -22,15 +24,6 @@ export default function ChatsScreen() {
       setSelectedUsers(selectedUsers.filter((id) => id !== userId));
     } else {
       setSelectedUsers([...selectedUsers, userId]);
-    }
-  };
-
-  const handleCreateChat = () => {
-    if (currentUser && selectedUsers.length > 0) {
-      const participants = [currentUser.id, ...selectedUsers];
-      createChat(participants);
-      setModalVisible(false);
-      setSelectedUsers([]);
     }
   };
 
@@ -106,13 +99,23 @@ export default function ChatsScreen() {
               )}
               style={styles.userList}
             />
+            <Toast />
 
             <Pressable
               style={[
                 styles.createButton,
                 selectedUsers.length === 0 && styles.disabledButton,
               ]}
-              onPress={handleCreateChat}
+              onPress={() =>
+                handleCreateChat({
+                  currentUser,
+                  selectedUsers,
+                  setModalVisible,
+                  setSelectedUsers,
+                  chats,
+                  createChat,
+                })
+              }
               disabled={selectedUsers.length === 0}
             >
               <ThemedText style={styles.createButtonText}>

@@ -6,7 +6,7 @@ import { View, StyleSheet } from "react-native";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { MessageBubbleProps } from "@/interfaces/Messages.interface";
 import { useChats } from "@/hooks/useChats";
-import { formatTimeTo2HourDigit } from "@/helpers/formatTimeTo2HourDigit";
+import { formatTimeTo2HourDigit } from "@/bl/helpers/formatTimeTo2HourDigit";
 
 // UI
 import { ThemedText } from "./ThemedText";
