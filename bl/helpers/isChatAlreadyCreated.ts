@@ -11,8 +11,6 @@ export const isChatAlreadyCreated = ({
 }: isChatAlreadyCreatedProps) => {
   const chatsMap = new Map();
 
-  console.log(chats);
-
   chats.forEach((chat) => {
     chatsMap.set(chat.participants.sort().join("-"), chat.participants);
   });
