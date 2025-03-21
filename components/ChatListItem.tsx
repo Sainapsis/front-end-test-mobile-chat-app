@@ -97,7 +97,7 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    padding: 12,
+    padding: 15,
     alignItems: 'center',
   },
   contentContainer: {

@@ -1,16 +1,37 @@
-import React, { useState } from 'react';
-import { FlatList, StyleSheet, Pressable, Modal } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { FlatList, StyleSheet, Pressable, Modal, Platform, UIManager, LayoutAnimation, Animated } from 'react-native';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { ChatListItem } from '@/components/ChatListItem';
 import { UserListItem } from '@/components/UserListItem';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { ThemedInput } from '@/components/ThemedInput';
 
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 export default function ChatsScreen() {
   const { currentUser, users, chats, createChat } = useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [messageText, setMessageText] = useState('');
+
+  const headerAnim = React.useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(headerAnim, {
+      toValue: messageText.length === 0 ? 1 : 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [messageText, headerAnim]);
+
+  const headerHeight = headerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 80],
+  });
+  const headerOpacity = headerAnim;
 
   const toggleUserSelection = (userId: string) => {
     if (selectedUsers.includes(userId)) {
@@ -29,6 +50,10 @@ export default function ChatsScreen() {
     }
   };
 
+  const handleChangeSearchText = (text: string) => {
+    setMessageText(text)
+  }
+
   const renderEmptyComponent = () => (
     <ThemedView style={styles.emptyContainer}>
       <ThemedText style={styles.emptyText}>No chats yet</ThemedText>
@@ -38,7 +63,7 @@ export default function ChatsScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedView style={styles.header}>
+      <Animated.View style={[styles.header, { height: headerHeight, opacity: headerOpacity }]} >
         <ThemedText type="title">Chats</ThemedText>
         <Pressable
           style={styles.newChatButton}
@@ -46,21 +71,26 @@ export default function ChatsScreen() {
         >
           <IconSymbol name="plus" size={24} color="#007AFF" />
         </Pressable>
-      </ThemedView>
+      </Animated.View>
+      <Animated.View>
+        <ThemedInput style={styles.searchBarContainer} messageText={messageText} setMessageText={handleChangeSearchText} placeholder='Search' ></ThemedInput>
+      </Animated.View>
+      {messageText.length === 0 ?
+        <FlatList
+          data={chats}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <ChatListItem
+              chat={item}
+              currentUserId={currentUser?.id || ''}
+              users={users}
+            />
+          )}
+          ListEmptyComponent={renderEmptyComponent}
+          contentContainerStyle={styles.listContainer}
+        /> : <></>
+      }
 
-      <FlatList
-        data={chats}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ChatListItem
-            chat={item}
-            currentUserId={currentUser?.id || ''}
-            users={users}
-          />
-        )}
-        ListEmptyComponent={renderEmptyComponent}
-        contentContainerStyle={styles.listContainer}
-      />
 
       <Modal
         animationType="slide"
@@ -128,8 +158,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 15,
+    paddingBottom: 10,
   },
   newChatButton: {
     width: 40,
@@ -197,4 +227,9 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
+  searchBarContainer:{
+    paddingBottom: 0,
+    paddingTop: 0,
+    paddingHorizontal: 15
+  }
 });

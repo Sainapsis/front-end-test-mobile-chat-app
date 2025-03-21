@@ -3,11 +3,9 @@ import {
   View,
   StyleSheet,
   FlatList,
-  TextInput,
   Pressable,
   KeyboardAvoidingView,
   Platform,
-  useColorScheme
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -25,7 +23,6 @@ export default function ChatRoomScreen() {
   const [messageText, setMessageText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
-  const colorScheme = useColorScheme();
 
   const chat = chats.find(c => c.id === chatId);
 
@@ -109,7 +106,7 @@ export default function ChatRoomScreen() {
           </ThemedView>
         )}
       />
-      <ThemedInput shouldShowButton={true} messageText={messageText} setMessageText={setMessageText} handleSendMessage={handleSendMessage}></ThemedInput>
+      <ThemedInput shouldShowButton={true} messageText={messageText} setMessageText={setMessageText} handleSendMessage={handleSendMessage} placeholder="Write a message"></ThemedInput>
     </KeyboardAvoidingView>
   );
 }
