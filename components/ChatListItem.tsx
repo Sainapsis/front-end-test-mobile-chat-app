@@ -13,16 +13,16 @@ interface ChatListItemProps {
   users: User[];
 }
 
-export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) {
+export function ChatListItem({ chat, currentUserId }: ChatListItemProps) {
   const navigation = useNavigation();
   const { updateReadStatus } = useAppContext()
 
   const otherParticipants = useMemo(() => {
     return chat.participants
       .filter(id => id !== currentUserId)
-      .map(id => users.find(user => user.id === id))
+      .map(id => chat.participantsData?.find(user => user.id === id))
       .filter(Boolean) as User[];
-  }, [chat.participants, currentUserId, users]);
+  }, [chat.participants, currentUserId, chat.participantsData]);
 
   const chatName = useMemo(() => {
     if (otherParticipants.length === 0) {
@@ -97,7 +97,7 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    padding: 12,
+    padding: 15,
     alignItems: 'center',
   },
   contentContainer: {
