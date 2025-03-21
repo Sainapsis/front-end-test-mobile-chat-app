@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, Pressable, Modal, Platform, UIManager, LayoutAnimation, Animated } from 'react-native';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
@@ -17,14 +17,21 @@ export default function ChatsScreen() {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [messageText, setMessageText] = useState('');
 
-  const headerAnim = React.useRef(new Animated.Value(1)).current;
+  const headerAnim = useRef(new Animated.Value(1)).current;
+
+  const prevTextRef = useRef<string>('');
 
   useEffect(() => {
-    Animated.timing(headerAnim, {
-      toValue: messageText.length === 0 ? 1 : 0,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
+    const wasEmpty = prevTextRef.current.length === 0;
+    const isEmpty = messageText.length === 0;
+    if (wasEmpty !== isEmpty) {
+      Animated.timing(headerAnim, {
+        toValue: isEmpty ? 1 : 0,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
+    }
+    prevTextRef.current = messageText;
   }, [messageText, headerAnim]);
 
   const headerHeight = headerAnim.interpolate({
@@ -227,7 +234,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
-  searchBarContainer:{
+  searchBarContainer: {
     paddingBottom: 0,
     paddingTop: 0,
     paddingHorizontal: 15
