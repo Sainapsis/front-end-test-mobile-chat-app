@@ -46,8 +46,8 @@ export function MessageBubble({ message, isCurrentUser, otherUser, isReaded }: M
           <View style={[
             styles.bubble,
             isCurrentUser
-              ? [styles.selfBubble, { backgroundColor: isDark ? '#235A4A' : '#EEF6FF' }]
-              : [styles.otherBubble, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }]
+              ? [styles.selfBubble, { backgroundColor: isDark ? '#1E1E1E' : '#EEF6FF' }]
+              : [styles.otherBubble, { backgroundColor: isDark ? '#2A2A2A' : '#FFFFFF' }]
           ]}>
             <ThemedText style={[
               styles.messageText,
