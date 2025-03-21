@@ -17,6 +17,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { MessageBubble } from '@/components/MessageBubble';
 import { Avatar } from '@/components/Avatar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { ThemedInput } from '@/components/ThemedInput';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
@@ -108,23 +109,7 @@ export default function ChatRoomScreen() {
           </ThemedView>
         )}
       />
-
-      <ThemedView style={[styles.inputContainer, { paddingBottom: Platform.OS === 'ios' ? 30 : 10 }]}>
-        <TextInput
-          style={[styles.input, { color: colorScheme === 'dark' ? '#FFF' : '#000' }]}
-          value={messageText}
-          onChangeText={setMessageText}
-          placeholder="Write a message"
-          multiline
-        />
-        <Pressable
-          style={[styles.sendButton, !messageText.trim() && styles.disabledButton]}
-          onPress={handleSendMessage}
-          disabled={!messageText.trim()}
-        >
-          <IconSymbol name="arrow.up.circle" size={32} color="#007AFF" />
-        </Pressable>
-      </ThemedView>
+      <ThemedInput shouldShowButton={true} messageText={messageText} setMessageText={setMessageText} handleSendMessage={handleSendMessage}></ThemedInput>
     </KeyboardAvoidingView>
   );
 }
