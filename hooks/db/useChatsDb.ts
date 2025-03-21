@@ -157,6 +157,7 @@ export function useChatsDb(currentUserId: string | null) {
         id: chatId,
         participants: participantIds,
         messages: [],
+        unreadedMessagesCount: 0,
       };
 
       setUserChats(prevChats => [...prevChats, newChat]);
