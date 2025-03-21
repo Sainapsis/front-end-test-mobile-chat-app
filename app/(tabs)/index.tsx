@@ -7,6 +7,8 @@ import { ChatListItem } from '@/components/ChatListItem';
 import { UserListItem } from '@/components/UserListItem';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { ThemedInput } from '@/components/ThemedInput';
+import { User } from '@/hooks/useUser';
+import { Chat } from '@/hooks/useChats';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -16,10 +18,12 @@ export default function ChatsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [messageText, setMessageText] = useState('');
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [filteredChats, setFilteredChats] = useState<Chat[]>([]);
 
   const headerAnim = useRef(new Animated.Value(1)).current;
-
   const prevTextRef = useRef<string>('');
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const wasEmpty = prevTextRef.current.length === 0;
@@ -59,6 +63,13 @@ export default function ChatsScreen() {
 
   const handleChangeSearchText = (text: string) => {
     setMessageText(text)
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current);
+    }
+    debounceTimeout.current = setTimeout(() => {
+      // Se ejecuta la función solo cuando el usuario no escribe durante 300ms
+      console.log(text)
+    }, 300);
   }
 
   const renderEmptyComponent = () => (
