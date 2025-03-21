@@ -123,6 +123,7 @@ export async function seedDatabase() {
             id: messageReadById.toString(),
             messageId: message.id,
             userId,
+            chatId: chat.id,
             readed: true,
           }).onConflictDoNothing();
           messageReadById++;

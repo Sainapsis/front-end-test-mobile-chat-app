@@ -11,9 +11,10 @@ interface MessageBubbleProps {
   message: Message;
   isCurrentUser: boolean;
   otherUser: User | undefined;
+  isReaded: boolean;
 }
 
-export function MessageBubble({ message, isCurrentUser, otherUser }: MessageBubbleProps) {
+export function MessageBubble({ message, isCurrentUser, otherUser, isReaded }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -29,7 +30,9 @@ export function MessageBubble({ message, isCurrentUser, otherUser }: MessageBubb
           ? [styles.selfContainer]
           : [styles.otherContainer, styles.otherText]]}>
           {isCurrentUser ? '' : otherUser?.name + ' '}{formatTime(message.timestamp)}
-          <IconSymbol name="checkmark" color="#808080" size={16}></IconSymbol>
+          {isReaded ?
+            <IconSymbol name="checkmark" color="#808080" size={16}></IconSymbol> : <></>
+          }
         </ThemedText>
       </View>
       <View style={[
@@ -73,7 +76,7 @@ const styles = StyleSheet.create({
   otherContainer: {
     alignSelf: 'flex-start',
   },
-  otherText:{
+  otherText: {
     marginLeft: 45,
   },
   bubble: {

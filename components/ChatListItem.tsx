@@ -5,6 +5,7 @@ import { Chat } from '@/hooks/useChats';
 import { Avatar } from './Avatar';
 import { ThemedText } from './ThemedText';
 import { User } from '@/hooks/useUser';
+import { useAppContext } from '@/hooks/AppContext';
 
 interface ChatListItemProps {
   chat: Chat;
@@ -14,7 +15,8 @@ interface ChatListItemProps {
 
 export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) {
   const navigation = useNavigation();
-  
+  const { updateReadStatus } = useAppContext()
+
   const otherParticipants = useMemo(() => {
     return chat.participants
       .filter(id => id !== currentUserId)
@@ -33,16 +35,17 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
   }, [otherParticipants]);
 
   const handlePress = () => {
+    updateReadStatus(currentUserId, chat.id)
     navigation.navigate('ChatRoom' as never, { chatId: chat.id } as never);
   };
 
   const timeString = useMemo(() => {
     if (!chat.lastMessage) return '';
-    
+
     const date = new Date(chat.lastMessage.timestamp);
     const now = new Date();
     const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     if (diffInDays === 0) {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } else if (diffInDays === 1) {
@@ -58,8 +61,8 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
 
   return (
     <Pressable style={styles.container} onPress={handlePress}>
-      <Avatar 
-        user={otherParticipants[0]} 
+      <Avatar
+        user={otherParticipants[0]}
         size={50}
       />
       <View style={styles.contentContainer}>
@@ -73,7 +76,7 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
         </View>
         <View style={styles.bottomRow}>
           {chat.lastMessage && (
-            <ThemedText 
+            <ThemedText
               numberOfLines={1}
               style={[
                 styles.lastMessage,
@@ -83,6 +86,8 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
               {isCurrentUserLastSender && 'You: '}{chat.lastMessage.text}
             </ThemedText>
           )}
+          {chat.unreadedMessagesCount > 0?  <ThemedText style={styles.time}>{chat.unreadedMessagesCount}</ThemedText>: <></>}
+         
         </View>
       </View>
     </Pressable>

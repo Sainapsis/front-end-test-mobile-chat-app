@@ -98,6 +98,7 @@ export default function ChatRoomScreen() {
             message={item}
             isCurrentUser={item.senderId === currentUser.id}
             otherUser={chatParticipants[0]}
+            isReaded={item.readed}
           />
         )}
         contentContainerStyle={styles.messagesContainer}

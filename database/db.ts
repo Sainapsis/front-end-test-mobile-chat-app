@@ -57,6 +57,7 @@ export async function initializeDatabase() {
         id TEXT PRIMARY KEY,
         message_id TEXT NOT NULL,
         user_id TEXT NOT NULL, 
+        chat_id TEXT NOT NULL,
         readed INTEGER NOT NULL
       );
     `);

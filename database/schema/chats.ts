@@ -23,5 +23,6 @@ export const messagesReadBy = sqliteTable("messages_read_by", {
   id: text("id").primaryKey(),
   messageId: text("message_id").notNull().references(() => messages.id),
   userId: text("user_id").notNull(),
+  chatId: text("chat_id").notNull(),
   readed: integer("readed", { mode: "boolean" }).default(false)
 })

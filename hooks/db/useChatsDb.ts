@@ -15,6 +15,7 @@ export interface Chat {
   participants: string[];
   messages: Message[];
   lastMessage?: Message;
+  unreadedMessagesCount: number;
 }
 
 export function useChatsDb(currentUserId: string | null) {
@@ -70,8 +71,11 @@ export function useChatsDb(currentUserId: string | null) {
             .where(eq(chatParticipants.chatId, chatId));
 
           const participantIds = participantsData.map(p => p.userId);
+          const unreadedMessages = await db
+            .select()
+            .from(messagesReadBy)
+            .where(and(eq(messagesReadBy.chatId, chatId), eq(messagesReadBy.readed, false), eq(messagesReadBy.userId, currentUserId)))
 
-          // Get messages
           const messagesData = await db
             .select()
             .from(messages)
@@ -107,6 +111,7 @@ export function useChatsDb(currentUserId: string | null) {
             participants: participantIds,
             messages: chatMessages,
             lastMessage,
+            unreadedMessagesCount: unreadedMessages.length
           });
         }
         // Sort chats by timestamp
@@ -115,7 +120,6 @@ export function useChatsDb(currentUserId: string | null) {
           const timeB = b.lastMessage?.timestamp ?? 0;
           return timeB - timeA;
         });
-        console.log(loadedChats[0])
         setUserChats(loadedChats);
       } catch (error) {
         console.error('Error loading chats:', error);
@@ -170,6 +174,10 @@ export function useChatsDb(currentUserId: string | null) {
       const messageId = `msg${Date.now()}`;
       const timestamp = Date.now();
 
+      const participantsData = await db
+        .select()
+        .from(chatParticipants)
+        .where(eq(chatParticipants.chatId, chatId));
       // Insert new message
       await db.insert(messages).values({
         id: messageId,
@@ -178,6 +186,16 @@ export function useChatsDb(currentUserId: string | null) {
         text: text,
         timestamp: timestamp,
       });
+
+      for (let participant of participantsData) {
+        await db.insert(messagesReadBy).values({
+          id: `mr-${messageId}-${participant.userId}`,
+          messageId,
+          userId: participant.userId,
+          readed: participant.userId === senderId,
+          chatId
+        });
+      }
 
       const newMessage: Message = {
         id: messageId,
@@ -207,10 +225,16 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, [refreshChats]);
 
+  const updateReadStatus = useCallback(async (userId: string, chatId: string) => {
+    console.log("data updater")
+    await db.update(messagesReadBy).set({ readed: true }).where(and(eq(messagesReadBy.chatId, chatId), eq(messagesReadBy.userId, userId), eq(messagesReadBy.readed, false))).execute();
+    refreshChats();
+  }, [])
   return {
     chats: userChats,
     createChat,
     sendMessage,
     loading,
+    updateReadStatus
   };
 } 
