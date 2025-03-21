@@ -13,7 +13,7 @@ export default function LoginScreen() {
 
   const handleUserSelect = async (userId: string) => {
     if (await login(userId)) {
-      router.replace('/(tabs)');
+      router.replace('/(private)/(tabs)');
     }
   };
 
