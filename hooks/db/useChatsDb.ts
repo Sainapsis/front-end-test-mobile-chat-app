@@ -74,18 +74,23 @@ const loadChat = async (chatId: string, currentUserId: string): Promise<Chat | n
   const participantIds = participantsData.map(p => p.userId);
   console.log(participantsData)
 
-  // Get messages and count unreaded
+  // Execute all queries in parallel and retrieve the first element of each result.
   const { messages, lastMessage, unreadedCount } = await loadChatMessages(chatId, currentUserId);
-  let chatUserName = ''
-  let userStatus = ''
-  let participantsUserData = []
-  for (let id of participantIds) {
-    const chatUserData = await await db.select().from(users).where(eq(users.id, id));
-    participantsUserData.push(chatUserData[0])
-    if (id !== currentUserId) {
-      chatUserName = chatUserData[0].name
-      userStatus = chatUserData[0].status
-    }
+
+  const allUserData = await Promise.all(
+    participantIds.map(id =>
+      db.select().from(users).where(eq(users.id, id)).then(result => result[0])
+    )
+  );
+
+  // Assign the participants' data, and for the first user other than the current user, assign their name and status.
+  const participantsUserData = allUserData;
+  const otherUser = allUserData.find(user => user.id !== currentUserId);
+  let chatUserName = '';
+  let userStatus = '';
+  if (otherUser) {
+    chatUserName = otherUser.name;
+    userStatus = otherUser.status;
   }
   return {
     id: chatId,
