@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../database/db';
-import { chats, chatParticipants, messages, messagesReadBy } from '../../database/schema';
+import { chats, chatParticipants, messages, messagesReadBy, users } from '../../database/schema';
 import { eq, and } from 'drizzle-orm';
+import { User } from '../useUser';
 
 export interface Message {
   id: string;
@@ -14,13 +15,16 @@ export interface Message {
 export interface Chat {
   id: string;
   participants: string[];
+  participantsData?: User[]
   messages: Message[];
   lastMessage?: Message;
   unreadedMessagesCount: number;
+  chatName?: string;
+  chatStatus?: 'online' | 'offline' | 'away';
 }
 
 // Load the messages and determinate its read status
-const loadChatMessages = async(chatId: string, currentUserId: string): Promise<{ messages: Message[]; lastMessage?: Message; unreadedCount: number }> => {
+const loadChatMessages = async (chatId: string, currentUserId: string): Promise<{ messages: Message[]; lastMessage?: Message; unreadedCount: number }> => {
   const messagesData = await db
     .select()
     .from(messages)
@@ -68,16 +72,30 @@ const loadChat = async (chatId: string, currentUserId: string): Promise<Chat | n
     .from(chatParticipants)
     .where(eq(chatParticipants.chatId, chatId));
   const participantIds = participantsData.map(p => p.userId);
+  console.log(participantsData)
 
   // Get messages and count unreaded
   const { messages, lastMessage, unreadedCount } = await loadChatMessages(chatId, currentUserId);
-
+  let chatUserName = ''
+  let userStatus = ''
+  let participantsUserData = []
+  for (let id of participantIds) {
+    const chatUserData = await await db.select().from(users).where(eq(users.id, id));
+    participantsUserData.push(chatUserData[0])
+    if (id !== currentUserId) {
+      chatUserName = chatUserData[0].name
+      userStatus = chatUserData[0].status
+    }
+  }
   return {
     id: chatId,
     participants: participantIds,
+    participantsData: participantsUserData,
     messages,
     lastMessage,
     unreadedMessagesCount: unreadedCount,
+    chatName: chatUserName,
+    chatStatus: userStatus as 'online' | 'offline' | 'away'
   };
 }
 
@@ -117,6 +135,7 @@ export function useChatsDb(currentUserId: string | null) {
         const loadedChats = await Promise.all(
           chatIds.map(async (chatId) => await loadChat(chatId, currentUserId))
         );
+
         const chatsFiltered = loadedChats.filter((chat): chat is Chat => chat !== null);
         // Order chats by created date
         chatsFiltered.sort((a, b) => {
@@ -124,6 +143,7 @@ export function useChatsDb(currentUserId: string | null) {
           const timeB = b.lastMessage?.timestamp ?? 0;
           return timeB - timeA;
         });
+        console.log(chatsFiltered)
         setUserChats(chatsFiltered);
       } catch (error) {
         console.error('Error loading chats:', error);

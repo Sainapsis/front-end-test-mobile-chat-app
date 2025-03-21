@@ -19,7 +19,7 @@ import { ThemedInput } from '@/components/ThemedInput';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, users, chats, sendMessage } = useAppContext();
+  const { currentUser, chats, sendMessage } = useAppContext();
   const [messageText, setMessageText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
@@ -28,7 +28,7 @@ export default function ChatRoomScreen() {
 
   const chatParticipants = chat?.participants
     .filter(id => id !== currentUser?.id)
-    .map(id => users.find(user => user.id === id))
+    .map(id => chat.participantsData?.find(user => user.id === id))
     .filter(Boolean) || [];
 
   const chatName = chatParticipants.length === 1

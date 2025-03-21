@@ -18,7 +18,6 @@ export default function ChatsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [messageText, setMessageText] = useState('');
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [filteredChats, setFilteredChats] = useState<Chat[]>([]);
 
   const headerAnim = useRef(new Animated.Value(1)).current;
@@ -67,8 +66,13 @@ export default function ChatsScreen() {
       clearTimeout(debounceTimeout.current);
     }
     debounceTimeout.current = setTimeout(() => {
-      // Se ejecuta la función solo cuando el usuario no escribe durante 300ms
-      console.log(text)
+      if (text.length > 0) {
+        setFilteredChats(JSON.parse(JSON.stringify(
+          chats.filter(chat => chat.chatName?.toLocaleLowerCase().indexOf(text.toLocaleLowerCase()) !== -1)
+        )));
+      }else{
+        setFilteredChats([])
+      }
     }, 300);
   }
 
@@ -106,7 +110,19 @@ export default function ChatsScreen() {
           )}
           ListEmptyComponent={renderEmptyComponent}
           contentContainerStyle={styles.listContainer}
-        /> : <></>
+        /> : <FlatList
+          data={filteredChats}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <ChatListItem
+              chat={item}
+              currentUserId={currentUser?.id || ''}
+              users={users}
+            />
+          )}
+          ListEmptyComponent={messageText.length > 0 ? renderEmptyComponent: <></>}
+          contentContainerStyle={styles.listContainer}
+        />
       }
 
 
