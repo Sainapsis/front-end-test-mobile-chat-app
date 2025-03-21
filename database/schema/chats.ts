@@ -8,6 +8,7 @@ export const chatParticipants = sqliteTable("chat_participants", {
   id: text("id").primaryKey(),
   chatId: text("chat_id").notNull().references(() => chats.id),
   userId: text("user_id").notNull(),
+  unreadedMessages: integer("unreaded_messages").notNull().default(0)
 });
 
 export const messages = sqliteTable("messages", {
@@ -16,4 +17,12 @@ export const messages = sqliteTable("messages", {
   senderId: text("sender_id").notNull(),
   text: text("text").notNull(),
   timestamp: integer("timestamp").notNull(),
-}); 
+});
+
+export const messagesReadBy = sqliteTable("messages_read_by", {
+  id: text("id").primaryKey(),
+  messageId: text("message_id").notNull().references(() => messages.id),
+  userId: text("user_id").notNull(),
+  chatId: text("chat_id").notNull(),
+  readed: integer("readed", { mode: "boolean" }).default(false)
+})

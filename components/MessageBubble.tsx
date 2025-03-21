@@ -5,14 +5,16 @@ import { Message } from '@/hooks/useChats';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Avatar } from './Avatar';
 import { User } from '@/hooks/useUser';
+import { IconSymbol } from './ui/IconSymbol';
 
 interface MessageBubbleProps {
   message: Message;
   isCurrentUser: boolean;
   otherUser: User | undefined;
+  isReaded: boolean;
 }
 
-export function MessageBubble({ message, isCurrentUser, otherUser }: MessageBubbleProps) {
+export function MessageBubble({ message, isCurrentUser, otherUser, isReaded }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -28,6 +30,9 @@ export function MessageBubble({ message, isCurrentUser, otherUser }: MessageBubb
           ? [styles.selfContainer]
           : [styles.otherContainer, styles.otherText]]}>
           {isCurrentUser ? '' : otherUser?.name + ' '}{formatTime(message.timestamp)}
+          {isReaded ?
+            <IconSymbol name="checkmark" color="#808080" size={16}></IconSymbol> : <></>
+          }
         </ThemedText>
       </View>
       <View style={[
@@ -71,8 +76,8 @@ const styles = StyleSheet.create({
   otherContainer: {
     alignSelf: 'flex-start',
   },
-  otherText:{
-    marginLeft: 45
+  otherText: {
+    marginLeft: 45,
   },
   bubble: {
     borderRadius: 10,
@@ -105,6 +110,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     opacity: 0.7,
     lineHeight: 11,
+    alignItems: 'center',
   },
   avatar: {
     marginRight: 5
