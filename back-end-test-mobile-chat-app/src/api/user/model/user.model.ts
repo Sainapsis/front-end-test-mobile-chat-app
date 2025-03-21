@@ -15,7 +15,7 @@ export class User {
   @Prop({ select: false, required: true })
   password: string;
 
-  @Prop({enum: ["online", "offline", "away"], required: true })
+  @Prop({enum: ["online", "offline", "away"], required: true, default: "online"})
   status: string;
 
   @Prop()
@@ -25,3 +25,10 @@ export class User {
 export type UserDocument = User & Document;
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+UserSchema.set('toJSON', {
+  transform: (doc, ret) => {
+    delete ret.password;
+    return ret;
+  },
+});

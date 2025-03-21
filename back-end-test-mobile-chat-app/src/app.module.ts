@@ -1,15 +1,19 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './api/auth/auth.module';
 import { UserModule } from './api/user/user.module';
+import { DBModule } from './api/db/db.module';
+import { ChatModule } from './api/chat/chat.module';
+import { MessageModule } from './api/message/message.module';
 
 @Module({
   imports: [
-    MongooseModule.forRoot('mongodb://localhost:27017/myHelp'),
+    DBModule,
     AuthModule,
-    UserModule
+    UserModule, 
+    ChatModule,
+    MessageModule
   ],
   controllers: [AppController],
   providers: [AppService],

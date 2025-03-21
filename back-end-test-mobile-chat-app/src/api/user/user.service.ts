@@ -19,13 +19,12 @@ export class UserService {
     return await this.userModel.findOne(query).select('+password');
   }
 
-  async find(usersFilterQuery: FilterQuery<User>): Promise<User[]> {
-    return this.userModel.find({ usersFilterQuery });
-  }
+  // async find(usersFilterQuery: FilterQuery<User>): Promise<User[]> {
+  //   return this.userModel.find({ usersFilterQuery });
+  // }
 
-  async create(user: any): Promise<any> {
+  async create(user: User): Promise<any> {
     this.logger.log('Creating user.');
-    if (user.facebookId || user.googleId) return this.userModel.create(user);
 
     const hashedPassword = await this.AuthService.getHashedPassword(
       user.password
@@ -35,15 +34,19 @@ export class UserService {
     return newUser.save();
   }
 
-  async findOneAndUpdate(query: any, payload: any): Promise<User> {
-    this.logger.log('Updating User.');
-    return this.userModel.findOneAndUpdate(query, payload, {
-      new: true,
-      upsert: true,
-    });
+  async getPublicProfiles(currentUserId: string): Promise<User[]>{
+    return this.userModel.find({_id: {$ne: currentUserId}},'firstName lastName username status avatar')
   }
 
-  async findOneAndRemove(query: any): Promise<any> {
-    return this.userModel.findOneAndDelete(query);
-  }
+  // async findOneAndUpdate(query: any, payload: any): Promise<User> {
+  //   this.logger.log('Updating User.');
+  //   return this.userModel.findOneAndUpdate(query, payload, {
+  //     new: true,
+  //     upsert: true,
+  //   });
+  // }
+
+  // async findOneAndRemove(query: any): Promise<any> {
+  //   return this.userModel.findOneAndDelete(query);
+  // }
 }
