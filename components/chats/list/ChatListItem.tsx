@@ -2,8 +2,8 @@ import React, { useMemo } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Chat } from '@/hooks/useChats';
-import { Avatar } from './Avatar';
-import { ThemedText } from './ThemedText';
+import { Avatar } from '@/components/ui/user/Avatar';
+import { ThemedText } from '../../ui/text/ThemedText';
 import { User } from '@/hooks/useUser';
 import { useAppContext } from '@/hooks/AppContext';
 
@@ -36,7 +36,7 @@ export function ChatListItem({ chat, currentUserId }: ChatListItemProps) {
 
   const handlePress = () => {
     updateReadStatus(currentUserId, chat.id)
-    navigation.navigate('ChatRoom' as never, { chatId: chat.id } as never);
+    navigation.navigate('chat-room' as never, { chatId: chat.id } as never);
   };
 
   const timeString = useMemo(() => {

@@ -2,11 +2,11 @@ import React from 'react';
 import { StyleSheet, Pressable, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppContext } from '@/hooks/AppContext';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { Avatar } from '@/components/Avatar';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import { ThemedButton } from '@/components/ThemedButton';
+import { ThemedText } from '@/components/ui/text/ThemedText';
+import { ThemedView } from '@/components/ui/layout/ThemedView';
+import { Avatar } from '@/components/ui/user/Avatar';
+import { IconSymbol } from '@/components/ui/icons/IconSymbol';
+import { ThemedButton } from '@/components/ui/buttons/ThemedButton';
 
 export default function ProfileScreen() {
   const { currentUser, logout } = useAppContext();

@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet } from "react-native";
-import { IconSymbol } from "./ui/IconSymbol";
-import { ThemedText } from "./ThemedText";
+import { IconSymbol } from "../icons/IconSymbol";
+import { ThemedText } from "../text/ThemedText";
 
 interface ButtonProps {
     onPress: () => void;
