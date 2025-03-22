@@ -16,7 +16,7 @@ function RootLayoutNav() {
   const { isLoggedIn, loading } = useAppContext();
   return (
     <>
-      <Stack>
+      <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(public)" options={{ headerShown: false }} />
         <Stack.Screen name="(protected)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />

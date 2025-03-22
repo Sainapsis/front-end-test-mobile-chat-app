@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, Pressable, Modal, Platform, UIManager, LayoutAnimation, Animated } from 'react-native';
 import { useAppContext } from '@/hooks/AppContext';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { ChatListItem } from '@/components/ChatListItem';
-import { UserListItem } from '@/components/UserListItem';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import { ThemedInput } from '@/components/ThemedInput';
+import { ThemedText } from '@/components/ui/text/ThemedText';
+import { ThemedView } from '@/components/ui/layout/ThemedView';
+import { ChatListItem } from '@/components/chats/list/ChatListItem';
+import { UserListItem } from '@/components/users/UserListItem';
+import { IconSymbol } from '@/components/ui/icons/IconSymbol';
+import { ThemedInput } from '@/components/ui/inputs/ThemedInput';
 import { User } from '@/hooks/useUser';
 import { Chat } from '@/hooks/useChats';
 

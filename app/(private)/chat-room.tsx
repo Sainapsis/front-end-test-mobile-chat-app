@@ -10,12 +10,12 @@ import {
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAppContext } from '@/hooks/AppContext';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { MessageBubble } from '@/components/MessageBubble';
-import { Avatar } from '@/components/Avatar';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import { ThemedInput } from '@/components/ThemedInput';
+import { ThemedText } from '@/components/ui/text/ThemedText';
+import { ThemedView } from '@/components/ui/layout/ThemedView';
+import { MessageBubble } from '@/components/chats/messages/MessageBubble';
+import { Avatar } from '@/components/ui/user/Avatar';
+import { IconSymbol } from '@/components/ui/icons/IconSymbol';
+import { ThemedInput } from '@/components/ui/inputs/ThemedInput';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();

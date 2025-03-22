@@ -1,6 +1,6 @@
 import { Pressable, TextInput, StyleSheet, Platform, useColorScheme, GestureResponderEvent, ViewStyle } from "react-native";
-import { ThemedView } from "./ThemedView";
-import { IconSymbol } from "./ui/IconSymbol";
+import { ThemedView } from "../layout/ThemedView";
+import { IconSymbol } from "../icons/IconSymbol";
 
 interface ThemedInputProps {
     messageText: string;
