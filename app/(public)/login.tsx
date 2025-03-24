@@ -1,16 +1,10 @@
 import React from 'react';
-import { StyleSheet, FlatList, SafeAreaView, Pressable, Keyboard } from 'react-native';
-import { useRouter } from 'expo-router';
+import { StyleSheet, SafeAreaView, Pressable, Keyboard, Image } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useAppContext } from '@/hooks/AppContext';
-import LoginList from '@/components/login/LoginList';
 import LoginForm from '@/components/login/LoginForm';
 import { ThemedView } from '@/components/ui/layout/ThemedView';
-import { ThemedText } from '@/components/ui/text/ThemedText';
 
 export default function LoginScreen() {
-  const { users, login } = useAppContext();
-  const router = useRouter();
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -18,7 +12,11 @@ export default function LoginScreen() {
       <Pressable onPress={Keyboard.dismiss}>
         <ThemedView style={styles.loginContainer}>
           <ThemedView style={styles.header}>
-            <ThemedText type="title">Welcome to Chat App</ThemedText>
+            <Image
+              source={require('@/assets/images/logo.png')}
+              style={styles.image}
+              resizeMode="cover"
+            />
           </ThemedView>
           {/* <LoginList></LoginList> */}
           <LoginForm></LoginForm>
@@ -31,6 +29,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+    backgroundColor: '#fff'
   },
   loginContainer: {
     justifyContent: 'center',
@@ -39,5 +38,9 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     paddingHorizontal: 20,
+  },
+  image: {
+    width: 125,
+    height: 125,
   },
 }); 

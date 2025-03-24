@@ -9,6 +9,7 @@
       "@/hooks/*": ["./hooks/*"],
       "@/drizzle/*": ["./drizzle/*"],
       "@/providers/*": ["./providers/*"],
+      "@/assets/*": ["./assets/*"]
     }
   },
   "include": [

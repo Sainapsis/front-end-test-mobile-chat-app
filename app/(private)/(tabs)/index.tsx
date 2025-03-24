@@ -7,7 +7,6 @@ import { ChatListItem } from '@/components/chats/list/ChatListItem';
 import { UserListItem } from '@/components/users/UserListItem';
 import { IconSymbol } from '@/components/ui/icons/IconSymbol';
 import { ThemedInput } from '@/components/ui/inputs/ThemedInput';
-import { User } from '@/hooks/user/useUser';
 import { Chat } from '@/hooks/chats/useChats';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {

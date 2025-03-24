@@ -10,8 +10,6 @@ export function ProtectedRoute({ children }: { children: JSX.Element }) {
   useEffect(() => {
     if (loading) return;
 
-    console.log("Current segments:", segments); // Para depuración
-
     const inProtectedGroup = segments.includes('(private)' as never); // Nueva forma de verificar
 
     if (!isLoggedIn && inProtectedGroup) {

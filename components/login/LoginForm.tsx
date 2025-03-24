@@ -11,7 +11,9 @@ export default function LoginList() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const { users, login } = useAppContext();
+
     const router = useRouter();
+    
     const handleUserSelect = async (userId: string) => {
         if (await login(userId)) {
             router.replace('/(private)/(tabs)');
