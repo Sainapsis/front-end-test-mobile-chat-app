@@ -1,12 +1,12 @@
 import React from 'react';
-import { StyleSheet, FlatList, SafeAreaView } from 'react-native';
+import { StyleSheet, FlatList, SafeAreaView, Pressable, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAppContext } from '@/hooks/AppContext';
-import { ThemedText } from '@/components/ui/text/ThemedText';
-import { ThemedView } from '@/components/ui/layout/ThemedView';
-import { UserListItem } from '@/components/users/UserListItem';
 import LoginList from '@/components/login/LoginList';
+import LoginForm from '@/components/login/LoginForm';
+import { ThemedView } from '@/components/ui/layout/ThemedView';
+import { ThemedText } from '@/components/ui/text/ThemedText';
 
 export default function LoginScreen() {
   const { users, login } = useAppContext();
@@ -15,7 +15,15 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="auto" />
-      <LoginList></LoginList>
+      <Pressable onPress={Keyboard.dismiss}>
+        <ThemedView style={styles.loginContainer}>
+          <ThemedView style={styles.header}>
+            <ThemedText type="title">Welcome to Chat App</ThemedText>
+          </ThemedView>
+          {/* <LoginList></LoginList> */}
+          <LoginForm></LoginForm>
+        </ThemedView>
+      </Pressable>
     </SafeAreaView>
   );
 }
@@ -23,5 +31,13 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+  },
+  loginContainer: {
+    justifyContent: 'center',
+    height: '100%'
+  },
+  header: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
   },
 }); 

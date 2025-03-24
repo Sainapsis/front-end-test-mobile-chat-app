@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { db } from '../../database/db';
-import { users } from '../../database/schema';
+import { db } from '@/providers/database/db';
+import { users } from '@/providers/database/schema';
 import { eq } from 'drizzle-orm';
 import * as SecureStore from 'expo-secure-store';
 

@@ -1,18 +1,19 @@
-import { Pressable, StyleSheet } from "react-native";
+import { Pressable, StyleSheet, ViewStyle } from "react-native";
 import { IconSymbol } from "../icons/IconSymbol";
 import { ThemedText } from "../text/ThemedText";
 
 interface ButtonProps {
     onPress: () => void;
     buttonText: string;
-    iconName: any;
+    iconName?: any;
+    style?: ViewStyle;
 }
-export function ThemedButton({ onPress, buttonText, iconName }: ButtonProps) {
+export function ThemedButton({ onPress, buttonText, iconName, style }: ButtonProps) {
     {
         return (
-            <Pressable style={styles.md} onPress={onPress}>
+            <Pressable style={[styles.md, {...style}]} onPress={onPress}>
                 <ThemedText style={styles.boldText} type="subtitle">{buttonText}</ThemedText>
-                <IconSymbol name={iconName} size={20} color="#FFFFFF" />
+                {iconName ? <IconSymbol name={iconName} size={20} color="#FFFFFF" /> : <></>}
             </Pressable>
         )
     }
@@ -21,15 +22,17 @@ export function ThemedButton({ onPress, buttonText, iconName }: ButtonProps) {
 const styles = StyleSheet.create({
     md: {
         flexDirection: 'row',
-        backgroundColor: '#3d6ee5',
+        backgroundColor: '#3d63c9',
         padding: 10,
         borderRadius: 10,
         alignItems: 'center',
         justifyContent: 'center',
-        marginHorizontal: 20,
+        height: 50,
+        marginHorizontal: 10
     },
     boldText: {
         marginLeft: 10,
-        color: "#FFF"
+        color: "#FFF",
+        fontSize: 16
     }
 })

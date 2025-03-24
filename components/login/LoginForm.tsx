@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ThemedView } from '@/components/ui/layout/ThemedView';
 import { ThemedText } from '@/components/ui/text/ThemedText';
-import { FlatList, StyleSheet} from 'react-native';
-import { UserListItem } from '@/components/users/UserListItem';
+import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useAppContext } from '@/hooks/AppContext';
 import { useRouter } from 'expo-router';
+import { ThemedInput } from '@/components/ui/inputs/ThemedInput';
+import { ThemedButton } from '../ui/buttons/ThemedButton';
 
 export default function LoginList() {
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
     const { users, login } = useAppContext();
     const router = useRouter();
     const handleUserSelect = async (userId: string) => {
@@ -15,42 +18,33 @@ export default function LoginList() {
         }
     };
     return (
-        <ThemedView style={styles.container}>
-            <ThemedView style={styles.header}>
-                <ThemedText type="title">Welcome to Chat App</ThemedText>
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
+            <ThemedView style={styles.container}>
+                <ThemedInput textValue={username} setTextValue={setUsername} placeholder='Username' label="Username" textArea={false} autoCorrect={false}></ThemedInput>
+                <ThemedInput textValue={password} setTextValue={setPassword} placeholder='Password' label="Password" textArea={false} autoCorrect={false}></ThemedInput>
+                <ThemedButton onPress={()=>{}} buttonText='Continue' style={styles.loginButton}></ThemedButton>
             </ThemedView>
-
-            <FlatList
-                data={users}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                    <UserListItem
-                        user={item}
-                        onSelect={() => handleUserSelect(item.id)}
-                    />
-                )}
-                contentContainerStyle={styles.listContainer}
-            />
-        </ThemedView>
+        </KeyboardAvoidingView>
     )
 }
 
 const styles = StyleSheet.create({
+    loginButton: {
+        marginTop: 20
+    },
     container: {
-        flex: 1,
-        paddingTop: 20,
-      },
-      header: {
-        alignItems: 'center',
-        padding: 20,
-        marginBottom: 20,
-      },
-      subtitle: {
+        paddingHorizontal: 10
+
+    },
+    subtitle: {
         marginTop: 10,
         fontSize: 16,
         color: '#8F8F8F',
-      },
-      listContainer: {
+    },
+    listContainer: {
         paddingBottom: 20,
-      },
+    },
 })

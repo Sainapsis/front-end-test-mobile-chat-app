@@ -1,5 +1,5 @@
-import { db } from './db';
-import { users, chats, chatParticipants, messages, messagesReadBy } from './schema';
+import { db } from '@/providers/database/db';
+import { users, chats, chatParticipants, messages, messagesReadBy } from '@/providers/database/schema';
 
 // Mock user data from the original useUser hook
 const mockUsers = [

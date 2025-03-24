@@ -7,8 +7,8 @@ import { ChatListItem } from '@/components/chats/list/ChatListItem';
 import { UserListItem } from '@/components/users/UserListItem';
 import { IconSymbol } from '@/components/ui/icons/IconSymbol';
 import { ThemedInput } from '@/components/ui/inputs/ThemedInput';
-import { User } from '@/hooks/useUser';
-import { Chat } from '@/hooks/useChats';
+import { User } from '@/hooks/user/useUser';
+import { Chat } from '@/hooks/chats/useChats';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -17,7 +17,7 @@ export default function ChatsScreen() {
   const { currentUser, users, chats, createChat } = useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [messageText, setMessageText] = useState('');
+  const [searchText, setSearchText] = useState('');
   const [filteredChats, setFilteredChats] = useState<Chat[]>([]);
 
   const headerAnim = useRef(new Animated.Value(1)).current;
@@ -26,7 +26,7 @@ export default function ChatsScreen() {
 
   useEffect(() => {
     const wasEmpty = prevTextRef.current.length === 0;
-    const isEmpty = messageText.length === 0;
+    const isEmpty = searchText.length === 0;
     if (wasEmpty !== isEmpty) {
       Animated.timing(headerAnim, {
         toValue: isEmpty ? 1 : 0,
@@ -34,8 +34,8 @@ export default function ChatsScreen() {
         useNativeDriver: false,
       }).start();
     }
-    prevTextRef.current = messageText;
-  }, [messageText, headerAnim]);
+    prevTextRef.current = searchText;
+  }, [searchText, headerAnim]);
 
   const headerHeight = headerAnim.interpolate({
     inputRange: [0, 1],
@@ -61,7 +61,7 @@ export default function ChatsScreen() {
   };
 
   const handleChangeSearchText = (text: string) => {
-    setMessageText(text)
+    setSearchText(text)
     if (debounceTimeout.current) {
       clearTimeout(debounceTimeout.current);
     }
@@ -95,9 +95,9 @@ export default function ChatsScreen() {
         </Pressable>
       </Animated.View>
       <Animated.View>
-        <ThemedInput style={styles.searchBarContainer} messageText={messageText} setMessageText={handleChangeSearchText} placeholder='Search' ></ThemedInput>
+        <ThemedInput style={styles.searchBarContainer} textValue={searchText} setTextValue={handleChangeSearchText} placeholder='Search' textArea={false} ></ThemedInput>
       </Animated.View>
-      {messageText.length === 0 ?
+      {searchText.length === 0 ?
         <FlatList
           data={chats}
           keyExtractor={(item) => item.id}
@@ -120,7 +120,7 @@ export default function ChatsScreen() {
               users={users}
             />
           )}
-          ListEmptyComponent={messageText.length > 0 ? renderEmptyComponent: <></>}
+          ListEmptyComponent={searchText.length > 0 ? renderEmptyComponent: <></>}
           contentContainerStyle={styles.listContainer}
         />
       }
@@ -263,7 +263,6 @@ const styles = StyleSheet.create({
   },
   searchBarContainer: {
     paddingBottom: 0,
-    paddingTop: 0,
-    paddingHorizontal: 15
+    paddingTop: 0
   }
 });

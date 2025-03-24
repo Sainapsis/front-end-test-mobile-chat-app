@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { db } from '../../database/db';
-import { chats, chatParticipants, messages, messagesReadBy, users } from '../../database/schema';
+import { db } from '@/providers/database/db';
+import { chats, chatParticipants, messages, messagesReadBy, users } from '@/providers/database/schema';
 import { eq, and } from 'drizzle-orm';
-import { User } from '../useUser';
+import { User } from '@/hooks/user/useUser';
 
 export interface Message {
   id: string;

@@ -3,12 +3,12 @@ import * as SecureStore from 'expo-secure-store';
 
 const API_BASE_URL = 'http://localhost:3000';
 
-const api = axios.create({
+const apiService = axios.create({
   baseURL: API_BASE_URL,
 });
 
 // Interceptor para agregar el token en cada request
-api.interceptors.request.use(async (config) => {
+apiService.interceptors.request.use(async (config) => {
   const token = await SecureStore.getItemAsync('userSession');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -16,4 +16,4 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-export default api;
+export default apiService;

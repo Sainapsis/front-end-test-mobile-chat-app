@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/expo-sqlite';
 import * as SQLite from 'expo-sqlite';
-import * as schema from './schema';
+import * as schema from '@/providers/database/schema';
 
 // Open a database connection using the correct async API from Expo SQLite
 const sqlite = SQLite.openDatabaseSync('chat-app.db');
