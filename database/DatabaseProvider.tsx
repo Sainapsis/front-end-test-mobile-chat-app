@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useContext, ReactNode } from
 import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
 import { initializeDatabase } from './db';
 import { seedDatabase } from './seed';
+import * as FileSystem from 'expo-file-system';
 
 interface DatabaseContextType {
   isInitialized: boolean;
@@ -29,12 +30,30 @@ export function DatabaseProvider({ children }: DatabaseProviderProps) {
 
     async function setupDatabase() {
       try {
-        console.log('Initializing database...');
-        // Initialize the database schema
+        // Delete existing database file if it exists
+        const dbPath = `${FileSystem.documentDirectory}chat-app.db`;
+        console.log('Checking database at:', dbPath);
+        const dbExists = await FileSystem.getInfoAsync(dbPath);
+        
+        if (dbExists.exists) {
+          console.log('Found existing database, deleting...');
+          try {
+            await FileSystem.deleteAsync(dbPath, { idempotent: true });
+            console.log('Database deleted successfully');
+          } catch (deleteError) {
+            console.error('Error deleting database:', deleteError);
+          }
+        } else {
+          console.log('No existing database found');
+        }
+
+        // Small delay to ensure file system operations complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        console.log('Initializing new database...');
         await initializeDatabase();
         console.log('Database initialized');
         
-        // Seed the database with initial data
         await seedDatabase();
         console.log('Database seeded');
         

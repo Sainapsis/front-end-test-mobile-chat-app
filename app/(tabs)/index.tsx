@@ -44,7 +44,7 @@ export default function ChatsScreen() {
           style={styles.newChatButton}
           onPress={() => setModalVisible(true)}
         >
-          <IconSymbol name="plus" size={24} color="#007AFF" />
+          <IconSymbol name="add" size={24} color="#007AFF" />
         </Pressable>
       </ThemedView>
 
@@ -79,7 +79,7 @@ export default function ChatsScreen() {
                 setModalVisible(false);
                 setSelectedUsers([]);
               }}>
-                <IconSymbol name="xmark" size={24} color="#007AFF" />
+                <IconSymbol name="close" size={24} color="#007AFF" />
               </Pressable>
             </ThemedView>
 

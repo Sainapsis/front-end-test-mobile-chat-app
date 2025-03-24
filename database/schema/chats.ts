@@ -16,4 +16,7 @@ export const messages = sqliteTable("messages", {
   senderId: text("sender_id").notNull(),
   text: text("text").notNull(),
   timestamp: integer("timestamp").notNull(),
+  imageUri: text("image_uri"),
+  imagePreviewUri: text("image_preview_uri"),
+  messageType: text("message_type").notNull().default("text"),
 }); 

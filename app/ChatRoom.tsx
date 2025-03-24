@@ -6,10 +6,14 @@ import {
   TextInput, 
   Pressable, 
   KeyboardAvoidingView, 
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -21,6 +25,10 @@ export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const { currentUser, users, chats, sendMessage } = useAppContext();
   const [messageText, setMessageText] = useState('');
+  const [selectedImage, setSelectedImage] = useState<{
+    uri: string;
+    previewUri: string;
+  } | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
   
@@ -35,11 +43,62 @@ export default function ChatRoomScreen() {
     ? chatParticipants[0]?.name 
     : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
 
-  const handleSendMessage = () => {
-    if (messageText.trim() && currentUser && chat) {
-      sendMessage(chat.id, messageText.trim(), currentUser.id);
-      setMessageText('');
+  const handleImagePick = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (permissionResult.granted === false) {
+      alert('Permission to access camera roll is required!');
+      return;
     }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      const originalUri = result.assets[0].uri;
+      
+      // Create optimized preview
+      const preview = await manipulateAsync(
+        originalUri,
+        [{ resize: { width: 400 } }],
+        { compress: 0.7, format: SaveFormat.JPEG }
+      );
+
+      // Save images to app's cache directory
+      const timestamp = Date.now();
+      const originalFilename = `${timestamp}_original.jpg`;
+      const previewFilename = `${timestamp}_preview.jpg`;
+      
+      const cacheDir = FileSystem.cacheDirectory;
+      const originalDestUri = `${cacheDir}${originalFilename}`;
+      const previewDestUri = `${cacheDir}${previewFilename}`;
+      
+      await FileSystem.copyAsync({
+        from: originalUri,
+        to: originalDestUri
+      });
+      
+      await FileSystem.copyAsync({
+        from: preview.uri,
+        to: previewDestUri
+      });
+
+      setSelectedImage({
+        uri: originalDestUri,
+        previewUri: previewDestUri
+      });
+    }
+  };
+
+  const handleSendMessage = () => {
+    if ((!messageText.trim() && !selectedImage) || !currentUser || !chat) return;
+    
+    sendMessage(chat.id, messageText.trim(), currentUser.id, selectedImage || undefined);
+    setMessageText('');
+    setSelectedImage(null);
   };
 
   useEffect(() => {
@@ -81,7 +140,7 @@ export default function ChatRoomScreen() {
           ),
           headerLeft: () => (
             <Pressable onPress={() => router.back()}>
-              <IconSymbol name="chevron.left" size={24} color="#007AFF" />
+              <IconSymbol name="chevron-left" size={24} color="#007AFF" />
             </Pressable>
           ),
         }} 
@@ -105,7 +164,28 @@ export default function ChatRoomScreen() {
         )}
       />
 
+      {selectedImage && (
+        <ThemedView style={styles.selectedImageContainer}>
+          <Image 
+            source={{ uri: selectedImage.previewUri }}
+            style={styles.selectedImagePreview}
+          />
+          <Pressable 
+            onPress={() => setSelectedImage(null)}
+            style={styles.removeImageButton}
+          >
+            <IconSymbol name="cancel" size={24} color="#FF3B30" />
+          </Pressable>
+        </ThemedView>
+      )}
+
       <ThemedView style={styles.inputContainer}>
+        <Pressable
+          style={styles.attachButton}
+          onPress={handleImagePick}
+        >
+          <IconSymbol name="photo" size={24} color="#007AFF" />
+        </Pressable>
         <TextInput
           style={styles.input}
           value={messageText}
@@ -114,11 +194,11 @@ export default function ChatRoomScreen() {
           multiline
         />
         <Pressable
-          style={[styles.sendButton, !messageText.trim() && styles.disabledButton]}
+          style={[styles.sendButton, !messageText.trim() && !selectedImage && styles.disabledButton]}
           onPress={handleSendMessage}
-          disabled={!messageText.trim()}
+          disabled={!messageText.trim() && !selectedImage}
         >
-          <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />
+          <IconSymbol name="arrow-upward" size={32} color="#007AFF" />
         </Pressable>
       </ThemedView>
     </KeyboardAvoidingView>
@@ -171,5 +251,26 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.5,
+  },
+  attachButton: {
+    marginRight: 10,
+    marginBottom: 10,
+  },
+  selectedImageContainer: {
+    padding: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E1E1E1',
+  },
+  selectedImagePreview: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: 'white',
+    borderRadius: 12,
   },
 }); 

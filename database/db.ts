@@ -40,12 +40,16 @@ export async function initializeDatabase() {
     
     console.log('Creating messages table...');
     await sqlite.execAsync(`
-      CREATE TABLE IF NOT EXISTS messages (
+      DROP TABLE IF EXISTS messages;
+      CREATE TABLE messages (
         id TEXT PRIMARY KEY,
         chat_id TEXT NOT NULL,
         sender_id TEXT NOT NULL,
         text TEXT NOT NULL,
+        message_type TEXT NOT NULL DEFAULT 'text',
         timestamp INTEGER NOT NULL,
+        image_uri TEXT,
+        image_preview_uri TEXT,
         FOREIGN KEY (chat_id) REFERENCES chats (id)
       );
     `);

@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../database/db';
 import { chats, chatParticipants, messages } from '../../database/schema';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq} from 'drizzle-orm';
 
 export interface Message {
   id: string;
   senderId: string;
   text: string;
   timestamp: number;
+  imageUri?: string;
+  imagePreviewUri?: string;
+  messageType: 'text' | 'image';
 }
 
 export interface Chat {
@@ -77,6 +80,9 @@ export function useChatsDb(currentUserId: string | null) {
             senderId: m.senderId,
             text: m.text,
             timestamp: m.timestamp,
+            imageUri: m.imageUri ?? undefined,
+            imagePreviewUri: m.imagePreviewUri ?? undefined,
+            messageType: m.messageType as 'text' | 'image',
           }));
           
           // Determine last message
@@ -139,12 +145,18 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, [currentUserId]);
 
-  const sendMessage = useCallback(async (chatId: string, text: string, senderId: string) => {
-    if (!text.trim()) return false;
+  const sendMessage = useCallback(async (
+    chatId: string, 
+    text: string, 
+    senderId: string,
+    imageData?: { uri: string; previewUri: string }
+  ) => {
+    if (!text.trim() && !imageData) return false;
     
     try {
       const messageId = `msg${Date.now()}`;
       const timestamp = Date.now();
+      const messageType = imageData ? 'image' : 'text';
       
       // Insert new message
       await db.insert(messages).values({
@@ -153,6 +165,9 @@ export function useChatsDb(currentUserId: string | null) {
         senderId: senderId,
         text: text,
         timestamp: timestamp,
+        imageUri: imageData?.uri,
+        imagePreviewUri: imageData?.previewUri,
+        messageType: messageType,
       });
       
       const newMessage: Message = {
@@ -160,6 +175,9 @@ export function useChatsDb(currentUserId: string | null) {
         senderId,
         text,
         timestamp,
+        imageUri: imageData?.uri,
+        imagePreviewUri: imageData?.previewUri,
+        messageType,
       };
       
       // Update state
