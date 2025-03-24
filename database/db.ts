@@ -50,7 +50,19 @@ export async function initializeDatabase() {
         timestamp INTEGER NOT NULL,
         image_uri TEXT,
         image_preview_uri TEXT,
+        status TEXT NOT NULL DEFAULT 'sent',
         FOREIGN KEY (chat_id) REFERENCES chats (id)
+      );
+    `);
+    
+    console.log('Creating message_read_receipts table...');
+    await sqlite.execAsync(`
+      CREATE TABLE IF NOT EXISTS message_read_receipts (
+        id TEXT PRIMARY KEY,
+        message_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        timestamp INTEGER NOT NULL,
+        FOREIGN KEY (message_id) REFERENCES messages (id)
       );
     `);
     

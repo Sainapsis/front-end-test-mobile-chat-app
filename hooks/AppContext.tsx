@@ -18,6 +18,7 @@ type AppContextType = {
     senderId: string, 
     imageData?: { uri: string; previewUri: string }
   ) => Promise<boolean>;
+  markMessageAsRead: (messageId: string, userId: string) => Promise<boolean>;
   loading: boolean;
   dbInitialized: boolean;
 };
@@ -27,18 +28,31 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 function AppContent({ children }: { children: ReactNode }) {
   const { isInitialized } = useDatabase();
   const userContext = useUser();
-  const chatContext = useChats(userContext.currentUser?.id || null);
+  const {
+    chats,
+    createChat,
+    sendMessage,
+    markMessageAsRead,
+    loading: chatsLoading,
+  } = useChats(userContext.currentUser?.id || null);
   
-  const loading = !isInitialized || userContext.loading || chatContext.loading;
+  const loading = !isInitialized || userContext.loading || chatsLoading;
 
-  const value = {
-    ...userContext,
-    ...chatContext,
+  const contextValue: AppContextType = {
+    users: userContext.users,
+    currentUser: userContext.currentUser,
+    isLoggedIn: !!userContext.currentUser,
+    login: userContext.login,
+    logout: userContext.logout,
+    chats,
+    createChat,
+    sendMessage,
+    markMessageAsRead,
     loading,
     dbInitialized: isInitialized,
   };
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>;
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {

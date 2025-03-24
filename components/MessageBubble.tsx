@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, StyleSheet, Image, Pressable, Modal } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { ThemedText } from "./ThemedText";
 import { Message } from "@/hooks/useChats";
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -17,6 +18,42 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const renderMessageStatus = () => {
+    if (!isCurrentUser) return null;
+
+    const iconColor = isDark ? "#FFFFFF80" : "#00000080";
+    const iconSize = 14;
+
+    switch (message.status) {
+      case "sent":
+        return (
+          <MaterialIcons 
+            name="check" 
+            size={iconSize} 
+            color={iconColor} 
+          />
+        );
+      case "delivered":
+        return (
+          <MaterialIcons 
+            name="done-all" 
+            size={iconSize} 
+            color={iconColor} 
+          />
+        );
+      case "read":
+        return (
+          <MaterialIcons 
+            name="done-all" 
+            size={iconSize} 
+            color="#4CAF50" 
+          />
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -70,10 +107,11 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
             )}
           </View>
         )}
-        <View style={styles.timeContainer}>
+        <View style={styles.messageFooter}>
           <ThemedText style={styles.timeText}>
             {formatTime(message.timestamp)}
           </ThemedText>
+          {renderMessageStatus()}
         </View>
       </View>
 
@@ -129,10 +167,12 @@ const styles = StyleSheet.create({
   selfMessageText: {
     color: "#000000",
   },
-  timeContainer: {
+  messageFooter: {
     flexDirection: "row",
     justifyContent: "flex-end",
+    alignItems: "center",
     marginTop: 2,
+    gap: 4,
   },
   timeText: {
     fontSize: 11,

@@ -1,16 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../database/db';
-import { chats, chatParticipants, messages } from '../../database/schema';
-import { eq} from 'drizzle-orm';
+import { chats, chatParticipants, messages, messageReadReceipts } from '../../database/schema';
+import { eq, inArray } from 'drizzle-orm';
 
 export interface Message {
   id: string;
   senderId: string;
   text: string;
   timestamp: number;
+  messageType: 'text' | 'image';
   imageUri?: string;
   imagePreviewUri?: string;
-  messageType: 'text' | 'image';
+  status: 'sent' | 'delivered' | 'read';
+  readBy?: { userId: string; timestamp: number }[];
 }
 
 export interface Chat {
@@ -24,72 +26,84 @@ export function useChatsDb(currentUserId: string | null) {
   const [userChats, setUserChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load chats for the current user
   useEffect(() => {
+    if (!currentUserId) {
+      setUserChats([]);
+      setLoading(false);
+      return;
+    }
+
     const loadChats = async () => {
-      if (!currentUserId) {
-        setUserChats([]);
-        setLoading(false);
-        return;
-      }
-      
       try {
-        // Get chat IDs where the user is a participant
-        const participantRows = await db
+        // Get all chats where the current user is a participant
+        const participantData = await db
           .select()
           .from(chatParticipants)
           .where(eq(chatParticipants.userId, currentUserId));
-          
-        const chatIds = participantRows.map(row => row.chatId);
-        
-        if (chatIds.length === 0) {
-          setUserChats([]);
-          setLoading(false);
-          return;
-        }
-        
-        // Build the complete chat objects
+
+        const chatIds = participantData.map(p => p.chatId);
         const loadedChats: Chat[] = [];
-        
+
         for (const chatId of chatIds) {
           // Get the chat
           const chatData = await db
             .select()
             .from(chats)
             .where(eq(chats.id, chatId));
-            
+
           if (chatData.length === 0) continue;
-          
+
           // Get participants
           const participantsData = await db
             .select()
             .from(chatParticipants)
             .where(eq(chatParticipants.chatId, chatId));
-            
+
           const participantIds = participantsData.map(p => p.userId);
-          
-          // Get messages
+
+          // Get messages with read receipts
           const messagesData = await db
             .select()
             .from(messages)
             .where(eq(messages.chatId, chatId))
             .orderBy(messages.timestamp);
-            
+
+          // Get read receipts for all messages
+          const messageIds = messagesData.map(m => m.id);
+          const readReceiptsData = await db
+            .select()
+            .from(messageReadReceipts)
+            .where(inArray(messageReadReceipts.messageId, messageIds));
+
+          // Group read receipts by message
+          const readReceiptsByMessage = readReceiptsData.reduce((acc, receipt) => {
+            if (!acc[receipt.messageId]) {
+              acc[receipt.messageId] = [];
+            }
+            acc[receipt.messageId].push({
+              userId: receipt.userId,
+              timestamp: receipt.timestamp,
+            });
+            return acc;
+          }, {} as Record<string, { userId: string; timestamp: number }[]>);
+
           const chatMessages = messagesData.map(m => ({
             id: m.id,
             senderId: m.senderId,
             text: m.text,
             timestamp: m.timestamp,
-            imageUri: m.imageUri ?? undefined,
-            imagePreviewUri: m.imagePreviewUri ?? undefined,
             messageType: m.messageType as 'text' | 'image',
+            imageUri: m.imageUri || undefined,
+            imagePreviewUri: m.imagePreviewUri || undefined,
+            status: m.status as 'sent' | 'delivered' | 'read',
+            readBy: readReceiptsByMessage[m.id] || [],
           }));
-          
+
           // Determine last message
-          const lastMessage = chatMessages.length > 0 
-            ? chatMessages[chatMessages.length - 1] 
+          const lastMessage = chatMessages.length > 0
+            ? chatMessages[chatMessages.length - 1]
             : undefined;
-          
+
           loadedChats.push({
             id: chatId,
             participants: participantIds,
@@ -97,7 +111,7 @@ export function useChatsDb(currentUserId: string | null) {
             lastMessage,
           });
         }
-        
+
         setUserChats(loadedChats);
       } catch (error) {
         console.error('Error loading chats:', error);
@@ -105,7 +119,7 @@ export function useChatsDb(currentUserId: string | null) {
         setLoading(false);
       }
     };
-    
+
     loadChats();
   }, [currentUserId]);
 
@@ -145,19 +159,62 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, [currentUserId]);
 
+  const markMessageAsRead = useCallback(async (messageId: string, userId: string) => {
+    try {
+      const receiptId = `receipt-${Date.now()}-${userId}`;
+      const timestamp = Date.now();
+
+      // Insert read receipt
+      await db.insert(messageReadReceipts).values({
+        id: receiptId,
+        messageId,
+        userId,
+        timestamp,
+      });
+
+      // Update message status
+      await db
+        .update(messages)
+        .set({ status: 'read' })
+        .where(eq(messages.id, messageId));
+
+      // Update state
+      setUserChats(prevChats => {
+        return prevChats.map(chat => ({
+          ...chat,
+          messages: chat.messages.map(msg => {
+            if (msg.id === messageId) {
+              return {
+                ...msg,
+                status: 'read' as const,
+                readBy: [...(msg.readBy || []), { userId, timestamp }],
+              };
+            }
+            return msg;
+          }),
+        }));
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+      return false;
+    }
+  }, []);
+
   const sendMessage = useCallback(async (
-    chatId: string, 
-    text: string, 
+    chatId: string,
+    text: string,
     senderId: string,
     imageData?: { uri: string; previewUri: string }
   ) => {
     if (!text.trim() && !imageData) return false;
-    
+
     try {
       const messageId = `msg${Date.now()}`;
       const timestamp = Date.now();
       const messageType = imageData ? 'image' : 'text';
-      
+
       // Insert new message
       await db.insert(messages).values({
         id: messageId,
@@ -165,21 +222,24 @@ export function useChatsDb(currentUserId: string | null) {
         senderId: senderId,
         text: text,
         timestamp: timestamp,
+        messageType: messageType,
         imageUri: imageData?.uri,
         imagePreviewUri: imageData?.previewUri,
-        messageType: messageType,
+        status: 'sent',
       });
-      
+
       const newMessage: Message = {
         id: messageId,
         senderId,
         text,
         timestamp,
+        messageType,
         imageUri: imageData?.uri,
         imagePreviewUri: imageData?.previewUri,
-        messageType,
+        status: 'sent',
+        readBy: [],
       };
-      
+
       // Update state
       setUserChats(prevChats => {
         return prevChats.map(chat => {
@@ -193,7 +253,7 @@ export function useChatsDb(currentUserId: string | null) {
           return chat;
         });
       });
-      
+
       return true;
     } catch (error) {
       console.error('Error sending message:', error);
@@ -205,6 +265,7 @@ export function useChatsDb(currentUserId: string | null) {
     chats: userChats,
     createChat,
     sendMessage,
+    markMessageAsRead,
     loading,
   };
 } 

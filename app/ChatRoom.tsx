@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   View, 
   StyleSheet, 
@@ -7,7 +7,9 @@ import {
   Pressable, 
   KeyboardAvoidingView, 
   Platform,
-  Image
+  Image,
+  ViewToken,
+  ViewabilityConfig
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -20,10 +22,11 @@ import { ThemedView } from '@/components/ThemedView';
 import { MessageBubble } from '@/components/MessageBubble';
 import { Avatar } from '@/components/Avatar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { Message } from '@/hooks/useChats';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, users, chats, sendMessage } = useAppContext();
+  const { currentUser, users, chats, sendMessage, markMessageAsRead } = useAppContext();
   const [messageText, setMessageText] = useState('');
   const [selectedImage, setSelectedImage] = useState<{
     uri: string;
@@ -42,6 +45,36 @@ export default function ChatRoomScreen() {
   const chatName = chatParticipants.length === 1 
     ? chatParticipants[0]?.name 
     : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
+
+  // Mark messages as read when they appear in the viewport
+  const handleViewableItemsChanged = useCallback(({ 
+    viewableItems 
+  }: {
+    viewableItems: ViewToken[];
+    changed: ViewToken[];
+  }) => {
+    if (!currentUser) return;
+
+    viewableItems.forEach((viewToken) => {
+      const message = viewToken.item as Message;
+      if (
+        message &&
+        message.senderId !== currentUser.id && 
+        message.status !== 'read' &&
+        (!message.readBy || !message.readBy.some(receipt => receipt.userId === currentUser.id))
+      ) {
+        markMessageAsRead(message.id, currentUser.id);
+      }
+    });
+  }, [currentUser, markMessageAsRead]);
+
+  const viewabilityConfig: ViewabilityConfig = {
+    itemVisiblePercentThreshold: 50,
+  };
+
+  const viewabilityConfigCallbackPairs = useRef([
+    { viewabilityConfig, onViewableItemsChanged: handleViewableItemsChanged }
+  ]);
 
   const handleImagePick = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -162,6 +195,7 @@ export default function ChatRoomScreen() {
             <ThemedText>No messages yet. Say hello!</ThemedText>
           </ThemedView>
         )}
+        viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
       />
 
       {selectedImage && (

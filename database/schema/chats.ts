@@ -16,7 +16,15 @@ export const messages = sqliteTable("messages", {
   senderId: text("sender_id").notNull(),
   text: text("text").notNull(),
   timestamp: integer("timestamp").notNull(),
+  messageType: text("message_type").notNull().default("text"),
   imageUri: text("image_uri"),
   imagePreviewUri: text("image_preview_uri"),
-  messageType: text("message_type").notNull().default("text"),
+  status: text("status").notNull().default("sent"),
+});
+
+export const messageReadReceipts = sqliteTable("message_read_receipts", {
+  id: text("id").primaryKey(),
+  messageId: text("message_id").notNull().references(() => messages.id),
+  userId: text("user_id").notNull(),
+  timestamp: integer("timestamp").notNull(),
 }); 
