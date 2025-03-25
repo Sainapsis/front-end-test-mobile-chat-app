@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, StyleSheet, Image, Pressable, Modal, Alert, TextInput, TouchableOpacity } from "react-native";
+import React, { useState, memo } from "react";
+import { View, StyleSheet, Pressable, Modal, Alert, TextInput, TouchableOpacity } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { ThemedText } from "./ThemedText";
 import { Message } from "@/hooks/useChats";
@@ -8,6 +8,7 @@ import { MessageReactions } from './MessageReactions';
 import { useAppContext } from "@/hooks/AppContext";
 import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
 import { ForwardMessageModal } from "./ForwardMessageModal";
+import { OptimizedImage } from "./OptimizedImage";
 
 interface MessageBubbleProps {
   message: Message;
@@ -15,7 +16,7 @@ interface MessageBubbleProps {
   senderName?: string;
 }
 
-export function MessageBubble({ message, isCurrentUser, senderName }: MessageBubbleProps) {
+function MessageBubbleComponent({ message, isCurrentUser, senderName }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const [showFullImage, setShowFullImage] = useState(false);
@@ -194,7 +195,7 @@ export function MessageBubble({ message, isCurrentUser, senderName }: MessageBub
         return (
           <View>
             <Pressable onPress={() => setShowFullImage(true)}>
-              <Image
+              <OptimizedImage
                 source={{ uri: message.imagePreviewUri ?? message.imageUri }}
                 style={styles.previewImage}
                 resizeMode="cover"
@@ -290,7 +291,7 @@ export function MessageBubble({ message, isCurrentUser, senderName }: MessageBub
           style={styles.modalContainer}
           onPress={() => setShowFullImage(false)}
         >
-          <Image
+          <OptimizedImage
             source={{ uri: message.imageUri }}
             style={styles.fullImage}
             resizeMode="contain"
@@ -311,6 +312,21 @@ export function MessageBubble({ message, isCurrentUser, senderName }: MessageBub
     </Pressable>
   );
 }
+
+// Utilizamos React.memo para evitar renderizaciones innecesarias
+export const MessageBubble = memo(MessageBubbleComponent, (prevProps, nextProps) => {
+  // Solo volver a renderizar si cambia alguna de estas propiedades
+  return (
+    prevProps.message.id === nextProps.message.id &&
+    prevProps.message.text === nextProps.message.text &&
+    prevProps.message.status === nextProps.message.status &&
+    prevProps.message.isEdited === nextProps.message.isEdited &&
+    prevProps.message.isDeleted === nextProps.message.isDeleted &&
+    prevProps.isCurrentUser === nextProps.isCurrentUser &&
+    prevProps.senderName === nextProps.senderName &&
+    prevProps.message.reactions.length === nextProps.message.reactions.length
+  );
+});
 
 const styles = StyleSheet.create({
   container: {

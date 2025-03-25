@@ -13,6 +13,7 @@ export function useChats(currentUserId: string | null) {
     editMessage,
     deleteMessage,
     forwardMessage,
+    loadMoreMessages,
     loading
   } = useChatsDb(currentUserId);
 
@@ -26,6 +27,7 @@ export function useChats(currentUserId: string | null) {
     editMessage,
     deleteMessage,
     forwardMessage,
+    loadMoreMessages,
     loading,
   };
 } 
