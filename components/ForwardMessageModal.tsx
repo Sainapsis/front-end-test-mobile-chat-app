@@ -13,6 +13,7 @@ import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
 import { Avatar } from './Avatar';
 import { Chat } from '@/hooks/useChats';
+import { selectionFeedback, mediumFeedback, lightFeedback, successFeedback, errorFeedback } from '@/utils';
 
 interface ForwardMessageModalProps {
     visible: boolean;
@@ -39,18 +40,33 @@ export function ForwardMessageModal({
     const handleForward = async () => {
         if (!selectedChat || !messageId) return;
 
+        mediumFeedback(); // Retroalimentación háptica al reenviar mensaje
         setIsForwarding(true);
         try {
             const success = await forwardMessage(messageId, selectedChat);
             if (success) {
+                successFeedback(); // Retroalimentación de éxito al reenviar
                 onForwardComplete();
                 onClose();
+            } else {
+                throw new Error('Failed to forward message');
             }
         } catch (error) {
+            errorFeedback(); // Retroalimentación de error si falla
             console.error('Error forwarding message:', error);
         } finally {
             setIsForwarding(false);
         }
+    };
+
+    const handleSelectChat = (chatId: string) => {
+        selectionFeedback(); // Retroalimentación háptica al seleccionar un chat
+        setSelectedChat(chatId);
+    };
+
+    const handleClose = () => {
+        lightFeedback(); // Retroalimentación ligera al cerrar el modal
+        onClose();
     };
 
     const getChatName = (chat: Chat) => {
@@ -75,16 +91,16 @@ export function ForwardMessageModal({
             visible={visible}
             transparent
             animationType="slide"
-            onRequestClose={onClose}
+            onRequestClose={handleClose}
         >
-            <Pressable style={styles.backdrop} onPress={onClose}>
+            <Pressable style={styles.backdrop} onPress={handleClose}>
                 <Pressable style={styles.container}>
                     <ThemedView style={styles.content}>
                         <View style={styles.header}>
                             <ThemedText type="defaultSemiBold" style={styles.title}>
                                 Reenviar mensaje a
                             </ThemedText>
-                            <TouchableOpacity onPress={onClose}>
+                            <TouchableOpacity onPress={handleClose}>
                                 <ThemedText style={styles.closeButton}>X</ThemedText>
                             </TouchableOpacity>
                         </View>
@@ -103,7 +119,7 @@ export function ForwardMessageModal({
                                             styles.chatItem,
                                             selectedChat === item.id && styles.selectedChat
                                         ]}
-                                        onPress={() => setSelectedChat(item.id)}
+                                        onPress={() => handleSelectChat(item.id)}
                                     >
                                         <Avatar
                                             user={users.find(user =>
@@ -126,7 +142,7 @@ export function ForwardMessageModal({
                                     styles.button,
                                     styles.cancelButton
                                 ]}
-                                onPress={onClose}
+                                onPress={handleClose}
                             >
                                 <ThemedText style={styles.buttonText}>Cancelar</ThemedText>
                             </TouchableOpacity>

@@ -6,7 +6,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { Colors } from '@/constants/Colors';
 import { useAppContext } from '@/hooks/AppContext';
 import { VoiceRecordButton } from './VoiceRecordButton';
-import { log } from '@/utils';
+import { log, mediumFeedback, selectionFeedback, lightFeedback, successFeedback, errorFeedback } from '@/utils';
 
 interface MessageInputProps {
   chatId: string;
@@ -22,10 +22,13 @@ export function MessageInput({ chatId }: MessageInputProps) {
     if (!text.trim() || !currentUser) return;
 
     try {
+      mediumFeedback(); // Retroalimentación háptica media al enviar un mensaje
       log.debug(`Sending message to chat ${chatId}`);
       await sendMessage(chatId, text.trim(), currentUser.id);
       setText('');
+      successFeedback(); // Retroalimentación de éxito al completar el envío
     } catch (error) {
+      errorFeedback(); // Retroalimentación de error si falla el envío
       log.error('Failed to send message:', error);
     }
   };
@@ -33,17 +36,26 @@ export function MessageInput({ chatId }: MessageInputProps) {
   const handleVoiceRecordingComplete = async (voiceUri: string, duration: number) => {
     if (!currentUser) return;
 
-    await sendMessage(chatId, '', currentUser.id, undefined, { uri: voiceUri, duration });
+    try {
+      mediumFeedback(); // Retroalimentación háptica al completar grabación
+      await sendMessage(chatId, '', currentUser.id, undefined, { uri: voiceUri, duration });
+      successFeedback(); // Retroalimentación de éxito al completar el envío
+    } catch (error) {
+      errorFeedback(); // Retroalimentación de error si falla el envío
+      log.error('Failed to send voice message:', error);
+    }
   };
 
   const handleAttachImage = async () => {
     if (!currentUser) return;
 
     try {
+      selectionFeedback(); // Retroalimentación háptica al seleccionar adjuntar imagen
       // Solicitar permiso para acceder a la galería de imágenes
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (status !== 'granted') {
+        errorFeedback(); // Retroalimentación de error si se deniega el permiso
         Alert.alert('Permiso denegado', 'Se necesita permiso para acceder a la galería de imágenes.');
         return;
       }
@@ -56,6 +68,7 @@ export function MessageInput({ chatId }: MessageInputProps) {
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
+        lightFeedback(); // Retroalimentación háptica ligera al seleccionar imagen
         const selectedImage = result.assets[0];
 
         // Crear una versión reducida para la vista previa
@@ -66,6 +79,7 @@ export function MessageInput({ chatId }: MessageInputProps) {
         );
 
         // Enviar mensaje con imagen
+        mediumFeedback(); // Retroalimentación háptica media al enviar la imagen
         await sendMessage(
           chatId,
           text.trim(), // También enviar el texto si hay alguno
@@ -75,8 +89,10 @@ export function MessageInput({ chatId }: MessageInputProps) {
 
         // Limpiar el texto después de enviar
         setText('');
+        successFeedback(); // Retroalimentación de éxito al completar el envío
       }
     } catch (error) {
+      errorFeedback(); // Retroalimentación de error si falla
       console.error('Error al seleccionar imagen:', error);
       Alert.alert('Error', 'No se pudo seleccionar la imagen. Inténtalo de nuevo.');
     }

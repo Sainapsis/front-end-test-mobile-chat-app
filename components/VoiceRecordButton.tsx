@@ -3,6 +3,7 @@ import { TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Audio } from '@/app/Audio';
 import * as FileSystem from 'expo-file-system';
+import { lightFeedback, mediumFeedback, errorFeedback, heavyFeedback } from '@/utils';
 
 interface VoiceRecordButtonProps {
   onRecordingComplete: (voiceUri: string, duration: number) => void;
@@ -12,20 +13,27 @@ export function VoiceRecordButton({ onRecordingComplete }: VoiceRecordButtonProp
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
+  const [recordingInterval, setRecordingInterval] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     return () => {
       if (recording) {
         recording.stopAndUnloadAsync();
       }
+      if (recordingInterval) {
+        clearInterval(recordingInterval);
+      }
     };
-  }, [recording]);
+  }, [recording, recordingInterval]);
 
   const startRecording = async () => {
     try {
+      mediumFeedback(); // Retroalimentación háptica al iniciar la grabación
+
       // Request permissions
       const permissionResponse = await Audio.requestPermissionsAsync();
       if (permissionResponse.status !== 'granted') {
+        errorFeedback(); // Retroalimentación háptica si se deniega el permiso
         Alert.alert('Permission required', 'Please grant microphone access to record voice messages.');
         return;
       }
@@ -44,7 +52,15 @@ export function VoiceRecordButton({ onRecordingComplete }: VoiceRecordButtonProp
       setRecording(newRecording);
       setIsRecording(true);
       setStartTime(Date.now());
+
+      // Proporcionar retroalimentación háptica cada 5 segundos durante la grabación
+      const interval = setInterval(() => {
+        lightFeedback();
+      }, 5000);
+      setRecordingInterval(interval);
+
     } catch (error) {
+      errorFeedback(); // Retroalimentación háptica si hay error
       console.error('Failed to start recording:', error);
       Alert.alert('Error', 'Failed to start recording. Please try again.');
     }
@@ -54,6 +70,14 @@ export function VoiceRecordButton({ onRecordingComplete }: VoiceRecordButtonProp
     if (!recording || !startTime) return;
 
     try {
+      heavyFeedback(); // Retroalimentación háptica más fuerte al detener la grabación
+
+      // Limpiamos el intervalo de retroalimentación
+      if (recordingInterval) {
+        clearInterval(recordingInterval);
+        setRecordingInterval(null);
+      }
+
       await recording.stopAndUnloadAsync();
       const duration = Math.round((Date.now() - startTime) / 1000); // Duration in seconds
 
@@ -65,7 +89,7 @@ export function VoiceRecordButton({ onRecordingComplete }: VoiceRecordButtonProp
       // Move the recording to a permanent location
       const fileName = `voice_${Date.now()}.m4a`;
       const destinationUri = `${FileSystem.cacheDirectory}${fileName}`;
-      
+
       await FileSystem.moveAsync({
         from: uri,
         to: destinationUri,
@@ -73,6 +97,7 @@ export function VoiceRecordButton({ onRecordingComplete }: VoiceRecordButtonProp
 
       onRecordingComplete(destinationUri, duration);
     } catch (error) {
+      errorFeedback(); // Retroalimentación háptica si hay error
       console.error('Failed to stop recording:', error);
       Alert.alert('Error', 'Failed to save recording. Please try again.');
     } finally {

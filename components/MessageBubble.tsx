@@ -7,7 +7,7 @@ import { useAppContext } from "@/hooks/AppContext";
 import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
 import { ForwardMessageModal } from "./ForwardMessageModal";
 import { OptimizedImage } from "./OptimizedImage";
-import { log, captureError } from '@/utils';
+import { log, captureError, heavyFeedback, mediumFeedback, lightFeedback, selectionFeedback, successFeedback, errorFeedback, warningFeedback } from '@/utils';
 import { Colors } from '@/constants/Colors';
 
 interface MessageBubbleProps {
@@ -41,6 +41,9 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName, onLongPres
   };
 
   const handleLongPress = () => {
+    // Retroalimentación háptica al mantener presionado un mensaje
+    heavyFeedback();
+
     // Log interaction
     log.info(`Message long-pressed [id: ${message.id}]`);
 
@@ -52,6 +55,7 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName, onLongPres
         {
           text: "Editar",
           onPress: () => {
+            selectionFeedback(); // Retroalimentación háptica al seleccionar editar
             setEditText(message.text);
             setIsEditing(true);
             log.debug(`Edit mode activated for message [id: ${message.id}]`);
@@ -60,6 +64,7 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName, onLongPres
         {
           text: "Eliminar",
           onPress: () => {
+            selectionFeedback(); // Retroalimentación háptica al seleccionar eliminar
             Alert.alert(
               "Eliminar mensaje",
               "¿Estás seguro de que quieres eliminar este mensaje?",
@@ -67,15 +72,19 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName, onLongPres
                 {
                   text: "Cancelar",
                   style: "cancel",
+                  onPress: () => lightFeedback(), // Retroalimentación ligera al cancelar
                 },
                 {
                   text: "Eliminar",
                   style: "destructive",
                   onPress: async () => {
+                    warningFeedback(); // Retroalimentación de advertencia al confirmar eliminación
                     try {
                       log.info(`Deleting message [id: ${message.id}]`);
                       await deleteMessage(message.id);
+                      successFeedback(); // Retroalimentación de éxito al eliminar
                     } catch (error) {
+                      errorFeedback(); // Retroalimentación de error si falla
                       const errorId = captureError(
                         error instanceof Error ? error : new Error(String(error)),
                         {
@@ -101,6 +110,7 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName, onLongPres
       {
         text: "Reenviar",
         onPress: () => {
+          selectionFeedback(); // Retroalimentación háptica al seleccionar reenviar
           setShowForwardModal(true);
           log.debug(`Forward modal opened for message [id: ${message.id}]`);
         }
@@ -111,6 +121,7 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName, onLongPres
     options.push({
       text: "Cancelar",
       style: "cancel" as const,
+      onPress: () => lightFeedback(), // Retroalimentación ligera al cancelar
     });
 
     Alert.alert(
@@ -122,19 +133,23 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName, onLongPres
 
   const handleEditSubmit = async () => {
     if (editText.trim() === message.text) {
+      lightFeedback(); // Retroalimentación ligera si no hay cambios
       setIsEditing(false);
       return;
     }
 
     try {
+      mediumFeedback(); // Retroalimentación media al enviar la edición
       log.info(`Editing message [id: ${message.id}]`);
       const success = await editMessage(message.id, editText.trim());
       if (success) {
+        successFeedback(); // Retroalimentación de éxito al editar
         setIsEditing(false);
       } else {
         throw new Error("Failed to edit message");
       }
     } catch (error) {
+      errorFeedback(); // Retroalimentación de error si falla
       const errorId = captureError(
         error instanceof Error ? error : new Error(String(error)),
         {
@@ -148,6 +163,7 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName, onLongPres
   };
 
   const handleCancelEdit = () => {
+    lightFeedback(); // Retroalimentación ligera al cancelar
     setEditText(message.text);
     setIsEditing(false);
     log.debug(`Edit canceled for message [id: ${message.id}]`);
@@ -197,12 +213,12 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName, onLongPres
             <TextInput
               value={editText}
               onChangeText={setEditText}
-              style={[
-                styles.messageText,
-                isCurrentUser && !isDark ? styles.selfMessageText : undefined,
-                styles.editInput,
-                { backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF" }
-              ]}
+              style={{
+                ...styles.messageText,
+                ...(isCurrentUser && !isDark ? styles.selfMessageText : {}),
+                ...styles.editInput,
+                backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF"
+              }}
               multiline
               autoFocus
               returnKeyType="done"
@@ -225,10 +241,10 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName, onLongPres
           </View>
         ) : (
           <ThemedText
-            style={[
-              styles.messageText,
-              isCurrentUser && !isDark ? styles.selfMessageText : undefined,
-            ]}
+            style={{
+              ...styles.messageText,
+              ...(isCurrentUser && !isDark ? styles.selfMessageText : {})
+            }}
           >
             {message.text}
             {message.isEdited && (
@@ -240,7 +256,12 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName, onLongPres
       case "image":
         return (
           <View>
-            <Pressable onPress={() => setShowFullImage(true)}>
+            <Pressable
+              onPress={() => {
+                lightFeedback(); // Retroalimentación ligera al abrir la imagen
+                setShowFullImage(true);
+              }}
+            >
               <OptimizedImage
                 source={{ uri: message.imagePreviewUri ?? message.imageUri }}
                 style={styles.previewImage}
@@ -248,22 +269,46 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName, onLongPres
                 cacheKey={`preview_${message.id}`}
                 priority="normal"
                 prefetch={true}
-                cacheControl="memory-disk"
               />
             </Pressable>
             {message.text && (
               <ThemedText
-                style={[
-                  styles.imageCaption,
-                  isCurrentUser && !isDark ? styles.selfMessageText : undefined,
-                ]}
+                style={{
+                  ...styles.imageCaption,
+                  ...(isCurrentUser && !isDark ? styles.selfMessageText : {})
+                }}
               >
                 {message.text}
-                {message.isEdited && (
-                  <ThemedText style={styles.editedText}> (editado)</ThemedText>
-                )}
               </ThemedText>
             )}
+            <Modal
+              visible={showFullImage}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => {
+                lightFeedback(); // Retroalimentación ligera al cerrar la imagen
+                setShowFullImage(false);
+              }}
+            >
+              <View style={styles.modalContainer}>
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => {
+                    lightFeedback(); // Retroalimentación ligera al cerrar la imagen
+                    setShowFullImage(false);
+                  }}
+                >
+                  <MaterialIcons name="close" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+                <OptimizedImage
+                  source={{ uri: message.imageUri }}
+                  style={styles.fullImage}
+                  resizeMode="contain"
+                  cacheKey={`full_${message.id}`}
+                  priority="high"
+                />
+              </View>
+            </Modal>
           </View>
         );
 
@@ -286,11 +331,37 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName, onLongPres
 
   if (message.isDeleted) {
     return (
-      <View style={[styles.container, isCurrentUser ? styles.selfContainer : styles.otherContainer]}>
-        <View style={[styles.bubble, styles.deletedBubble]}>
-          <ThemedText style={styles.deletedText}>
+      <View
+        style={[
+          styles.container,
+          isCurrentUser ? styles.selfContainer : styles.otherContainer
+        ]}
+        accessible={true}
+        accessibilityLabel="Mensaje eliminado"
+        accessibilityHint="Este mensaje ya no está disponible"
+        accessibilityRole="none"
+      >
+        <View style={{
+          ...styles.bubble,
+          ...(isCurrentUser ? styles.selfBubble : styles.otherBubble),
+          backgroundColor: isDark ? 'rgba(70, 70, 70, 0.7)' : 'rgba(240, 240, 240, 0.7)',
+          borderWidth: 1,
+          borderColor: isDark ? 'rgba(90, 90, 90, 0.5)' : 'rgba(220, 220, 220, 0.8)',
+        }}>
+          <ThemedText style={{
+            ...styles.deletedText,
+            color: isDark ? '#BBBBBB' : '#888888',
+          }}>
             Este mensaje fue eliminado
           </ThemedText>
+          <View style={styles.messageFooter}>
+            <ThemedText style={{
+              ...styles.timeText,
+              opacity: 0.5
+            }}>
+              {formatTime(message.timestamp)}
+            </ThemedText>
+          </View>
         </View>
       </View>
     );
@@ -333,27 +404,6 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName, onLongPres
           {renderMessageStatus()}
         </View>
       </View>
-
-      <Modal
-        visible={showFullImage}
-        transparent={true}
-        onRequestClose={() => setShowFullImage(false)}
-      >
-        <Pressable
-          style={styles.modalContainer}
-          onPress={() => setShowFullImage(false)}
-        >
-          <OptimizedImage
-            source={{ uri: message.imageUri }}
-            style={styles.fullImage}
-            resizeMode="contain"
-            cacheKey={`full_${message.id}`}
-            priority="high"
-            prefetch={false}
-            cacheControl="memory-only"
-          />
-        </Pressable>
-      </Modal>
 
       <ForwardMessageModal
         visible={showForwardModal}
@@ -452,12 +502,13 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
   deletedBubble: {
-    backgroundColor: "#F0F0F0",
+    backgroundColor: "rgba(240, 240, 240, 0.7)",
   },
   deletedText: {
     fontSize: 14,
     fontStyle: "italic",
     opacity: 0.7,
+    color: "#888888",
   },
   editInput: {
     padding: 8,
@@ -493,5 +544,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
     marginBottom: 4,
+  },
+  closeButton: {
+    position: "absolute",
+    top: 16,
+    right: 16,
   },
 });

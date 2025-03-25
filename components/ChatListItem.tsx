@@ -6,6 +6,7 @@ import { Avatar } from './Avatar';
 import { ThemedText } from './ThemedText';
 import { User } from '@/hooks/useUser';
 import { IconSymbol } from './ui/IconSymbol';
+import { selectionFeedback } from '@/utils';
 
 interface ChatListItemProps {
   chat: Chat;
@@ -44,6 +45,7 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
   }, [chat.isGroup, chat.name, otherParticipants]);
 
   const handlePress = () => {
+    selectionFeedback();
     navigation.navigate('ChatRoom', { chatId: chat.id });
   };
 

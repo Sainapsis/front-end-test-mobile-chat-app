@@ -22,6 +22,17 @@ import {
     clearErrorReports
 } from './monitoring';
 
+// Funciones de retroalimentación háptica
+import {
+    selectionFeedback,
+    lightFeedback,
+    mediumFeedback,
+    heavyFeedback,
+    successFeedback,
+    errorFeedback,
+    warningFeedback
+} from './haptics';
+
 // Exportación de los módulos principales
 export {
     log,
@@ -44,7 +55,16 @@ export {
     endMeasure,
     getMonitoringStatus,
     getErrorReport,
-    clearErrorReports
+    clearErrorReports,
+
+    // Retroalimentación háptica
+    selectionFeedback,
+    lightFeedback,
+    mediumFeedback,
+    heavyFeedback,
+    successFeedback,
+    errorFeedback,
+    warningFeedback
 };
 
 /**
@@ -57,12 +77,13 @@ export {
  * - Monitoreo de navegación
  * - Medición de rendimiento
  * - ErrorBoundary para capturar errores en componentes React
+ * - Retroalimentación háptica para mejorar la experiencia del usuario
  * 
  * Uso básico:
  * 
  * ```typescript
  * // Inicialización
- * import { initMonitoring, log } from '@/utils';
+ * import { initMonitoring, log, selectionFeedback } from '@/utils';
  * 
  * // Para logs
  * log.debug('Mensaje de debug');
@@ -84,6 +105,10 @@ export {
  * const metricId = startMeasure('operacionCostosa');
  * // realizar operación
  * endMeasure(metricId);
+ * 
+ * // Retroalimentación háptica
+ * selectionFeedback(); // Para selecciones
+ * successFeedback(); // Para operaciones exitosas
  * ```
  */
 
@@ -104,5 +129,14 @@ export default {
     endMeasure,
     getMonitoringStatus,
     getErrorReport,
-    clearErrorReports
+    clearErrorReports,
+
+    // Retroalimentación háptica
+    selectionFeedback,
+    lightFeedback,
+    mediumFeedback,
+    heavyFeedback,
+    successFeedback,
+    errorFeedback,
+    warningFeedback
 }; 
