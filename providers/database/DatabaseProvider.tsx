@@ -35,8 +35,8 @@ export function DatabaseProvider({ children }: DatabaseProviderProps) {
         console.log('Database initialized');
         
         // Seed the database with initial data
-        await seedDatabase();
-        console.log('Database seeded');
+        // await seedDatabase();
+        // console.log('Database seeded');
         
         if (isMounted) {
           setIsInitialized(true);

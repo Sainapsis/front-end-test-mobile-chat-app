@@ -14,8 +14,10 @@ interface ThemedInputProps {
     label?: string;
     textArea?: boolean;
     autoCorrect?: boolean;
+    autoCapitalize?: boolean;
+    isPassword?: boolean;
 }
-export function ThemedInput({ textValue, setTextValue, handleSendMessage, shouldShowButton = false, placeholder, style, label, textArea = true, autoCorrect = true }: ThemedInputProps) {
+export function ThemedInput({ textValue, setTextValue, handleSendMessage, shouldShowButton = false, placeholder, style, label, textArea = true, autoCorrect = true, autoCapitalize = true, isPassword = false }: ThemedInputProps) {
     const [isFocused, setIsFocused] = useState(false);
     const colorScheme = useColorScheme();
     return (
@@ -33,6 +35,8 @@ export function ThemedInput({ textValue, setTextValue, handleSendMessage, should
                     onBlur={() => setIsFocused(false)}
                     multiline={textArea}
                     autoCorrect={autoCorrect}
+                    autoCapitalize={autoCapitalize ? 'sentences' : 'none'}
+                    secureTextEntry={isPassword}
                 />
                 {shouldShowButton ?
                     <Pressable

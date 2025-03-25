@@ -7,15 +7,16 @@ import { useRouter } from 'expo-router';
 import { ThemedInput } from '@/components/ui/inputs/ThemedInput';
 import { ThemedButton } from '../ui/buttons/ThemedButton';
 
-export default function LoginList() {
+export default function LoginForm() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const { users, login } = useAppContext();
 
     const router = useRouter();
-    
-    const handleUserSelect = async (userId: string) => {
-        if (await login(userId)) {
+
+    const handleLogin = async () => {
+        let didLogin = await login(username, password)
+        if (didLogin) {
             router.replace('/(private)/(tabs)');
         }
     };
@@ -25,9 +26,9 @@ export default function LoginList() {
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
             <ThemedView style={styles.container}>
-                <ThemedInput textValue={username} setTextValue={setUsername} placeholder='Username' label="Username" textArea={false} autoCorrect={false}></ThemedInput>
-                <ThemedInput textValue={password} setTextValue={setPassword} placeholder='Password' label="Password" textArea={false} autoCorrect={false}></ThemedInput>
-                <ThemedButton onPress={()=>{}} buttonText='Continue' style={styles.loginButton}></ThemedButton>
+                <ThemedInput textValue={username} setTextValue={setUsername} placeholder='Username' label="Username" textArea={false} autoCorrect={false} autoCapitalize={false}></ThemedInput>
+                <ThemedInput textValue={password} setTextValue={setPassword} placeholder='Password' label="Password" textArea={false} autoCorrect={false} autoCapitalize={false} isPassword={true}></ThemedInput>
+                <ThemedButton onPress={handleLogin} buttonText='Continue' style={styles.loginButton}></ThemedButton>
             </ThemedView>
         </KeyboardAvoidingView>
     )

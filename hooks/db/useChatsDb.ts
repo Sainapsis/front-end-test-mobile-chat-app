@@ -3,6 +3,8 @@ import { db } from '@/providers/database/db';
 import { chats, chatParticipants, messages, messagesReadBy, users } from '@/providers/database/schema';
 import { eq, and } from 'drizzle-orm';
 import { User } from '@/hooks/user/useUser';
+import { useApi } from '../api/useApi';
+import * as SecureStore from 'expo-secure-store';
 
 export interface Message {
   id: string;
@@ -58,58 +60,59 @@ const loadChatMessages = async (chatId: string, currentUserId: string): Promise<
 }
 
 // Load the complete information of a chat
-const loadChat = async (chatId: string, currentUserId: string): Promise<Chat | null> => {
-  // Get chat information
-  const chatRows = await db
-    .select()
-    .from(chats)
-    .where(eq(chats.id, chatId));
-  if (chatRows.length === 0) return null;
+const loadChat = async (chatId: string, currentUserId: string): Promise<any | null> => {
+  
+  // // Get chat information
+  // const chatRows = await db
+  //   .select()
+  //   .from(chats)
+  //   .where(eq(chats.id, chatId));
+  // if (chatRows.length === 0) return null;
 
-  // Get chat participants
-  const participantsData = await db
-    .select()
-    .from(chatParticipants)
-    .where(eq(chatParticipants.chatId, chatId));
-  const participantIds = participantsData.map(p => p.userId);
-  console.log(participantsData)
+  // // Get chat participants
+  // const participantsData = await db
+  //   .select()
+  //   .from(chatParticipants)
+  //   .where(eq(chatParticipants.chatId, chatId));
+  // const participantIds = participantsData.map(p => p.userId);
+  // console.log(participantsData)
 
-  // Execute all queries in parallel and retrieve the first element of each result.
-  const { messages, lastMessage, unreadedCount } = await loadChatMessages(chatId, currentUserId);
+  // // Execute all queries in parallel and retrieve the first element of each result.
+  // const { messages, lastMessage, unreadedCount } = await loadChatMessages(chatId, currentUserId);
 
-  const allUserData = await Promise.all(
-    participantIds.map(id =>
-      db.select().from(users).where(eq(users.id, id)).then(result => result[0])
-    )
-  );
+  // const allUserData = await Promise.all(
+  //   participantIds.map(id =>
+  //     db.select().from(users).where(eq(users.id, id)).then(result => result[0])
+  //   )
+  // );
 
-  // Assign the participants' data, and for the first user other than the current user, assign their name and status.
-  const participantsUserData = allUserData;
-  const otherUser = allUserData.find(user => user.id !== currentUserId);
-  let chatUserName = '';
-  let userStatus = '';
-  if (otherUser) {
-    chatUserName = otherUser.name;
-    userStatus = otherUser.status;
-  }
-  return {
-    id: chatId,
-    participants: participantIds,
-    participantsData: participantsUserData,
-    messages,
-    lastMessage,
-    unreadedMessagesCount: unreadedCount,
-    chatName: chatUserName,
-    chatStatus: userStatus as 'online' | 'offline' | 'away'
-  };
+  // // Assign the participants' data, and for the first user other than the current user, assign their name and status.
+  // const participantsUserData = allUserData;
+  // const otherUser = allUserData.find(user => user.id !== currentUserId);
+  // let chatUserName = '';
+  // let userStatus = '';
+  // if (otherUser) {
+  //   chatUserName = otherUser.name;
+  //   userStatus = otherUser.status;
+  // }
+  // return {
+  //   id: chatId,
+  //   participants: participantIds,
+  //   participantsData: participantsUserData,
+  //   messages,
+  //   lastMessage,
+  //   unreadedMessagesCount: unreadedCount,
+  //   chatName: chatUserName,
+  //   chatStatus: userStatus as 'online' | 'offline' | 'away'
+  // };
 }
 
 export function useChatsDb(currentUserId: string | null) {
   const [userChats, setUserChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
   const [updateTrigger, setUpdateTrigger] = useState(0);
+  const { post, get } = useApi();
 
-  // Force chat update
   const refreshChats = useCallback(() => {
     setUpdateTrigger(prev => prev + 1);
   }, []);
@@ -117,45 +120,58 @@ export function useChatsDb(currentUserId: string | null) {
   useEffect(() => {
     const loadChats = async () => {
       if (!currentUserId) {
-        setUserChats([]);
         setLoading(false);
         return;
       }
-
+      setLoading(true);
       try {
-        // Get IDs when user is participant
-        const participantRows = await db
-          .select()
-          .from(chatParticipants)
-          .where(eq(chatParticipants.userId, currentUserId));
-
-        const chatIds = participantRows.map(row => row.chatId);
-        if (chatIds.length === 0) {
-          setUserChats([]);
-          setLoading(false);
-          return;
-        }
-
-        // Load information of each chat in parallel
-        const loadedChats = await Promise.all(
-          chatIds.map(async (chatId) => await loadChat(chatId, currentUserId))
-        );
-
-        const chatsFiltered = loadedChats.filter((chat): chat is Chat => chat !== null);
-        // Order chats by created date
-        chatsFiltered.sort((a, b) => {
-          const timeA = a.lastMessage?.timestamp ?? 0;
-          const timeB = b.lastMessage?.timestamp ?? 0;
-          return timeB - timeA;
-        });
-        console.log(chatsFiltered)
-        setUserChats(chatsFiltered);
-      } catch (error) {
-        console.error('Error loading chats:', error);
+        const chatsData = await get('/chat/getChats');
+        console.log(chatsData);
+      } catch (err) {
+        console.error('Error loading chats:', err);
       } finally {
         setLoading(false);
       }
-    };
+    //   if (!currentUserId) {
+    //     setUserChats([]);
+    //     setLoading(false);
+    //     return;
+    //   }
+
+    //   try {
+    //     // Get IDs when user is participant
+    //     const participantRows = await db
+    //       .select()
+    //       .from(chatParticipants)
+    //       .where(eq(chatParticipants.userId, currentUserId));
+
+    //     const chatIds = participantRows.map(row => row.chatId);
+    //     if (chatIds.length === 0) {
+    //       setUserChats([]);
+    //       setLoading(false);
+    //       return;
+    //     }
+
+    //     // Load information of each chat in parallel
+    //     const loadedChats = await Promise.all(
+    //       chatIds.map(async (chatId) => await loadChat(chatId, currentUserId))
+    //     );
+
+    //     const chatsFiltered = loadedChats.filter((chat): chat is Chat => chat !== null);
+    //     // Order chats by created date
+    //     chatsFiltered.sort((a, b) => {
+    //       const timeA = a.lastMessage?.timestamp ?? 0;
+    //       const timeB = b.lastMessage?.timestamp ?? 0;
+    //       return timeB - timeA;
+    //     });
+    //     console.log(chatsFiltered)
+    //     setUserChats(chatsFiltered);
+    //   } catch (error) {
+    //     console.error('Error loading chats:', error);
+    //   } finally {
+    //     setLoading(false);
+    //   }
+     };
 
     loadChats();
   }, [currentUserId, updateTrigger]);

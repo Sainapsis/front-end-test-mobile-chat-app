@@ -16,7 +16,8 @@ export async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
-        avatar TEXT NOT NULL,
+        username TEXT NOT NULL,
+        avatar TEXT,
         status TEXT NOT NULL
       );
     `);

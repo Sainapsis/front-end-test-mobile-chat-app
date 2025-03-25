@@ -85,10 +85,10 @@ export async function seedDatabase() {
     console.log('Seeding database...');
     
     // Insert users
-    console.log('Seeding users...');
-    for (const user of mockUsers) {
-      await db.insert(users).values(user).onConflictDoNothing();
-    }
+    // console.log('Seeding users...');
+    // for (const user of mockUsers) {
+    //   await db.insert(users).values(user).onConflictDoNothing();
+    // }
     
     // Insert chats and their relationships
     console.log('Seeding chats...');

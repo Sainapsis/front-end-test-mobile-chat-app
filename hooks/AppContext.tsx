@@ -8,7 +8,7 @@ type AppContextType = {
   users: User[];
   currentUser: User | null;
   isLoggedIn: boolean;
-  login: (userId: string) => Promise<boolean>;
+  login: (username:string, password: string) => Promise<boolean>;
   logout: () => void;
   chats: Chat[];
   createChat: (participantIds: string[]) => Promise<Chat | null>;
