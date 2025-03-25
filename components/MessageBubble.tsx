@@ -4,6 +4,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { ThemedText } from "./ThemedText";
 import { Message } from "@/hooks/useChats";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { MessageReactions } from './MessageReactions';
 
 interface MessageBubbleProps {
   message: Message;
@@ -131,6 +132,7 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
           />
         </Pressable>
       </Modal>
+      <MessageReactions messageId={message.id} reactions={message.reactions} />
     </View>
   );
 }

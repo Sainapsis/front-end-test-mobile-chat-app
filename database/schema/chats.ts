@@ -27,4 +27,12 @@ export const messageReadReceipts = sqliteTable("message_read_receipts", {
   messageId: text("message_id").notNull().references(() => messages.id),
   userId: text("user_id").notNull(),
   timestamp: integer("timestamp").notNull(),
+});
+
+export const messageReactions = sqliteTable("message_reactions", {
+  id: text("id").primaryKey(),
+  messageId: text("message_id").notNull().references(() => messages.id),
+  userId: text("user_id").notNull(),
+  emoji: text("emoji").notNull(),
+  timestamp: integer("timestamp").notNull(),
 }); 

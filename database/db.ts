@@ -65,6 +65,18 @@ export async function initializeDatabase() {
         FOREIGN KEY (message_id) REFERENCES messages (id)
       );
     `);
+
+    console.log('Creating message_reactions table...');
+    await sqlite.execAsync(`
+      CREATE TABLE IF NOT EXISTS message_reactions (
+        id TEXT PRIMARY KEY,
+        message_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        emoji TEXT NOT NULL,
+        timestamp INTEGER NOT NULL,
+        FOREIGN KEY (message_id) REFERENCES messages (id)
+      );
+    `);
     
     console.log('All tables created successfully!');
   } catch (error) {

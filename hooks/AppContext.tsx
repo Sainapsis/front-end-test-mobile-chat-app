@@ -19,6 +19,8 @@ type AppContextType = {
     imageData?: { uri: string; previewUri: string }
   ) => Promise<boolean>;
   markMessageAsRead: (messageId: string, userId: string) => Promise<boolean>;
+  addReaction: (messageId: string, userId: string, emoji: string) => Promise<boolean>;
+  removeReaction: (messageId: string, userId: string, emoji: string) => Promise<boolean>;
   loading: boolean;
   dbInitialized: boolean;
 };
@@ -33,6 +35,8 @@ function AppContent({ children }: { children: ReactNode }) {
     createChat,
     sendMessage,
     markMessageAsRead,
+    addReaction,
+    removeReaction,
     loading: chatsLoading,
   } = useChats(userContext.currentUser?.id || null);
   
@@ -48,6 +52,8 @@ function AppContent({ children }: { children: ReactNode }) {
     createChat,
     sendMessage,
     markMessageAsRead,
+    addReaction,
+    removeReaction,
     loading,
     dbInitialized: isInitialized,
   };

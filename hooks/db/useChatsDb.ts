@@ -1,7 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../database/db';
-import { chats, chatParticipants, messages, messageReadReceipts } from '../../database/schema';
+import { chats, chatParticipants, messages, messageReadReceipts, messageReactions } from '../../database/schema';
 import { eq, inArray } from 'drizzle-orm';
+
+export interface MessageReaction {
+  userId: string;
+  emoji: string;
+  timestamp: number;
+}
 
 export interface Message {
   id: string;
@@ -13,6 +19,7 @@ export interface Message {
   imagePreviewUri?: string;
   status: 'sent' | 'delivered' | 'read';
   readBy?: { userId: string; timestamp: number }[];
+  reactions: MessageReaction[];
 }
 
 export interface Chat {
@@ -75,6 +82,12 @@ export function useChatsDb(currentUserId: string | null) {
             .from(messageReadReceipts)
             .where(inArray(messageReadReceipts.messageId, messageIds));
 
+          // Get reactions for all messages
+          const reactionsData = await db
+            .select()
+            .from(messageReactions)
+            .where(inArray(messageReactions.messageId, messageIds));
+
           // Group read receipts by message
           const readReceiptsByMessage = readReceiptsData.reduce((acc, receipt) => {
             if (!acc[receipt.messageId]) {
@@ -87,6 +100,19 @@ export function useChatsDb(currentUserId: string | null) {
             return acc;
           }, {} as Record<string, { userId: string; timestamp: number }[]>);
 
+          // Group reactions by message
+          const reactionsByMessage = reactionsData.reduce((acc, reaction) => {
+            if (!acc[reaction.messageId]) {
+              acc[reaction.messageId] = [];
+            }
+            acc[reaction.messageId].push({
+              userId: reaction.userId,
+              emoji: reaction.emoji,
+              timestamp: reaction.timestamp,
+            });
+            return acc;
+          }, {} as Record<string, MessageReaction[]>);
+
           const chatMessages = messagesData.map(m => ({
             id: m.id,
             senderId: m.senderId,
@@ -97,6 +123,7 @@ export function useChatsDb(currentUserId: string | null) {
             imagePreviewUri: m.imagePreviewUri || undefined,
             status: m.status as 'sent' | 'delivered' | 'read',
             readBy: readReceiptsByMessage[m.id] || [],
+            reactions: reactionsByMessage[m.id] || [],
           }));
 
           // Determine last message
@@ -238,6 +265,7 @@ export function useChatsDb(currentUserId: string | null) {
         imagePreviewUri: imageData?.previewUri,
         status: 'sent',
         readBy: [],
+        reactions: [],
       };
 
       // Update state
@@ -261,11 +289,86 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  const addReaction = useCallback(async (messageId: string, userId: string, emoji: string) => {
+    try {
+      const reactionId = `reaction-${Date.now()}-${userId}`;
+      const timestamp = Date.now();
+
+      // Insert reaction
+      await db.insert(messageReactions).values({
+        id: reactionId,
+        messageId,
+        userId,
+        emoji,
+        timestamp,
+      });
+
+      // Update state
+      setUserChats(prevChats => {
+        return prevChats.map(chat => ({
+          ...chat,
+          messages: chat.messages.map(msg => {
+            if (msg.id === messageId) {
+              return {
+                ...msg,
+                reactions: [...msg.reactions, { userId, emoji, timestamp }],
+              };
+            }
+            return msg;
+          }),
+        }));
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error adding reaction:', error);
+      return false;
+    }
+  }, []);
+
+  const removeReaction = useCallback(async (messageId: string, userId: string, emoji: string) => {
+    try {
+      // Remove reaction
+      await db
+        .delete(messageReactions)
+        .where(
+          eq(messageReactions.messageId, messageId) &&
+          eq(messageReactions.userId, userId) &&
+          eq(messageReactions.emoji, emoji)
+        );
+
+      // Update state
+      setUserChats(prevChats => {
+        return prevChats.map(chat => ({
+          ...chat,
+          messages: chat.messages.map(msg => {
+            if (msg.id === messageId) {
+              return {
+                ...msg,
+                reactions: msg.reactions.filter(
+                  r => !(r.userId === userId && r.emoji === emoji)
+                ),
+              };
+            }
+            return msg;
+          }),
+        }));
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error removing reaction:', error);
+      return false;
+    }
+  }, []);
+
   return {
     chats: userChats,
     createChat,
     sendMessage,
     markMessageAsRead,
+    addReaction,
+    removeReaction,
     loading,
   };
 } 
