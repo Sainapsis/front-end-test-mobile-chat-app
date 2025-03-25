@@ -9,7 +9,8 @@ import {
   ViewabilityConfig,
   Pressable,
   ListRenderItemInfo,
-  ActivityIndicator
+  ActivityIndicator,
+  useColorScheme
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -22,6 +23,7 @@ import { Avatar } from '@/components/Avatar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Message } from '@/hooks/useChats';
 import { log, monitoring, startMeasure, endMeasure } from '@/utils';
+import { Colors } from '@/constants/Colors';
 
 // Constantes para mejorar el rendimiento de la virtualización
 const INITIAL_NUM_TO_RENDER = 10;
@@ -43,6 +45,8 @@ export default function ChatRoomScreen() {
 
   const flatListRef = useRef<FlatList<Message>>(null);
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? Colors.dark : Colors.light;
 
   // Registrar la carga de la sala de chat y métricas de rendimiento
   useEffect(() => {
@@ -384,14 +388,14 @@ export default function ChatRoomScreen() {
           headerTitle: () => (
             <View style={styles.headerContainer}>
               {renderChatAvatar()}
-              <ThemedText type="defaultSemiBold" numberOfLines={1}>
+              <ThemedText type="subtitle" numberOfLines={1}>
                 {chatName}
               </ThemedText>
             </View>
           ),
           headerLeft: () => (
             <Pressable onPress={handleGoBack}>
-              <IconSymbol name="chevron-left" size={24} color="#007AFF" />
+              <IconSymbol name="chevron-left" size={24} color={theme.primary} />
             </Pressable>
           ),
         }}
@@ -403,7 +407,10 @@ export default function ChatRoomScreen() {
         extraData={[currentUser.id, users]}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
-        contentContainerStyle={styles.messagesContainer}
+        contentContainerStyle={[
+          styles.messagesContainer,
+          { backgroundColor: colorScheme === 'dark' ? '#181818' : '#F8F9FA' }
+        ]}
         ListEmptyComponent={renderEmptyComponent}
         viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
         onScroll={handleScroll}
@@ -467,7 +474,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#4A6FA5',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -478,13 +485,13 @@ const styles = StyleSheet.create({
   },
   loadMoreButton: {
     padding: 12,
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    backgroundColor: 'rgba(74, 111, 165, 0.1)',
     borderRadius: 8,
     margin: 10,
     alignItems: 'center',
   },
   loadMoreText: {
-    color: '#007AFF',
+    color: '#4A6FA5',
     fontWeight: '500',
   },
   historyEndContainer: {

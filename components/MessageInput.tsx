@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { View, TextInput, TouchableOpacity, StyleSheet, Alert, useColorScheme } from 'react-native';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { Colors } from '@/constants/Colors';
 import { useAppContext } from '@/hooks/AppContext';
 import { VoiceRecordButton } from './VoiceRecordButton';
+import { log } from '@/utils';
 
 interface MessageInputProps {
   chatId: string;
@@ -13,12 +15,19 @@ interface MessageInputProps {
 export function MessageInput({ chatId }: MessageInputProps) {
   const [text, setText] = useState('');
   const { sendMessage, currentUser } = useAppContext();
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? Colors.dark : Colors.light;
 
   const handleSend = async () => {
     if (!text.trim() || !currentUser) return;
 
-    await sendMessage(chatId, text.trim(), currentUser.id);
-    setText('');
+    try {
+      log.debug(`Sending message to chat ${chatId}`);
+      await sendMessage(chatId, text.trim(), currentUser.id);
+      setText('');
+    } catch (error) {
+      log.error('Failed to send message:', error);
+    }
   };
 
   const handleVoiceRecordingComplete = async (voiceUri: string, duration: number) => {
@@ -74,17 +83,33 @@ export function MessageInput({ chatId }: MessageInputProps) {
   };
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity onPress={handleAttachImage} style={styles.attachButton}>
-        <MaterialIcons name="attach-file" size={24} color="#007AFF" />
+    <View style={[
+      styles.container,
+      {
+        backgroundColor: theme.inputBackground,
+        borderTopColor: theme.border
+      }
+    ]}>
+      <TouchableOpacity
+        onPress={handleAttachImage}
+        style={[
+          styles.attachButton,
+          { backgroundColor: colorScheme === 'dark' ? 'rgba(109, 152, 217, 0.1)' : 'transparent' }
+        ]}
+      >
+        <MaterialIcons name="attach-file" size={24} color={theme.primary} />
       </TouchableOpacity>
 
-      <View style={styles.inputContainer}>
+      <View style={[
+        styles.inputContainer,
+        { backgroundColor: colorScheme === 'dark' ? '#202020' : '#F5F5F5' }
+      ]}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { color: theme.text }]}
           value={text}
           onChangeText={setText}
-          placeholder="Type a message..."
+          placeholder="Escribe un mensaje..."
+          placeholderTextColor={theme.tabIconDefault}
           multiline
           maxLength={1000}
         />
@@ -92,8 +117,25 @@ export function MessageInput({ chatId }: MessageInputProps) {
 
       <View style={styles.buttonsContainer}>
         <VoiceRecordButton onRecordingComplete={handleVoiceRecordingComplete} />
-        <TouchableOpacity onPress={handleSend} style={styles.sendButton}>
-          <MaterialIcons name="send" size={24} color="#007AFF" />
+        <TouchableOpacity
+          style={[
+            styles.sendButton,
+            {
+              backgroundColor: text.trim()
+                ? theme.buttonBackground
+                : colorScheme === 'dark'
+                  ? 'rgba(109, 152, 217, 0.3)'
+                  : theme.buttonDisabled
+            }
+          ]}
+          onPress={handleSend}
+          disabled={!text.trim()}
+        >
+          <Ionicons
+            name="send"
+            size={24}
+            color={text.trim() ? theme.buttonText : colorScheme === 'dark' ? '#9EAEC7' : '#999999'}
+          />
         </TouchableOpacity>
       </View>
     </View>
@@ -104,16 +146,13 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    padding: 8,
+    padding: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E1E1E1',
-    backgroundColor: '#FFFFFF',
   },
   inputContainer: {
     flex: 1,
     marginHorizontal: 8,
     borderRadius: 20,
-    backgroundColor: '#F0F0F0',
     paddingHorizontal: 12,
     paddingVertical: 8,
     maxHeight: 100,
@@ -134,7 +173,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F0F0F0',
   },
   attachButton: {
     width: 40,

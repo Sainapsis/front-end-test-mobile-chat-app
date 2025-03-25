@@ -1,23 +1,26 @@
 import React, { useState, memo, useEffect } from "react";
-import { View, StyleSheet, Pressable, Modal, Alert, TextInput, TouchableOpacity } from "react-native";
+import { View, StyleSheet, Pressable, Modal, Alert, TextInput, TouchableOpacity, useColorScheme } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { ThemedText } from "./ThemedText";
 import { Message } from "@/hooks/useChats";
-import { useColorScheme } from "@/hooks/useColorScheme";
-import { MessageReactions } from './MessageReactions';
 import { useAppContext } from "@/hooks/AppContext";
 import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
 import { ForwardMessageModal } from "./ForwardMessageModal";
 import { OptimizedImage } from "./OptimizedImage";
 import { log, captureError } from '@/utils';
+import { Colors } from '@/constants/Colors';
 
 interface MessageBubbleProps {
   message: Message;
   isCurrentUser: boolean;
   senderName?: string;
+  onLongPress?: () => void;
+  onForward?: (messageId: string) => void;
+  onEdit?: (messageId: string, newText: string) => void;
+  onDelete?: (messageId: string) => void;
 }
 
-function MessageBubbleComponent({ message, isCurrentUser, senderName }: MessageBubbleProps) {
+function MessageBubbleComponent({ message, isCurrentUser, senderName, onLongPress, onForward, onEdit, onDelete }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const [showFullImage, setShowFullImage] = useState(false);
@@ -25,6 +28,7 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName }: MessageB
   const [editText, setEditText] = useState(message.text);
   const [showForwardModal, setShowForwardModal] = useState(false);
   const { editMessage, deleteMessage } = useAppContext();
+  const theme = colorScheme === 'dark' ? Colors.dark : Colors.light;
 
   // Log visualization of message when component mounts
   useEffect(() => {
@@ -195,7 +199,7 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName }: MessageB
               onChangeText={setEditText}
               style={[
                 styles.messageText,
-                isCurrentUser && !isDark && styles.selfMessageText,
+                isCurrentUser && !isDark ? styles.selfMessageText : undefined,
                 styles.editInput,
                 { backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF" }
               ]}
@@ -223,7 +227,7 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName }: MessageB
           <ThemedText
             style={[
               styles.messageText,
-              isCurrentUser && !isDark && styles.selfMessageText,
+              isCurrentUser && !isDark ? styles.selfMessageText : undefined,
             ]}
           >
             {message.text}
@@ -251,7 +255,7 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName }: MessageB
               <ThemedText
                 style={[
                   styles.imageCaption,
-                  isCurrentUser && !isDark && styles.selfMessageText,
+                  isCurrentUser && !isDark ? styles.selfMessageText : undefined,
                 ]}
               >
                 {message.text}
@@ -297,8 +301,10 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName }: MessageB
       style={[
         styles.container,
         isCurrentUser ? styles.selfContainer : styles.otherContainer,
+        { backgroundColor: isCurrentUser ? theme.messageBubbleSent : theme.messageBubble },
       ]}
-      onLongPress={handleLongPress}
+      onLongPress={onLongPress || handleLongPress}
+      delayLongPress={500}
     >
       <View
         style={[
@@ -306,11 +312,11 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName }: MessageB
           isCurrentUser
             ? [
               styles.selfBubble,
-              { backgroundColor: isDark ? "#235A4A" : "#DCF8C6" },
+              { backgroundColor: isDark ? theme.messageBubbleSent : theme.messageBubbleSent },
             ]
             : [
               styles.otherBubble,
-              { backgroundColor: isDark ? "#2A2C33" : "#FFFFFF" },
+              { backgroundColor: isDark ? theme.messageBubble : theme.messageBubble },
             ],
         ]}
       >
@@ -358,8 +364,6 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName }: MessageB
           Alert.alert("Éxito", "Mensaje reenviado correctamente");
         }}
       />
-
-      <MessageReactions messageId={message.id} reactions={message.reactions} />
     </Pressable>
   );
 }

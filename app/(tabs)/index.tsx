@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FlatList, StyleSheet, Pressable, Modal, View } from 'react-native';
+import { FlatList, StyleSheet, Pressable, Modal, View, useColorScheme } from 'react-native';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -8,6 +8,7 @@ import { UserListItem } from '@/components/UserListItem';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { GroupChatModal } from '@/components/GroupChatModal';
 import { log, monitoring, startMeasure, endMeasure } from '@/utils';
+import { Colors } from '@/constants/Colors';
 
 export default function ChatsScreen() {
   const { currentUser, users, chats, createChat } = useAppContext();
@@ -15,6 +16,8 @@ export default function ChatsScreen() {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [groupChatModalVisible, setGroupChatModalVisible] = useState(false);
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? Colors.dark : Colors.light;
 
   // Métricas de tiempo de carga de la pantalla
   useEffect(() => {
@@ -94,19 +97,25 @@ export default function ChatsScreen() {
         <ThemedText type="title">Chats</ThemedText>
         <View style={styles.headerButtons}>
           <Pressable
-            style={styles.newGroupButton}
+            style={[
+              styles.newGroupButton,
+              { backgroundColor: colorScheme === 'dark' ? 'rgba(109, 152, 217, 0.2)' : 'rgba(74, 111, 165, 0.1)' }
+            ]}
             onPress={() => {
               log.info('Open group chat modal');
               setGroupChatModalVisible(true);
             }}
           >
-            <IconSymbol name="people" size={24} color="#007AFF" />
+            <IconSymbol name="people" size={24} color={theme.primary} />
           </Pressable>
           <Pressable
-            style={styles.newChatButton}
+            style={[
+              styles.newChatButton,
+              { backgroundColor: colorScheme === 'dark' ? 'rgba(109, 152, 217, 0.2)' : 'rgba(74, 111, 165, 0.1)' }
+            ]}
             onPress={handleAddChatPress}
           >
-            <IconSymbol name="add" size={24} color="#007AFF" />
+            <IconSymbol name="add" size={24} color={theme.primary} />
           </Pressable>
         </View>
       </ThemedView>
@@ -144,15 +153,31 @@ export default function ChatsScreen() {
           setSelectedUsers([]);
         }}
       >
-        <ThemedView style={styles.modalContainer}>
-          <ThemedView style={styles.modalContent}>
-            <ThemedView style={styles.modalHeader}>
+        <ThemedView
+          style={styles.modalContainer}
+          darkBackgroundColor="rgba(0,0,0,0.75)"
+          lightBackgroundColor="rgba(0,0,0,0.4)"
+        >
+          <ThemedView
+            style={
+              colorScheme === 'dark'
+                ? { ...styles.modalContent, ...styles.modalContentDark }
+                : styles.modalContent
+            }
+            darkBackgroundColor={theme.modalContent}
+            lightBackgroundColor={theme.modalContent}
+          >
+            <ThemedView
+              style={styles.modalHeader}
+              darkBackgroundColor="transparent"
+              lightBackgroundColor="transparent"
+            >
               <ThemedText type="subtitle">Nuevo Chat</ThemedText>
               <Pressable onPress={() => {
                 setModalVisible(false);
                 setSelectedUsers([]);
               }}>
-                <IconSymbol name="close" size={24} color="#007AFF" />
+                <IconSymbol name="close" size={24} color={theme.primary} />
               </Pressable>
             </ThemedView>
 
@@ -186,12 +211,13 @@ export default function ChatsScreen() {
               <Pressable
                 style={[
                   styles.createButton,
-                  selectedUsers.length === 0 && styles.disabledButton
+                  selectedUsers.length === 0 && styles.disabledButton,
+                  { backgroundColor: selectedUsers.length === 0 ? theme.buttonDisabled : theme.buttonBackground }
                 ]}
                 onPress={handleCreateChat}
                 disabled={selectedUsers.length === 0}
               >
-                <ThemedText style={styles.createButtonText}>
+                <ThemedText style={{ color: theme.buttonText, fontWeight: 'bold' }}>
                   Crear Chat
                 </ThemedText>
               </Pressable>
@@ -263,18 +289,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
     width: '90%',
     maxHeight: '80%',
-    borderRadius: 10,
+    borderRadius: 16,
     padding: 20,
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  modalContentDark: {
+    shadowColor: '#000',
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
   },
   modalHeader: {
     flexDirection: 'row',
