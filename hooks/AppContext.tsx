@@ -13,11 +13,15 @@ type AppContextType = {
   chats: Chat[];
   createChat: (participantIds: string[]) => Promise<Chat | null>;
   sendMessage: (
-    chatId: string, 
-    text: string, 
-    senderId: string, 
+    chatId: string,
+    text: string,
+    senderId: string,
     imageData?: { uri: string; previewUri: string },
     voiceData?: { uri: string; duration: number }
+  ) => Promise<boolean>;
+  forwardMessage: (
+    sourceMessageId: string,
+    targetChatId: string
   ) => Promise<boolean>;
   markMessageAsRead: (messageId: string, userId: string) => Promise<boolean>;
   addReaction: (messageId: string, userId: string, emoji: string) => Promise<boolean>;
@@ -42,9 +46,10 @@ function AppContent({ children }: { children: ReactNode }) {
     removeReaction,
     editMessage,
     deleteMessage,
+    forwardMessage,
     loading: chatsLoading,
   } = useChats(userContext.currentUser?.id || null);
-  
+
   const loading = !isInitialized || userContext.loading || chatsLoading;
 
   const contextValue: AppContextType = {
@@ -56,6 +61,7 @@ function AppContent({ children }: { children: ReactNode }) {
     chats,
     createChat,
     sendMessage,
+    forwardMessage,
     markMessageAsRead,
     addReaction,
     removeReaction,

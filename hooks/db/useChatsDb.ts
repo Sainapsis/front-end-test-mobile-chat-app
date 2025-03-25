@@ -164,7 +164,7 @@ export function useChatsDb(currentUserId: string | null) {
     if (!currentUserId || !participantIds.includes(currentUserId)) {
       return null;
     }
-    
+
     try {
       // Check if a chat already exists between these participants
       const existingChats = userChats.filter(chat => {
@@ -179,12 +179,12 @@ export function useChatsDb(currentUserId: string | null) {
       }
 
       const chatId = `chat${Date.now()}`;
-      
+
       // Insert new chat
       await db.insert(chats).values({
         id: chatId,
       });
-      
+
       // Insert participants
       for (const userId of participantIds) {
         await db.insert(chatParticipants).values({
@@ -193,13 +193,13 @@ export function useChatsDb(currentUserId: string | null) {
           userId: userId,
         });
       }
-      
+
       const newChat = {
         id: chatId,
         participants: participantIds,
         messages: [],
       };
-      
+
       setUserChats(prevChats => [...prevChats, newChat]);
       return newChat;
     } catch (error) {
@@ -264,7 +264,7 @@ export function useChatsDb(currentUserId: string | null) {
       const messageId = `msg${Date.now()}`;
       const timestamp = Date.now();
       let messageType: 'text' | 'image' | 'voice' = 'text';
-      
+
       if (imageData) {
         messageType = 'image';
       } else if (voiceData) {
@@ -407,7 +407,7 @@ export function useChatsDb(currentUserId: string | null) {
       // Update message
       await db
         .update(messages)
-        .set({ 
+        .set({
           text: newText,
           isEdited: 1,
           editedAt: timestamp
@@ -431,11 +431,11 @@ export function useChatsDb(currentUserId: string | null) {
           }),
           lastMessage: chat.lastMessage?.id === messageId
             ? {
-                ...chat.lastMessage,
-                text: newText,
-                isEdited: true,
-                editedAt: timestamp
-              }
+              ...chat.lastMessage,
+              text: newText,
+              isEdited: true,
+              editedAt: timestamp
+            }
             : chat.lastMessage
         }));
       });
@@ -470,9 +470,9 @@ export function useChatsDb(currentUserId: string | null) {
           }),
           lastMessage: chat.lastMessage?.id === messageId
             ? {
-                ...chat.lastMessage,
-                isDeleted: true
-              }
+              ...chat.lastMessage,
+              isDeleted: true
+            }
             : chat.lastMessage
         }));
       });
@@ -484,6 +484,88 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  const forwardMessage = useCallback(async (sourceMessageId: string, targetChatId: string) => {
+    if (!currentUserId) return false;
+
+    try {
+      // Buscar el mensaje original
+      let originalMessage: Message | undefined;
+      let originalChat: Chat | undefined;
+
+      for (const chat of userChats) {
+        const message = chat.messages.find(msg => msg.id === sourceMessageId);
+        if (message) {
+          originalMessage = message;
+          originalChat = chat;
+          break;
+        }
+      }
+
+      if (!originalMessage) {
+        console.error('Message not found for forwarding');
+        return false;
+      }
+
+      // Crear nuevo mensaje usando los datos del original
+      const messageId = `msg${Date.now()}`;
+      const timestamp = Date.now();
+
+      // Insertar mensaje reenviado
+      await db.insert(messages).values({
+        id: messageId,
+        chatId: targetChatId,
+        senderId: currentUserId,
+        text: originalMessage.text,
+        timestamp: timestamp,
+        messageType: originalMessage.messageType,
+        imageUri: originalMessage.imageUri,
+        imagePreviewUri: originalMessage.imagePreviewUri,
+        voiceUri: originalMessage.voiceUri,
+        voiceDuration: originalMessage.voiceDuration,
+        status: 'sent',
+        isEdited: 0,
+        isDeleted: 0,
+      });
+
+      const newMessage: Message = {
+        id: messageId,
+        senderId: currentUserId,
+        text: originalMessage.text,
+        timestamp,
+        messageType: originalMessage.messageType,
+        imageUri: originalMessage.imageUri,
+        imagePreviewUri: originalMessage.imagePreviewUri,
+        voiceUri: originalMessage.voiceUri,
+        voiceDuration: originalMessage.voiceDuration,
+        status: 'sent',
+        readBy: [],
+        reactions: [],
+        isEdited: false,
+        editedAt: undefined,
+        isDeleted: false,
+      };
+
+      // Actualizar estado
+      setUserChats(prevChats => {
+        return prevChats.map(chat => {
+          if (chat.id === targetChatId) {
+            return {
+              ...chat,
+              messages: [...chat.messages, newMessage],
+              lastMessage: newMessage,
+            };
+          }
+          return chat;
+        });
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error forwarding message:', error);
+      return false;
+    }
+  }, [currentUserId, userChats]);
+
   return {
     chats: userChats,
     createChat,
@@ -493,6 +575,7 @@ export function useChatsDb(currentUserId: string | null) {
     removeReaction,
     editMessage,
     deleteMessage,
+    forwardMessage,
     loading,
   };
 } 

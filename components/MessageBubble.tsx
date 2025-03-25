@@ -7,6 +7,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { MessageReactions } from './MessageReactions';
 import { useAppContext } from "@/hooks/AppContext";
 import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
+import { ForwardMessageModal } from "./ForwardMessageModal";
 
 interface MessageBubbleProps {
   message: Message;
@@ -19,6 +20,7 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
   const [showFullImage, setShowFullImage] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(message.text);
+  const [showForwardModal, setShowForwardModal] = useState(false);
   const { editMessage, deleteMessage } = useAppContext();
 
   const formatTime = (timestamp: number) => {
@@ -27,32 +29,31 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
   };
 
   const handleLongPress = () => {
-    if (!isCurrentUser) return;
+    const options = [];
 
-    Alert.alert(
-      "Message Options",
-      "What would you like to do?",
-      [
+    // Opciones para mensajes propios
+    if (isCurrentUser) {
+      options.push(
         {
-          text: "Edit",
+          text: "Editar",
           onPress: () => {
             setEditText(message.text);
             setIsEditing(true);
           },
         },
         {
-          text: "Delete",
+          text: "Eliminar",
           onPress: () => {
             Alert.alert(
-              "Delete Message",
-              "Are you sure you want to delete this message?",
+              "Eliminar mensaje",
+              "¿Estás seguro de que quieres eliminar este mensaje?",
               [
                 {
-                  text: "Cancel",
+                  text: "Cancelar",
                   style: "cancel",
                 },
                 {
-                  text: "Delete",
+                  text: "Eliminar",
                   style: "destructive",
                   onPress: () => deleteMessage(message.id),
                 },
@@ -60,12 +61,28 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
             );
           },
           style: "destructive",
-        },
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-      ]
+        }
+      );
+    }
+
+    // Opción de reenviar para todos los mensajes
+    options.push(
+      {
+        text: "Reenviar",
+        onPress: () => setShowForwardModal(true),
+      }
+    );
+
+    // Siempre añadir la opción de cancelar
+    options.push({
+      text: "Cancelar",
+      style: "cancel",
+    });
+
+    Alert.alert(
+      "Opciones de mensaje",
+      "¿Qué quieres hacer?",
+      options
     );
   };
 
@@ -79,7 +96,7 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
     if (success) {
       setIsEditing(false);
     } else {
-      Alert.alert("Error", "Failed to edit message");
+      Alert.alert("Error", "No se pudo editar el mensaje");
     }
   };
 
@@ -97,26 +114,26 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
     switch (message.status) {
       case "sent":
         return (
-          <MaterialIcons 
-            name="check" 
-            size={iconSize} 
-            color={iconColor} 
+          <MaterialIcons
+            name="check"
+            size={iconSize}
+            color={iconColor}
           />
         );
       case "delivered":
         return (
-          <MaterialIcons 
-            name="done-all" 
-            size={iconSize} 
-            color={iconColor} 
+          <MaterialIcons
+            name="done-all"
+            size={iconSize}
+            color={iconColor}
           />
         );
       case "read":
         return (
-          <MaterialIcons 
-            name="done-all" 
-            size={iconSize} 
-            color="#4CAF50" 
+          <MaterialIcons
+            name="done-all"
+            size={iconSize}
+            color="#4CAF50"
           />
         );
       default:
@@ -144,17 +161,17 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
               onSubmitEditing={handleEditSubmit}
             />
             <View style={styles.editButtons}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={handleCancelEdit}
                 style={[styles.editButton, styles.cancelButton]}
               >
-                <ThemedText style={styles.editButtonText}>Cancel</ThemedText>
+                <ThemedText style={styles.editButtonText}>Cancelar</ThemedText>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={handleEditSubmit}
                 style={[styles.editButton, styles.saveButton]}
               >
-                <ThemedText style={styles.editButtonText}>Save</ThemedText>
+                <ThemedText style={styles.editButtonText}>Guardar</ThemedText>
               </TouchableOpacity>
             </View>
           </View>
@@ -167,11 +184,11 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
           >
             {message.text}
             {message.isEdited && (
-              <ThemedText style={styles.editedText}> (edited)</ThemedText>
+              <ThemedText style={styles.editedText}> (editado)</ThemedText>
             )}
           </ThemedText>
         );
-      
+
       case "image":
         return (
           <View>
@@ -191,7 +208,7 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
               >
                 {message.text}
                 {message.isEdited && (
-                  <ThemedText style={styles.editedText}> (edited)</ThemedText>
+                  <ThemedText style={styles.editedText}> (editado)</ThemedText>
                 )}
               </ThemedText>
             )}
@@ -220,7 +237,7 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
       <View style={[styles.container, isCurrentUser ? styles.selfContainer : styles.otherContainer]}>
         <View style={[styles.bubble, styles.deletedBubble]}>
           <ThemedText style={styles.deletedText}>
-            This message was deleted
+            Este mensaje fue eliminado
           </ThemedText>
         </View>
       </View>
@@ -240,13 +257,13 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
           styles.bubble,
           isCurrentUser
             ? [
-                styles.selfBubble,
-                { backgroundColor: isDark ? "#235A4A" : "#DCF8C6" },
-              ]
+              styles.selfBubble,
+              { backgroundColor: isDark ? "#235A4A" : "#DCF8C6" },
+            ]
             : [
-                styles.otherBubble,
-                { backgroundColor: isDark ? "#2A2C33" : "#FFFFFF" },
-              ],
+              styles.otherBubble,
+              { backgroundColor: isDark ? "#2A2C33" : "#FFFFFF" },
+            ],
         ]}
       >
         {renderMessageContent()}
@@ -274,6 +291,16 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
           />
         </Pressable>
       </Modal>
+
+      <ForwardMessageModal
+        visible={showForwardModal}
+        onClose={() => setShowForwardModal(false)}
+        messageId={message.id}
+        onForwardComplete={() => {
+          Alert.alert("Éxito", "Mensaje reenviado correctamente");
+        }}
+      />
+
       <MessageReactions messageId={message.id} reactions={message.reactions} />
     </Pressable>
   );

@@ -3,16 +3,17 @@ import { useChatsDb, Chat, Message, MessageReaction } from './db/useChatsDb';
 export { Chat, Message, MessageReaction };
 
 export function useChats(currentUserId: string | null) {
-  const { 
-    chats, 
-    createChat, 
+  const {
+    chats,
+    createChat,
     sendMessage,
     markMessageAsRead,
     addReaction,
     removeReaction,
     editMessage,
     deleteMessage,
-    loading 
+    forwardMessage,
+    loading
   } = useChatsDb(currentUserId);
 
   return {
@@ -24,6 +25,7 @@ export function useChats(currentUserId: string | null) {
     removeReaction,
     editMessage,
     deleteMessage,
+    forwardMessage,
     loading,
   };
 } 
