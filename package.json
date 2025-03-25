@@ -8,11 +8,12 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "jest --watchAll",
-    "lint": "expo lint"
-  },
-  "jest": {
-    "preset": "jest-expo"
+    "reset": "expo start --clear",
+    "test": "jest --config jest.config.js",
+    "test:watch": "jest --config jest.config.js --watchAll",
+    "test:coverage": "jest --config jest.config.js --coverage",
+    "test:simple": "npx jest __tests__/unit/OptimizedImage.simple.test.tsx __tests__/unit/VoiceMessagePlayer.simple.test.tsx __tests__/unit/useChats.simple.test.tsx __tests__/unit/MessageBubble.simple.test.tsx __tests__/unit/useChatsDb.simple.test.tsx __tests__/unit/simple.test.tsx --config jest.config.js",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.4",
@@ -51,6 +52,8 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@testing-library/react": "^16.2.0",
+    "@testing-library/react-native": "^13.2.0",
     "@types/jest": "^29.5.12",
     "@types/react": "~18.3.12",
     "@types/react-test-renderer": "^18.3.0",
