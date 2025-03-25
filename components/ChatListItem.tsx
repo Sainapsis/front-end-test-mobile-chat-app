@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { Chat } from '@/hooks/useChats';
 import { Avatar } from './Avatar';
 import { ThemedText } from './ThemedText';
@@ -12,8 +12,12 @@ interface ChatListItemProps {
   users: User[];
 }
 
+type RootStackParamList = {
+  ChatRoom: { chatId: string };
+};
+
 export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   
   const otherParticipants = useMemo(() => {
     return chat.participants
@@ -33,7 +37,7 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
   }, [otherParticipants]);
 
   const handlePress = () => {
-    navigation.navigate('ChatRoom' as never, { chatId: chat.id } as never);
+    navigation.navigate('ChatRoom', { chatId: chat.id });
   };
 
   const timeString = useMemo(() => {

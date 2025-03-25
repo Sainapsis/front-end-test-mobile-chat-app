@@ -156,6 +156,18 @@ export function useChatsDb(currentUserId: string | null) {
     }
     
     try {
+      // Check if a chat already exists between these participants
+      const existingChats = userChats.filter(chat => {
+        const chatParticipantIds = chat.participants;
+        return participantIds.length === chatParticipantIds.length &&
+          participantIds.every(id => chatParticipantIds.includes(id)) &&
+          chatParticipantIds.every(id => participantIds.includes(id));
+      });
+
+      if (existingChats.length > 0) {
+        return existingChats[0];
+      }
+
       const chatId = `chat${Date.now()}`;
       
       // Insert new chat
@@ -172,7 +184,7 @@ export function useChatsDb(currentUserId: string | null) {
         });
       }
       
-      const newChat: Chat = {
+      const newChat = {
         id: chatId,
         participants: participantIds,
         messages: [],
@@ -184,7 +196,7 @@ export function useChatsDb(currentUserId: string | null) {
       console.error('Error creating chat:', error);
       return null;
     }
-  }, [currentUserId]);
+  }, [currentUserId, userChats]);
 
   const markMessageAsRead = useCallback(async (messageId: string, userId: string) => {
     try {

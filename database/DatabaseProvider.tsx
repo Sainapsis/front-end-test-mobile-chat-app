@@ -32,23 +32,34 @@ export function DatabaseProvider({ children }: DatabaseProviderProps) {
       try {
         // Delete existing database file if it exists
         const dbPath = `${FileSystem.documentDirectory}chat-app.db`;
+        const dbJournalPath = `${FileSystem.documentDirectory}chat-app.db-journal`;
         console.log('Checking database at:', dbPath);
-        const dbExists = await FileSystem.getInfoAsync(dbPath);
         
+        // Delete main database file
+        const dbExists = await FileSystem.getInfoAsync(dbPath);
         if (dbExists.exists) {
           console.log('Found existing database, deleting...');
           try {
             await FileSystem.deleteAsync(dbPath, { idempotent: true });
-            console.log('Database deleted successfully');
+            // Also delete journal file if it exists
+            const journalExists = await FileSystem.getInfoAsync(dbJournalPath);
+            if (journalExists.exists) {
+              await FileSystem.deleteAsync(dbJournalPath, { idempotent: true });
+            }
+            console.log('Database files deleted successfully');
           } catch (deleteError) {
             console.error('Error deleting database:', deleteError);
           }
-        } else {
-          console.log('No existing database found');
+          
+          // Verify deletion
+          const dbStillExists = await FileSystem.getInfoAsync(dbPath);
+          if (dbStillExists.exists) {
+            throw new Error('Failed to delete existing database');
+          }
         }
 
-        // Small delay to ensure file system operations complete
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Increased delay to ensure file system operations complete
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         console.log('Initializing new database...');
         await initializeDatabase();
