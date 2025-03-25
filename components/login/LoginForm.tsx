@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ThemedView } from '@/components/ui/layout/ThemedView';
 import { ThemedText } from '@/components/ui/text/ThemedText';
 import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
@@ -10,6 +10,7 @@ import { ThemedButton } from '../ui/buttons/ThemedButton';
 export default function LoginForm() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [disabled, setDisabled] = useState(true);
     const { users, login } = useAppContext();
 
     const router = useRouter();
@@ -20,6 +21,11 @@ export default function LoginForm() {
             router.replace('/(private)/(tabs)');
         }
     };
+
+    useEffect(()=>{
+        setDisabled(username.length < 3 || password.length < 3)
+    }, [username, password])
+    
     return (
         <KeyboardAvoidingView
             style={styles.container}
@@ -28,7 +34,7 @@ export default function LoginForm() {
             <ThemedView style={styles.container}>
                 <ThemedInput textValue={username} setTextValue={setUsername} placeholder='Username' label="Username" textArea={false} autoCorrect={false} autoCapitalize={false}></ThemedInput>
                 <ThemedInput textValue={password} setTextValue={setPassword} placeholder='Password' label="Password" textArea={false} autoCorrect={false} autoCapitalize={false} isPassword={true}></ThemedInput>
-                <ThemedButton onPress={handleLogin} buttonText='Continue' style={styles.loginButton}></ThemedButton>
+                <ThemedButton onPress={handleLogin} buttonText='Continue' style={styles.loginButton} disabled={disabled}></ThemedButton>
             </ThemedView>
         </KeyboardAvoidingView>
     )

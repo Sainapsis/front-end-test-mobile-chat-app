@@ -25,7 +25,12 @@ export async function initializeDatabase() {
     console.log('Creating chats table...');
     await sqlite.execAsync(`
       CREATE TABLE IF NOT EXISTS chats (
-        id TEXT PRIMARY KEY
+        id TEXT PRIMARY KEY, 
+        last_message TEXT,
+        chat_name TEXT NOT NULL,
+        last_message_time INTEGER,
+        unread_messages INTEGER,
+        last_message_sender TEXT
       );
     `);
     

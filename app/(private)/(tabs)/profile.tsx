@@ -8,14 +8,17 @@ import { Avatar } from '@/components/ui/user/Avatar';
 import { ThemedButton } from '@/components/ui/buttons/ThemedButton';
 
 export default function ProfileScreen() {
+  // Get current user data and logout function from global context
   const { currentUser, logout } = useAppContext();
+  // Get router to perform navigation actions
   const router = useRouter();
 
+  // Handler for logging out
   const handleLogout = () => {
     logout();
-    // The navigation to login will be handled by the useProtectedRoute hook in _layout.tsx
   };
 
+  // If there is no current user, show a loading indicator
   if (!currentUser) {
     return (
       <ThemedView style={styles.loadingContainer}>
@@ -25,18 +28,23 @@ export default function ProfileScreen() {
   }
 
   return (
+    // SafeAreaView to ensure content does not overlap system UI elements
     <SafeAreaView style={styles.safeArea}>
       <ThemedView style={styles.container}>
+        {/* Profile header with avatar and user info */}
         <ThemedView style={styles.profileHeader}>
           <Avatar user={currentUser} size={100} />
           <ThemedView style={styles.profileInfo}>
+            {/* Display the user's name */}
             <ThemedText type="title">{currentUser.name}</ThemedText>
+            {/* Capitalize the status text (e.g., Online, Offline, Away) */}
             <ThemedText style={styles.statusText}>
               {currentUser.status.charAt(0).toUpperCase() + currentUser.status.slice(1)}
             </ThemedText>
           </ThemedView>
         </ThemedView>
 
+        {/* Section displaying additional account information */}
         <ThemedView style={styles.section}>
           <ThemedText type="subtitle">Account Information</ThemedText>
 
@@ -51,8 +59,9 @@ export default function ProfileScreen() {
           </ThemedView>
         </ThemedView>
 
+        {/* Logout button placed at the bottom of the screen */}
         <ThemedView style={styles.buttonContainer}>
-          <ThemedButton onPress={handleLogout} buttonText='Logout' iconName='chevron.right'></ThemedButton>
+          <ThemedButton onPress={handleLogout} buttonText="Logout" iconName="chevron.right" />
         </ThemedView>
       </ThemedView>
     </SafeAreaView>
@@ -102,8 +111,9 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flex: 1,
     justifyContent: 'flex-end',
-    marginBottom: 80, // Add padding to ensure the button is visible above the tab bar
+    marginBottom: 80, // Ensures the button is visible above the tab bar
   },
+  // Additional styles for logout button if needed (currently ThemedButton handles its own styles)
   logoutButton: {
     flexDirection: 'row',
     backgroundColor: '#FF3B30',

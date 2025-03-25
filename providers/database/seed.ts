@@ -95,7 +95,7 @@ export async function seedDatabase() {
     let messageReadById = 1
     for (const chat of initialChats) {
       // Insert chat
-      await db.insert(chats).values({ id: chat.id }).onConflictDoNothing();
+      //await db.insert(chats).values({ id: chat.id }).onConflictDoNothing();
       
       // Insert participants
       console.log(`Adding participants for chat ${chat.id}...`);

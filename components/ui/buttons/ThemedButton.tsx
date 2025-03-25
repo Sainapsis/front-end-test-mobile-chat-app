@@ -7,11 +7,12 @@ interface ButtonProps {
     buttonText: string;
     iconName?: any;
     style?: ViewStyle;
+    disabled?: boolean;
 }
-export function ThemedButton({ onPress, buttonText, iconName, style }: ButtonProps) {
+export function ThemedButton({ onPress, buttonText, iconName, style, disabled = false }: ButtonProps) {
     {
         return (
-            <Pressable style={[styles.md, {...style}]} onPress={onPress}>
+            <Pressable style={[styles.md, {...style}]} onPress={onPress} disabled={disabled}>
                 <ThemedText style={styles.boldText} type="subtitle">{buttonText}</ThemedText>
                 {iconName ? <IconSymbol name={iconName} size={20} color="#FFFFFF" /> : <></>}
             </Pressable>

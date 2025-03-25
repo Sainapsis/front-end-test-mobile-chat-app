@@ -8,12 +8,14 @@ import { useApi } from '@/hooks/api/useApi';
 export interface User {
   id: string;
   name: string;
-  avatar: string;
+  username: string;
+  avatar: string | null;
   status: 'online' | 'offline' | 'away';
 }
 
 export function useUserDb() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [deviceProfiles, setDeviceProfiles] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -29,6 +31,8 @@ export function useUserDb() {
       } else {
         setLoading(false);
       }
+      const usersData = await db.select().from(users)
+      setAllUsers(usersData as User[])
       // if (sessionId && !currentUser) {
       //   try {
       //     // Call Login only if there is a session

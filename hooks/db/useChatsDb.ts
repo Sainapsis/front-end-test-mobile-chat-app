@@ -184,7 +184,7 @@ export function useChatsDb(currentUserId: string | null) {
     try {
       const chatId = `chat${Date.now()}`;
       // Insert new chat
-      await db.insert(chats).values({ id: chatId });
+      //await db.insert(chats).values({ id: chatId });
       // Insert participants
       await Promise.all(
         participantIds.map(userId =>
