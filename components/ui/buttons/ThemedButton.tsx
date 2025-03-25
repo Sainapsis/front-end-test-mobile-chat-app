@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, ViewStyle } from "react-native";
 import { IconSymbol } from "../icons/IconSymbol";
 import { ThemedText } from "../text/ThemedText";
+import { opacity } from "react-native-reanimated/lib/typescript/Colors";
 
 interface ButtonProps {
     onPress: () => void;
@@ -12,7 +13,7 @@ interface ButtonProps {
 export function ThemedButton({ onPress, buttonText, iconName, style, disabled = false }: ButtonProps) {
     {
         return (
-            <Pressable style={[styles.md, {...style}]} onPress={onPress} disabled={disabled}>
+            <Pressable style={[styles.md, { ...style }, disabled && styles.disabled]} onPress={onPress} disabled={disabled}>
                 <ThemedText style={styles.boldText} type="subtitle">{buttonText}</ThemedText>
                 {iconName ? <IconSymbol name={iconName} size={20} color="#FFFFFF" /> : <></>}
             </Pressable>
@@ -35,5 +36,8 @@ const styles = StyleSheet.create({
         marginLeft: 10,
         color: "#FFF",
         fontSize: 16
+    },
+    disabled: {
+        opacity: 0.5
     }
 })

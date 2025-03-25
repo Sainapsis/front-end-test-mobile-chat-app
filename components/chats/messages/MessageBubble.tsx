@@ -41,7 +41,7 @@ export function MessageBubble({ message, isCurrentUser, otherUser, isReaded }: M
       ]}>
         <View style={styles.bubbleContainer}>
           <View style={styles.avatar}>
-            {isCurrentUser ? <></> : <Avatar user={otherUser} size={30}></Avatar>}
+            {isCurrentUser ? <></> : <Avatar userName={otherUser?.name} size={30} status={otherUser?.status}></Avatar>}
           </View>
           <View style={[
             styles.bubble,

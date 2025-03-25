@@ -26,14 +26,14 @@ export default function ChatRoomScreen() {
 
   const chat = chats.find(c => c.id === chatId);
 
-  const chatParticipants = chat?.participants
-    .filter(id => id !== currentUser?.id)
-    .map(id => chat.participantsData?.find(user => user.id === id))
-    .filter(Boolean) || [];
+  // const chatParticipants = chat?.participants
+  //   .filter(id => id !== currentUser?.id)
+  //   .map(id => chat.participantsData?.find(user => user.id === id))
+  //   .filter(Boolean) || [];
 
-  const chatName = chatParticipants.length === 1
-    ? chatParticipants[0]?.name
-    : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
+  // const chatName = chatParticipants.length === 1
+  //   ? chatParticipants[0]?.name
+  //   : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
 
   const handleSendMessage = () => {
     if (messageText.trim() && currentUser && chat) {
@@ -42,13 +42,13 @@ export default function ChatRoomScreen() {
     }
   };
 
-  useEffect(() => {
-    if (chat?.messages.length && flatListRef.current) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }
-  }, [chat?.messages.length]);
+  // useEffect(() => {
+  //   if (chat?.messages.length && flatListRef.current) {
+  //     setTimeout(() => {
+  //       flatListRef.current?.scrollToEnd({ animated: true });
+  //     }, 100);
+  //   }
+  // }, [chat?.messages.length]);
 
   if (!chat || !currentUser) {
     return (
@@ -70,12 +70,12 @@ export default function ChatRoomScreen() {
           headerTitle: () => (
             <View style={styles.headerContainer}>
               <Avatar
-                user={chatParticipants[0]}
+                userName={chat.chatName}
                 size={32}
-                showStatus={true}
+                status={chat.chatStatus as "online" | "offline" | "away"}
               />
               <ThemedText type="defaultSemiBold" numberOfLines={1}>
-                {chatName}
+                {""}
               </ThemedText>
             </View>
           ),
@@ -89,20 +89,20 @@ export default function ChatRoomScreen() {
 
       <FlatList
         ref={flatListRef}
-        data={chat.messages}
+        data={[]}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <MessageBubble
             message={item}
             isCurrentUser={item.senderId === currentUser.id}
-            otherUser={chatParticipants[0]}
+            otherUser={undefined}
             isReaded={item.readed}
           />
         )}
         contentContainerStyle={styles.messagesContainer}
         ListEmptyComponent={() => (
           <ThemedView style={styles.emptyContainer}>
-            <ThemedText>No messages yet. Say hello!</ThemedText>
+            <ThemedText>No messages yet. Say hello! {chat.chatName}</ThemedText>
           </ThemedView>
         )}
       />
@@ -133,6 +133,5 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
   },
 }); 

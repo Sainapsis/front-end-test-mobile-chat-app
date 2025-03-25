@@ -6,6 +6,7 @@ import { Avatar } from '@/components/ui/user/Avatar';
 import { ThemedText } from '../../ui/text/ThemedText';
 import { User } from '@/hooks/user/useUser';
 import { useAppContext } from '@/hooks/AppContext';
+import { users } from '@/providers/database/schema';
 
 interface ChatListItemProps {
   chat: Chat;
@@ -17,23 +18,6 @@ export function ChatListItem({ chat, currentUserId }: ChatListItemProps) {
   const navigation = useNavigation();
   const { updateReadStatus } = useAppContext()
 
-  const otherParticipants = useMemo(() => {
-    return chat.participants
-      .filter(id => id !== currentUserId)
-      .map(id => chat.participantsData?.find(user => user.id === id))
-      .filter(Boolean) as User[];
-  }, [chat.participants, currentUserId, chat.participantsData]);
-
-  const chatName = useMemo(() => {
-    if (otherParticipants.length === 0) {
-      return 'No participants';
-    } else if (otherParticipants.length === 1) {
-      return otherParticipants[0].name;
-    } else {
-      return `${otherParticipants[0].name} & ${otherParticipants.length - 1} other${otherParticipants.length > 2 ? 's' : ''}`;
-    }
-  }, [otherParticipants]);
-
   const handlePress = () => {
     updateReadStatus(currentUserId, chat.id)
     navigation.navigate('chat-room' as never, { chatId: chat.id } as never);
@@ -42,7 +26,7 @@ export function ChatListItem({ chat, currentUserId }: ChatListItemProps) {
   const timeString = useMemo(() => {
     if (!chat.lastMessage) return '';
 
-    const date = new Date(chat.lastMessage.timestamp);
+    const date = new Date(chat.lastMessageTime);
     const now = new Date();
     const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
 
@@ -57,18 +41,19 @@ export function ChatListItem({ chat, currentUserId }: ChatListItemProps) {
     }
   }, [chat.lastMessage]);
 
-  const isCurrentUserLastSender = chat.lastMessage?.senderId === currentUserId;
+  const isCurrentUserLastSender = true;
 
   return (
     <Pressable style={styles.container} onPress={handlePress}>
       <Avatar
-        user={otherParticipants[0]}
+        userName='Jhon Doe'
         size={50}
+        status={chat.chatStatus as "online" | "offline" | "away"}
       />
       <View style={styles.contentContainer}>
         <View style={styles.topRow}>
           <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.name}>
-            {chatName}
+            {"Jhon Doe"}
           </ThemedText>
           {timeString && (
             <ThemedText style={styles.time}>{timeString}</ThemedText>
@@ -83,11 +68,11 @@ export function ChatListItem({ chat, currentUserId }: ChatListItemProps) {
                 isCurrentUserLastSender && styles.currentUserMessage
               ]}
             >
-              {isCurrentUserLastSender && 'You: '}{chat.lastMessage.text}
+              {isCurrentUserLastSender && 'You: '}{chat.lastMessage}
             </ThemedText>
           )}
-          {chat.unreadedMessagesCount > 0?  <ThemedText style={styles.time}>{chat.unreadedMessagesCount}</ThemedText>: <></>}
-         
+          {chat.unreadedMessages > 0 ? <ThemedText style={styles.time}>{chat.unreadedMessages}</ThemedText> : <></>}
+
         </View>
       </View>
     </Pressable>

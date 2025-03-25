@@ -26,6 +26,23 @@ export function useUserDb() {
       try {
         const token = await SecureStore.getItemAsync('token');
         if (token) {
+          const remoteUserData = await get('/user/userProfileData')
+          const localUserData = await db.select().from(users).where(eq(users.username, remoteUserData.username));
+          if (localUserData && localUserData.length === 0) {
+
+            const userDataToStore = {
+              username: remoteUserData.username,
+              id: remoteUserData._id,
+              name: `${remoteUserData.firstName} ${remoteUserData.lastName}`,
+              avatar: remoteUserData.avatar || undefined,
+              status: remoteUserData.status,
+            }
+
+            await db.insert(users).values(userDataToStore);
+            setCurrentUser(userDataToStore)
+          } else {
+            setCurrentUser(localUserData[0] as User)
+          }
           setIsLoggedIn(true)
         }
         const usersData = await db.select().from(users)
@@ -93,13 +110,14 @@ export function useUserDb() {
   }, []);
 
   const logout = useCallback(async () => {
-    try{
+    try {
       setCurrentUser(null);
       await SecureStore.deleteItemAsync('token');
       setIsLoggedIn(false)
       const usersData = await db.select().from(users)
       setAllUsers(usersData as User[])
-    }catch (error) {
+      console.log(usersData)
+    } catch (error) {
       console.error('Error during logout:', error);
     }
 

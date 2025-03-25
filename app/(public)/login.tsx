@@ -29,7 +29,7 @@ export default function LoginScreen() {
                   {/* Display the user's name */}
                   <ThemedText type="title">{users[0].name}</ThemedText>
                 </ThemedView>
-                <Avatar user={users[0]} size={100} showStatus={false} />
+                <Avatar userName={users[0].name} size={100} showStatus={false} />
               </ThemedView>
             }
 

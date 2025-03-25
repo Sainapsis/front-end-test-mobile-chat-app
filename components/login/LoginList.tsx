@@ -27,6 +27,7 @@ export default function LoginList() {
                         <UserListItem
                             user={item}
                             onSelect={() => handleUserSelect(item.id)}
+                            showStatus={false}
                         />
                     )}
                     contentContainerStyle={styles.listContainer}

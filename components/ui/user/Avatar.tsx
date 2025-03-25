@@ -4,28 +4,11 @@ import { ThemedText } from '@/components/ui/text/ThemedText';
 import { User } from '@/hooks/user/useUser';
 
 interface AvatarProps {
-  user?: User;
+  userName?: string;
+  status?: 'online' | 'offline' | 'away';
   size?: number;
   showStatus?: boolean;
 }
-
-
-const getAvatarColor = (identifier?: string): string => {
-  if (!identifier) return '#C0C0C0';
-
-  let hash = 0;
-  for (let i = 0; i < identifier.length; i++) {
-    hash = identifier.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  let color = '#';
-  for (let i = 0; i < 3; i++) {
-    const value = (hash >> (i * 8)) & 0xFF;
-    color += ('00' + value.toString(16)).substr(-2);
-  }
-
-  return color;
-};
 
 const getInitials = (name?: string): string => {
   if (!name) return '?';
@@ -38,9 +21,8 @@ const getInitials = (name?: string): string => {
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 };
 
-export function Avatar({ user, size = 40, showStatus = true }: AvatarProps) {
-  const backgroundColor = getAvatarColor(user?.id || user?.name);
-  const initials = getInitials(user?.name);
+export function Avatar({ userName, status, size = 40, showStatus = true }: AvatarProps) {
+  const initials = getInitials(userName);
 
   const statusColors = {
     online: '#4CAF50',
@@ -63,12 +45,12 @@ export function Avatar({ user, size = 40, showStatus = true }: AvatarProps) {
           {initials}
         </ThemedText>
       </View>
-      {showStatus && user?.status && (
+      {showStatus && status && (
         <View
           style={[
             styles.statusIndicator,
             {
-              backgroundColor: statusColors[user.status],
+              backgroundColor: statusColors[status || 'online'],
               width: size / 4,
               height: size / 4,
               minHeight: 12,
