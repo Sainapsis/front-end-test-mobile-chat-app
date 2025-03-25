@@ -7,6 +7,7 @@ import { ChatListItem } from '@/components/ChatListItem';
 import { UserListItem } from '@/components/UserListItem';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { GroupChatModal } from '@/components/GroupChatModal';
+import { ChatItemSkeleton, UserItemSkeleton } from '@/components/SkeletonLoader';
 import { log, monitoring, startMeasure, endMeasure } from '@/utils';
 import { Colors } from '@/constants/Colors';
 
@@ -16,15 +17,22 @@ export default function ChatsScreen() {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [groupChatModalVisible, setGroupChatModalVisible] = useState(false);
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const colorScheme = useColorScheme();
   const theme = colorScheme === 'dark' ? Colors.dark : Colors.light;
 
-  // Métricas de tiempo de carga de la pantalla
+  // Simular tiempo de carga inicial
   useEffect(() => {
     const screenLoadMetric = startMeasure('chats_screen_load');
     log.info('Chats screen loaded');
 
+    const loadTimer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1500);
+
     return () => {
+      clearTimeout(loadTimer);
       const metric = endMeasure(screenLoadMetric);
       log.debug(`Chats screen session duration: ${metric?.duration?.toFixed(2) || '?'}ms`);
     };
@@ -36,6 +44,35 @@ export default function ChatsScreen() {
       log.info(`ChatsScreen data: ${users.length} users, ${chats.length} chats`);
     }
   }, [users.length, chats.length]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    log.debug('Chat list manual refresh triggered');
+
+    // Simular recarga de datos
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 1500);
+  };
+
+  const renderEmptyComponent = () => {
+    if (isLoading) {
+      return (
+        <View style={styles.loadingContainer}>
+          {[...Array(5)].map((_, index) => (
+            <ChatItemSkeleton key={index} />
+          ))}
+        </View>
+      );
+    }
+
+    return (
+      <ThemedView style={styles.emptyContainer}>
+        <ThemedText style={styles.emptyText}>No chats yet</ThemedText>
+        <ThemedText>Tap the + button to start a new conversation</ThemedText>
+      </ThemedView>
+    );
+  };
 
   const toggleUserSelection = (userId: string) => {
     try {
@@ -84,13 +121,6 @@ export default function ChatsScreen() {
     setModalVisible(true);
   };
 
-  const renderEmptyComponent = () => (
-    <ThemedView style={styles.emptyContainer}>
-      <ThemedText style={styles.emptyText}>No chats yet</ThemedText>
-      <ThemedText>Tap the + button to start a new conversation</ThemedText>
-    </ThemedView>
-  );
-
   return (
     <ThemedView style={styles.container}>
       <ThemedView style={styles.header}>
@@ -121,7 +151,7 @@ export default function ChatsScreen() {
       </ThemedView>
 
       <FlatList
-        data={chats}
+        data={isLoading ? [] : chats}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <ChatListItem
@@ -132,10 +162,8 @@ export default function ChatsScreen() {
         )}
         ListEmptyComponent={renderEmptyComponent}
         contentContainerStyle={styles.listContainer}
-        refreshing={false}
-        onRefresh={() => {
-          log.debug('Chat list manual refresh triggered');
-        }}
+        refreshing={isRefreshing}
+        onRefresh={handleRefresh}
         onScrollBeginDrag={() => startMeasure('chat_list_scroll')}
         onScrollEndDrag={() => {
           const metric = endMeasure('chat_list_scroll');
@@ -188,13 +216,19 @@ export default function ChatsScreen() {
             <FlatList
               data={users.filter(user => user.id !== currentUser?.id)}
               keyExtractor={(item) => item.id}
+              ListEmptyComponent={() => (
+                <View style={styles.loadingContainer}>
+                  {[...Array(5)].map((_, index) => (
+                    <UserItemSkeleton key={index} />
+                  ))}
+                </View>
+              )}
               renderItem={({ item }) => (
                 <UserListItem
                   user={item}
                   onSelect={() => {
                     toggleUserSelection(item.id);
                     if (!isCreatingGroup) {
-                      // Si es un chat individual, crear inmediatamente
                       const participants = [currentUser?.id || '', item.id];
                       createChat(participants);
                       setModalVisible(false);
@@ -331,5 +365,9 @@ const styles = StyleSheet.create({
   createButtonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  loadingContainer: {
+    flex: 1,
+    paddingTop: 12,
   },
 });
