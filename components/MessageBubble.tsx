@@ -21,20 +21,21 @@ import { ThemedText } from "./ThemedText";
 import { IconSymbol } from "./ui/IconSymbol.ios";
 import EditableMessageInput from "./EditableMessageInput";
 import MessageOptions from "./MessageOptions";
+import ExistingChatsModal from "./organisms/ExistingChatsModal/ExistingChatsModal";
 
 export function MessageBubble({
   message,
   isCurrentUser,
   chatId,
 }: MessageBubbleProps) {
-  const colorScheme = useColorScheme();
   const { deleteMessage, editMessage } = useAppContext();
   const { setMessageAsRead } = useChats(message.senderId);
+  const colorScheme = useColorScheme();
 
   const [showMessageOptions, setShowMessageOptions] = useState(false);
   const [showInputToEditMessage, setShowInputToEditMessage] = useState(false);
   const [messageTextToEdit, setMessageTextToEdit] = useState(message.text);
-
+  const [showExistingChatsModal, setShowExistingChatsModal] = useState(false);
   const isDark = colorScheme === "dark";
   const isMessageRead = message.status === "read" && isCurrentUser;
 
@@ -83,10 +84,16 @@ export function MessageBubble({
     <KeyboardAvoidingView keyboardVerticalOffset={100} behavior="padding">
       <Pressable
         onLongPress={() => {
-          if (isCurrentUser) setShowMessageOptions(!showMessageOptions);
+          if (isCurrentUser) {
+            setShowMessageOptions(!showMessageOptions);
+          } else {
+            setShowExistingChatsModal(true);
+          }
         }}
         onPress={() => {
-          if (isCurrentUser) setShowMessageOptions(false);
+          if (isCurrentUser) {
+            setShowMessageOptions(false);
+          }
         }}
         style={[
           styles.container,
@@ -151,7 +158,6 @@ export function MessageBubble({
           </View>
         </View>
       </Pressable>
-
       {showMessageOptions && (
         <MessageOptions
           handleDeleteMessage={handleDeleteMessage}
@@ -159,6 +165,11 @@ export function MessageBubble({
           setShowMessageOptions={setShowMessageOptions}
         />
       )}
+      <ExistingChatsModal
+        message={message}
+        visible={showExistingChatsModal}
+        onClose={() => setShowExistingChatsModal(false)}
+      />
     </KeyboardAvoidingView>
   );
 }

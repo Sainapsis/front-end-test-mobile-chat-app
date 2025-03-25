@@ -11,12 +11,14 @@ import {
   MessageInterface,
   SetMessageAsReadInterface,
   DeleteMessageProps,
+  ForwardMessageProps,
 } from "@/interfaces/Messages.interface";
 
 export function useChatsDb(currentUserId: string | null) {
   const [userChats, setUserChats] = useState<ChatInterface[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // there are so many responsabilities here, we should refactor this
   const loadChats = async () => {
     if (!currentUserId) {
       setUserChats([]);
@@ -98,44 +100,94 @@ export function useChatsDb(currentUserId: string | null) {
     loadChats();
   }, [currentUserId]);
 
-    const createChat = useCallback(
-      async (participantIds: string[]) => {
-        if (!currentUserId || !participantIds.includes(currentUserId)) {
-          return null;
-        }
+  const createChat = useCallback(
+    async (participantIds: string[]) => {
+      if (!currentUserId || !participantIds.includes(currentUserId)) {
+        return null;
+      }
 
-        try {
-          const chatId = `chat${Date.now()}`;
+      try {
+        const chatId = `chat${Date.now()}`;
 
-          // Insert new chat
-          await db.insert(chats).values({
-            id: chatId,
+        // Insert new chat
+        await db.insert(chats).values({
+          id: chatId,
+        });
+
+        // Insert participants
+        for (const userId of participantIds) {
+          await db.insert(chatParticipants).values({
+            id: `cp-${chatId}-${userId}`,
+            chatId: chatId,
+            userId: userId,
           });
-
-          // Insert participants
-          for (const userId of participantIds) {
-            await db.insert(chatParticipants).values({
-              id: `cp-${chatId}-${userId}`,
-              chatId: chatId,
-              userId: userId,
-            });
-          }
-
-          const newChat: ChatInterface = {
-            id: chatId,
-            participants: participantIds,
-            messages: [],
-          };
-
-          setUserChats((prevChats) => [...prevChats, newChat]);
-          return newChat;
-        } catch (error) {
-          console.error("Error creating chat:", error);
-          return null;
         }
-      },
-      [currentUserId]
-    );
+
+        const newChat: ChatInterface = {
+          id: chatId,
+          participants: participantIds,
+          messages: [],
+        };
+
+        setUserChats((prevChats) => [...prevChats, newChat]);
+        return newChat;
+      } catch (error) {
+        console.error("Error creating chat:", error);
+        return null;
+      }
+    },
+    [currentUserId]
+  );
+
+  const forwardMessage = async ({
+    senderId,
+    targetChatId,
+    messageId,
+  }: ForwardMessageProps) => {
+    try {
+      const [message] = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.id, messageId));
+
+      if (!message) {
+        throw new Error("Message not found");
+      }
+
+      const newMessageId = `msg${Date.now()}`;
+      const newMessageTimestamp = Date.now();
+
+      const forwardedMessage: MessageInterface = {
+        id: newMessageId,
+        senderId: senderId,
+        text: message.text,
+        timestamp: newMessageTimestamp,
+        status: "sent",
+      };
+
+      await db.insert(messages).values({
+        id: newMessageId,
+        chatId: targetChatId,
+        senderId: senderId,
+        text: message.text,
+        timestamp: newMessageTimestamp,
+      });
+
+      setUserChats((prevChats) =>
+        prevChats.map((chat) =>
+          chat.id === targetChatId
+            ? {
+                ...chat,
+                messages: [...chat.messages, forwardedMessage],
+                lastMessage: forwardedMessage,
+              }
+            : chat
+        )
+      );
+    } catch (error) {
+      console.error("Error forwarding message:", error);
+    }
+  };
 
   const deleteMessage = async ({ chatId, messageId }: DeleteMessageProps) => {
     try {
@@ -281,6 +333,7 @@ export function useChatsDb(currentUserId: string | null) {
     loading,
     editMessage,
     setMessageAsRead,
+    forwardMessage,
   };
 }
 

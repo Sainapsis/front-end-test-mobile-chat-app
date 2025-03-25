@@ -11,6 +11,7 @@ import {
   ChatInterface,
   EditMessageProps,
   DeleteMessageProps,
+  ForwardMessageProps,
 } from "@/interfaces/Messages.interface";
 
 type AppContextType = {
@@ -24,6 +25,7 @@ type AppContextType = {
   sendMessage: (message: SendMessageInterface) => Promise<boolean>;
   loading: boolean;
   deleteMessage: (props: DeleteMessageProps) => Promise<void>;
+  forwardMessage: (props: ForwardMessageProps) => Promise<void>;
   dbInitialized: boolean;
   editMessage: (props: EditMessageProps) => Promise<void>;
 };

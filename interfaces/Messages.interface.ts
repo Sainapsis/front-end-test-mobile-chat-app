@@ -46,3 +46,10 @@ export interface MessageOptionsProps {
   setShowInputToEditMessage: (show: boolean) => void;
   setShowMessageOptions: (show: boolean) => void;
 }
+
+export interface ForwardMessageProps {
+  senderId: string;
+  targetChatId: string;
+  targetUserId: string;
+  messageId: string;
+}

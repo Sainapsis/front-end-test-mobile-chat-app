@@ -7,6 +7,7 @@
  * @example
  * const formattedTime = formatTimeTo2HourDigit(Date.now()); // "9:45" or "21:30"
  */
+
 export const formatTimeTo2HourDigit = (timestamp: number): string => {
   return new Date(timestamp).toLocaleTimeString([], {
     hour: "2-digit",
