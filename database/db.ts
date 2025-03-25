@@ -20,14 +20,17 @@ export async function initializeDatabase() {
         status TEXT NOT NULL
       );
     `);
-    
+
     console.log('Creating chats table...');
     await sqlite.execAsync(`
-      CREATE TABLE IF NOT EXISTS chats (
-        id TEXT PRIMARY KEY
+      DROP TABLE IF EXISTS chats;
+      CREATE TABLE chats (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        is_group INTEGER NOT NULL DEFAULT 0
       );
     `);
-    
+
     console.log('Creating chat_participants table...');
     await sqlite.execAsync(`
       CREATE TABLE IF NOT EXISTS chat_participants (
@@ -37,7 +40,7 @@ export async function initializeDatabase() {
         FOREIGN KEY (chat_id) REFERENCES chats (id)
       );
     `);
-    
+
     console.log('Creating messages table...');
     await sqlite.execAsync(`
       DROP TABLE IF EXISTS messages;
@@ -59,7 +62,7 @@ export async function initializeDatabase() {
         FOREIGN KEY (chat_id) REFERENCES chats (id)
       );
     `);
-    
+
     console.log('Creating message_read_receipts table...');
     await sqlite.execAsync(`
       CREATE TABLE IF NOT EXISTS message_read_receipts (
@@ -82,7 +85,7 @@ export async function initializeDatabase() {
         FOREIGN KEY (message_id) REFERENCES messages (id)
       );
     `);
-    
+
     console.log('All tables created successfully!');
   } catch (error) {
     console.error('Error initializing database:', error);

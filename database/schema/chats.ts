@@ -2,6 +2,8 @@ import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
 export const chats = sqliteTable("chats", {
   id: text("id").primaryKey(),
+  name: text("name"),
+  isGroup: integer("is_group").notNull().default(0),
 });
 
 export const chatParticipants = sqliteTable("chat_participants", {

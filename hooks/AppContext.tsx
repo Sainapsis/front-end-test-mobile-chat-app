@@ -11,7 +11,7 @@ type AppContextType = {
   login: (userId: string) => Promise<boolean>;
   logout: () => void;
   chats: Chat[];
-  createChat: (participantIds: string[]) => Promise<Chat | null>;
+  createChat: (participantIds: string[], groupName?: string) => Promise<Chat | null>;
   sendMessage: (
     chatId: string,
     text: string,

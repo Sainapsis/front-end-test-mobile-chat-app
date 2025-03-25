@@ -12,9 +12,10 @@ import { ForwardMessageModal } from "./ForwardMessageModal";
 interface MessageBubbleProps {
   message: Message;
   isCurrentUser: boolean;
+  senderName?: string;
 }
 
-export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
+export function MessageBubble({ message, isCurrentUser, senderName }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const [showFullImage, setShowFullImage] = useState(false);
@@ -60,7 +61,7 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
               ]
             );
           },
-          style: "destructive",
+          style: "destructive" as const,
         }
       );
     }
@@ -76,7 +77,7 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
     // Siempre añadir la opción de cancelar
     options.push({
       text: "Cancelar",
-      style: "cancel",
+      style: "cancel" as const,
     });
 
     Alert.alert(
@@ -266,6 +267,11 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
             ],
         ]}
       >
+        {!isCurrentUser && senderName && (
+          <ThemedText style={styles.senderName}>
+            {senderName}
+          </ThemedText>
+        )}
         {renderMessageContent()}
         <View style={styles.messageFooter}>
           <ThemedText style={styles.timeText}>
@@ -411,5 +417,10 @@ const styles = StyleSheet.create({
   },
   voiceMessageContainer: {
     minWidth: 200,
+  },
+  senderName: {
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 4,
   },
 });

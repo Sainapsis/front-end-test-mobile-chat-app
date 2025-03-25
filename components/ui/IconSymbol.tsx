@@ -21,13 +21,15 @@ const MAPPING = {
 
 export type IconSymbolName = keyof typeof MAPPING;
 
-type IconName = 
+type IconName =
   | 'chevron-left'
   | 'arrow-upward'
   | 'add'
   | 'close'
   | 'photo'
-  | 'cancel';
+  | 'cancel'
+  | 'people'
+  | 'check';
 
 interface IconSymbolProps {
   name: IconName;
@@ -42,6 +44,8 @@ const iconMap: Record<IconName, keyof typeof MaterialIcons.glyphMap> = {
   'close': 'close',
   'photo': 'photo',
   'cancel': 'cancel',
+  'people': 'people',
+  'check': 'check',
 };
 
 /**
@@ -51,9 +55,9 @@ const iconMap: Record<IconName, keyof typeof MaterialIcons.glyphMap> = {
  */
 export function IconSymbol({ name, size = 24, color = '#000' }: IconSymbolProps) {
   return (
-    <MaterialIcons 
-      name={iconMap[name]} 
-      size={size} 
+    <MaterialIcons
+      name={iconMap[name]}
+      size={size}
       color={color}
     />
   );

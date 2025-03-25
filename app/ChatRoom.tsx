@@ -1,9 +1,9 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { 
-  View, 
-  StyleSheet, 
+import {
+  View,
+  StyleSheet,
   FlatList,
-  KeyboardAvoidingView, 
+  KeyboardAvoidingView,
   Platform,
   ViewToken,
   ViewabilityConfig,
@@ -25,21 +25,24 @@ export default function ChatRoomScreen() {
   const { currentUser, users, chats, markMessageAsRead } = useAppContext();
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
-  
+
   const chat = chats.find(c => c.id === chatId);
-  
+
   const chatParticipants = chat?.participants
     .filter(id => id !== currentUser?.id)
     .map(id => users.find(user => user.id === id))
     .filter(Boolean) || [];
-  
-  const chatName = chatParticipants.length === 1 
-    ? chatParticipants[0]?.name 
-    : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
+
+  // Determinar el nombre del chat
+  const chatName = chat?.isGroup && chat?.name
+    ? chat.name
+    : chatParticipants.length === 1
+      ? chatParticipants[0]?.name
+      : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
 
   // Mark messages as read when they appear in the viewport
-  const handleViewableItemsChanged = useCallback(({ 
-    viewableItems 
+  const handleViewableItemsChanged = useCallback(({
+    viewableItems
   }: {
     viewableItems: ViewToken[];
     changed: ViewToken[];
@@ -50,7 +53,7 @@ export default function ChatRoomScreen() {
       const message = viewToken.item as Message;
       if (
         message &&
-        message.senderId !== currentUser.id && 
+        message.senderId !== currentUser.id &&
         message.status !== 'read' &&
         (!message.readBy || !message.readBy.some(receipt => receipt.userId === currentUser.id))
       ) {
@@ -75,6 +78,24 @@ export default function ChatRoomScreen() {
     }
   }, [chat?.messages.length]);
 
+  const renderChatAvatar = () => {
+    if (chat?.isGroup) {
+      return (
+        <View style={styles.groupAvatarContainer}>
+          <IconSymbol name="people" size={24} color="#FFFFFF" />
+        </View>
+      );
+    }
+
+    return (
+      <Avatar
+        user={chatParticipants[0]}
+        size={32}
+        showStatus={false}
+      />
+    );
+  };
+
   if (!chat || !currentUser) {
     return (
       <ThemedView style={styles.centerContainer}>
@@ -90,15 +111,11 @@ export default function ChatRoomScreen() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <StatusBar style="auto" />
-      <Stack.Screen 
+      <Stack.Screen
         options={{
           headerTitle: () => (
             <View style={styles.headerContainer}>
-              <Avatar 
-                user={chatParticipants[0]} 
-                size={32} 
-                showStatus={false}
-              />
+              {renderChatAvatar()}
               <ThemedText type="defaultSemiBold" numberOfLines={1}>
                 {chatName}
               </ThemedText>
@@ -109,7 +126,7 @@ export default function ChatRoomScreen() {
               <IconSymbol name="chevron-left" size={24} color="#007AFF" />
             </Pressable>
           ),
-        }} 
+        }}
       />
 
       <FlatList
@@ -120,6 +137,7 @@ export default function ChatRoomScreen() {
           <MessageBubble
             message={item}
             isCurrentUser={item.senderId === currentUser.id}
+            senderName={chat.isGroup ? users.find(u => u.id === item.senderId)?.name : undefined}
           />
         )}
         contentContainerStyle={styles.messagesContainer}
@@ -159,5 +177,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+  },
+  groupAvatarContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 }); 

@@ -29,6 +29,8 @@ export interface Message {
 
 export interface Chat {
   id: string;
+  name?: string;
+  isGroup: boolean;
   participants: string[];
   messages: Message[];
   lastMessage?: Message;
@@ -143,6 +145,8 @@ export function useChatsDb(currentUserId: string | null) {
 
           loadedChats.push({
             id: chatId,
+            name: chatData[0].name || undefined,
+            isGroup: chatData[0].isGroup === 1,
             participants: participantIds,
             messages: chatMessages,
             lastMessage,
@@ -160,22 +164,28 @@ export function useChatsDb(currentUserId: string | null) {
     loadChats();
   }, [currentUserId]);
 
-  const createChat = useCallback(async (participantIds: string[]) => {
+  const createChat = useCallback(async (participantIds: string[], groupName?: string) => {
     if (!currentUserId || !participantIds.includes(currentUserId)) {
       return null;
     }
 
     try {
-      // Check if a chat already exists between these participants
-      const existingChats = userChats.filter(chat => {
-        const chatParticipantIds = chat.participants;
-        return participantIds.length === chatParticipantIds.length &&
-          participantIds.every(id => chatParticipantIds.includes(id)) &&
-          chatParticipantIds.every(id => participantIds.includes(id));
-      });
+      // Determinar si es un grupo o chat individual
+      const isGroup = participantIds.length > 2 || groupName !== undefined;
 
-      if (existingChats.length > 0) {
-        return existingChats[0];
+      // Si no es grupo, verificar si ya existe un chat entre los dos participantes
+      if (!isGroup) {
+        const existingChats = userChats.filter(chat => {
+          const chatParticipantIds = chat.participants;
+          return !chat.isGroup &&
+            participantIds.length === chatParticipantIds.length &&
+            participantIds.every(id => chatParticipantIds.includes(id)) &&
+            chatParticipantIds.every(id => participantIds.includes(id));
+        });
+
+        if (existingChats.length > 0) {
+          return existingChats[0];
+        }
       }
 
       const chatId = `chat${Date.now()}`;
@@ -183,6 +193,8 @@ export function useChatsDb(currentUserId: string | null) {
       // Insert new chat
       await db.insert(chats).values({
         id: chatId,
+        name: groupName || null,
+        isGroup: isGroup ? 1 : 0,
       });
 
       // Insert participants
@@ -194,8 +206,10 @@ export function useChatsDb(currentUserId: string | null) {
         });
       }
 
-      const newChat = {
+      const newChat: Chat = {
         id: chatId,
+        name: groupName,
+        isGroup,
         participants: participantIds,
         messages: [],
       };
