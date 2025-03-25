@@ -14,9 +14,11 @@ export interface Message {
   senderId: string;
   text: string;
   timestamp: number;
-  messageType: 'text' | 'image';
+  messageType: 'text' | 'image' | 'voice';
   imageUri?: string;
   imagePreviewUri?: string;
+  voiceUri?: string;
+  voiceDuration?: number;
   status: 'sent' | 'delivered' | 'read';
   readBy?: { userId: string; timestamp: number }[];
   reactions: MessageReaction[];
@@ -121,9 +123,11 @@ export function useChatsDb(currentUserId: string | null) {
             senderId: m.senderId,
             text: m.text,
             timestamp: m.timestamp,
-            messageType: m.messageType as 'text' | 'image',
+            messageType: m.messageType as 'text' | 'image' | 'voice',
             imageUri: m.imageUri || undefined,
             imagePreviewUri: m.imagePreviewUri || undefined,
+            voiceUri: m.voiceUri || undefined,
+            voiceDuration: m.voiceDuration || undefined,
             status: m.status as 'sent' | 'delivered' | 'read',
             readBy: readReceiptsByMessage[m.id] || [],
             reactions: reactionsByMessage[m.id] || [],
@@ -251,14 +255,21 @@ export function useChatsDb(currentUserId: string | null) {
     chatId: string,
     text: string,
     senderId: string,
-    imageData?: { uri: string; previewUri: string }
+    imageData?: { uri: string; previewUri: string },
+    voiceData?: { uri: string; duration: number }
   ) => {
-    if (!text.trim() && !imageData) return false;
+    if (!text.trim() && !imageData && !voiceData) return false;
 
     try {
       const messageId = `msg${Date.now()}`;
       const timestamp = Date.now();
-      const messageType = imageData ? 'image' : 'text';
+      let messageType: 'text' | 'image' | 'voice' = 'text';
+      
+      if (imageData) {
+        messageType = 'image';
+      } else if (voiceData) {
+        messageType = 'voice';
+      }
 
       // Insert new message
       await db.insert(messages).values({
@@ -270,7 +281,11 @@ export function useChatsDb(currentUserId: string | null) {
         messageType: messageType,
         imageUri: imageData?.uri,
         imagePreviewUri: imageData?.previewUri,
+        voiceUri: voiceData?.uri,
+        voiceDuration: voiceData?.duration,
         status: 'sent',
+        isEdited: 0,
+        isDeleted: 0,
       });
 
       const newMessage: Message = {
@@ -281,6 +296,8 @@ export function useChatsDb(currentUserId: string | null) {
         messageType,
         imageUri: imageData?.uri,
         imagePreviewUri: imageData?.previewUri,
+        voiceUri: voiceData?.uri,
+        voiceDuration: voiceData?.duration,
         status: 'sent',
         readBy: [],
         reactions: [],

@@ -6,6 +6,7 @@ import { Message } from "@/hooks/useChats";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { MessageReactions } from './MessageReactions';
 import { useAppContext } from "@/hooks/AppContext";
+import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
 
 interface MessageBubbleProps {
   message: Message;
@@ -123,6 +124,97 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
     }
   };
 
+  const renderMessageContent = () => {
+    switch (message.messageType) {
+      case "text":
+        return isEditing ? (
+          <View>
+            <TextInput
+              value={editText}
+              onChangeText={setEditText}
+              style={[
+                styles.messageText,
+                isCurrentUser && !isDark && styles.selfMessageText,
+                styles.editInput,
+                { backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF" }
+              ]}
+              multiline
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={handleEditSubmit}
+            />
+            <View style={styles.editButtons}>
+              <TouchableOpacity 
+                onPress={handleCancelEdit}
+                style={[styles.editButton, styles.cancelButton]}
+              >
+                <ThemedText style={styles.editButtonText}>Cancel</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={handleEditSubmit}
+                style={[styles.editButton, styles.saveButton]}
+              >
+                <ThemedText style={styles.editButtonText}>Save</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <ThemedText
+            style={[
+              styles.messageText,
+              isCurrentUser && !isDark && styles.selfMessageText,
+            ]}
+          >
+            {message.text}
+            {message.isEdited && (
+              <ThemedText style={styles.editedText}> (edited)</ThemedText>
+            )}
+          </ThemedText>
+        );
+      
+      case "image":
+        return (
+          <View>
+            <Pressable onPress={() => setShowFullImage(true)}>
+              <Image
+                source={{ uri: message.imagePreviewUri ?? message.imageUri }}
+                style={styles.previewImage}
+                resizeMode="cover"
+              />
+            </Pressable>
+            {message.text && (
+              <ThemedText
+                style={[
+                  styles.imageCaption,
+                  isCurrentUser && !isDark && styles.selfMessageText,
+                ]}
+              >
+                {message.text}
+                {message.isEdited && (
+                  <ThemedText style={styles.editedText}> (edited)</ThemedText>
+                )}
+              </ThemedText>
+            )}
+          </View>
+        );
+
+      case "voice":
+        return (
+          <View style={styles.voiceMessageContainer}>
+            {message.voiceUri && message.voiceDuration && (
+              <VoiceMessagePlayer
+                uri={message.voiceUri}
+                duration={message.voiceDuration}
+              />
+            )}
+          </View>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   if (message.isDeleted) {
     return (
       <View style={[styles.container, isCurrentUser ? styles.selfContainer : styles.otherContainer]}>
@@ -157,75 +249,7 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
               ],
         ]}
       >
-        {message.messageType === "text" ? (
-          isEditing ? (
-            <View>
-              <TextInput
-                value={editText}
-                onChangeText={setEditText}
-                style={[
-                  styles.messageText,
-                  isCurrentUser && !isDark && styles.selfMessageText,
-                  styles.editInput,
-                  { backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF" }
-                ]}
-                multiline
-                autoFocus
-                returnKeyType="done"
-                onSubmitEditing={handleEditSubmit}
-              />
-              <View style={styles.editButtons}>
-                <TouchableOpacity 
-                  onPress={handleCancelEdit}
-                  style={[styles.editButton, styles.cancelButton]}
-                >
-                  <ThemedText style={styles.editButtonText}>Cancel</ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  onPress={handleEditSubmit}
-                  style={[styles.editButton, styles.saveButton]}
-                >
-                  <ThemedText style={styles.editButtonText}>Save</ThemedText>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : (
-            <ThemedText
-              style={[
-                styles.messageText,
-                isCurrentUser && !isDark && styles.selfMessageText,
-              ]}
-            >
-              {message.text}
-              {message.isEdited && (
-                <ThemedText style={styles.editedText}> (edited)</ThemedText>
-              )}
-            </ThemedText>
-          )
-        ) : (
-          <View>
-            <Pressable onPress={() => setShowFullImage(true)}>
-              <Image
-                source={{ uri: message.imagePreviewUri ?? message.imageUri }}
-                style={styles.previewImage}
-                resizeMode="cover"
-              />
-            </Pressable>
-            {message.text && (
-              <ThemedText
-                style={[
-                  styles.imageCaption,
-                  isCurrentUser && !isDark && styles.selfMessageText,
-                ]}
-              >
-                {message.text}
-                {message.isEdited && (
-                  <ThemedText style={styles.editedText}> (edited)</ThemedText>
-                )}
-              </ThemedText>
-            )}
-          </View>
-        )}
+        {renderMessageContent()}
         <View style={styles.messageFooter}>
           <ThemedText style={styles.timeText}>
             {formatTime(message.timestamp)}
@@ -357,5 +381,8 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "500",
+  },
+  voiceMessageContainer: {
+    minWidth: 200,
   },
 });

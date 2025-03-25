@@ -50,6 +50,8 @@ export async function initializeDatabase() {
         timestamp INTEGER NOT NULL,
         image_uri TEXT,
         image_preview_uri TEXT,
+        voice_uri TEXT,
+        voice_duration INTEGER,
         status TEXT NOT NULL DEFAULT 'sent',
         is_edited INTEGER NOT NULL DEFAULT 0,
         edited_at INTEGER,

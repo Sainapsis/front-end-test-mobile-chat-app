@@ -16,7 +16,8 @@ type AppContextType = {
     chatId: string, 
     text: string, 
     senderId: string, 
-    imageData?: { uri: string; previewUri: string }
+    imageData?: { uri: string; previewUri: string },
+    voiceData?: { uri: string; duration: number }
   ) => Promise<boolean>;
   markMessageAsRead: (messageId: string, userId: string) => Promise<boolean>;
   addReaction: (messageId: string, userId: string, emoji: string) => Promise<boolean>;

@@ -1,37 +1,28 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { 
   View, 
   StyleSheet, 
-  FlatList, 
-  TextInput, 
-  Pressable, 
+  FlatList,
   KeyboardAvoidingView, 
   Platform,
-  Image,
   ViewToken,
-  ViewabilityConfig
+  ViewabilityConfig,
+  Pressable
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { MessageBubble } from '@/components/MessageBubble';
+import { MessageInput } from '@/components/MessageInput';
 import { Avatar } from '@/components/Avatar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Message } from '@/hooks/useChats';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, users, chats, sendMessage, markMessageAsRead } = useAppContext();
-  const [messageText, setMessageText] = useState('');
-  const [selectedImage, setSelectedImage] = useState<{
-    uri: string;
-    previewUri: string;
-  } | null>(null);
+  const { currentUser, users, chats, markMessageAsRead } = useAppContext();
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
   
@@ -75,64 +66,6 @@ export default function ChatRoomScreen() {
   const viewabilityConfigCallbackPairs = useRef([
     { viewabilityConfig, onViewableItemsChanged: handleViewableItemsChanged }
   ]);
-
-  const handleImagePick = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (permissionResult.granted === false) {
-      alert('Permission to access camera roll is required!');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      const originalUri = result.assets[0].uri;
-      
-      // Create optimized preview
-      const preview = await manipulateAsync(
-        originalUri,
-        [{ resize: { width: 400 } }],
-        { compress: 0.7, format: SaveFormat.JPEG }
-      );
-
-      // Save images to app's cache directory
-      const timestamp = Date.now();
-      const originalFilename = `${timestamp}_original.jpg`;
-      const previewFilename = `${timestamp}_preview.jpg`;
-      
-      const cacheDir = FileSystem.cacheDirectory;
-      const originalDestUri = `${cacheDir}${originalFilename}`;
-      const previewDestUri = `${cacheDir}${previewFilename}`;
-      
-      await FileSystem.copyAsync({
-        from: originalUri,
-        to: originalDestUri
-      });
-      
-      await FileSystem.copyAsync({
-        from: preview.uri,
-        to: previewDestUri
-      });
-
-      setSelectedImage({
-        uri: originalDestUri,
-        previewUri: previewDestUri
-      });
-    }
-  };
-
-  const handleSendMessage = () => {
-    if ((!messageText.trim() && !selectedImage) || !currentUser || !chat) return;
-    
-    sendMessage(chat.id, messageText.trim(), currentUser.id, selectedImage || undefined);
-    setMessageText('');
-    setSelectedImage(null);
-  };
 
   useEffect(() => {
     if (chat?.messages.length && flatListRef.current) {
@@ -198,43 +131,7 @@ export default function ChatRoomScreen() {
         viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
       />
 
-      {selectedImage && (
-        <ThemedView style={styles.selectedImageContainer}>
-          <Image 
-            source={{ uri: selectedImage.previewUri }}
-            style={styles.selectedImagePreview}
-          />
-          <Pressable 
-            onPress={() => setSelectedImage(null)}
-            style={styles.removeImageButton}
-          >
-            <IconSymbol name="cancel" size={24} color="#FF3B30" />
-          </Pressable>
-        </ThemedView>
-      )}
-
-      <ThemedView style={styles.inputContainer}>
-        <Pressable
-          style={styles.attachButton}
-          onPress={handleImagePick}
-        >
-          <IconSymbol name="photo" size={24} color="#007AFF" />
-        </Pressable>
-        <TextInput
-          style={styles.input}
-          value={messageText}
-          onChangeText={setMessageText}
-          placeholder="Type a message..."
-          multiline
-        />
-        <Pressable
-          style={[styles.sendButton, !messageText.trim() && !selectedImage && styles.disabledButton]}
-          onPress={handleSendMessage}
-          disabled={!messageText.trim() && !selectedImage}
-        >
-          <IconSymbol name="arrow-upward" size={32} color="#007AFF" />
-        </Pressable>
-      </ThemedView>
+      <MessageInput chatId={chat.id} />
     </KeyboardAvoidingView>
   );
 }
@@ -262,49 +159,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 10,
-    alignItems: 'flex-end',
-    borderTopWidth: 1,
-    borderTopColor: '#E1E1E1',
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#E1E1E1',
-    borderRadius: 20,
-    padding: 10,
-    maxHeight: 100,
-    backgroundColor: '#F9F9F9',
-  },
-  sendButton: {
-    marginLeft: 10,
-    marginBottom: 5,
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  attachButton: {
-    marginRight: 10,
-    marginBottom: 10,
-  },
-  selectedImageContainer: {
-    padding: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#E1E1E1',
-  },
-  selectedImagePreview: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-  },
-  removeImageButton: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
-    backgroundColor: 'white',
-    borderRadius: 12,
   },
 }); 
