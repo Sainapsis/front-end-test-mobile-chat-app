@@ -5,6 +5,7 @@ import { Chat } from '@/hooks/useChats';
 import { Avatar } from './Avatar';
 import { ThemedText } from './ThemedText';
 import { User } from '@/hooks/useUser';
+import { StackNavigationProp } from '@react-navigation/stack';
 
 interface ChatListItemProps {
   chat: Chat;
@@ -12,9 +13,17 @@ interface ChatListItemProps {
   users: User[];
 }
 
+type RootStackParamList = {
+  ChatRoom: { chatId: string };
+};
+
+type NavigationProps = StackNavigationProp<RootStackParamList, 'ChatRoom'>;
+
+
+
 export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) {
-  const navigation = useNavigation();
-  
+  const navigation = useNavigation<NavigationProps>();
+
   const otherParticipants = useMemo(() => {
     return chat.participants
       .filter(id => id !== currentUserId)
@@ -33,8 +42,9 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
   }, [otherParticipants]);
 
   const handlePress = () => {
-    navigation.navigate('ChatRoom' as never, { chatId: chat.id } as never);
+    navigation.navigate('ChatRoom', { chatId: chat.id });
   };
+  
 
   const timeString = useMemo(() => {
     if (!chat.lastMessage) return '';
