@@ -126,7 +126,7 @@ export function useChatsDb(currentUserId: string | null) {
       setLoading(true);
       try {
         const chatsData = await get('/chat/getChats');
-        console.log(chatsData);
+        //console.log(chatsData);
       } catch (err) {
         console.error('Error loading chats:', err);
       } finally {

@@ -15,7 +15,6 @@ export interface User {
 
 export function useUserDb() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [deviceProfiles, setDeviceProfiles] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -24,35 +23,19 @@ export function useUserDb() {
   // Check if there is a current session
   useEffect(() => {
     const checkSession = async () => {
-      const token = await SecureStore.getItemAsync('token');
-      if (token) {
-        setIsLoggedIn(true)
-        setLoading(false);
-      } else {
+      try{
+        const token = await SecureStore.getItemAsync('token');
+        if (token) {
+          setIsLoggedIn(true)
+        } 
+        const usersData = await db.select().from(users)
+        setAllUsers(usersData as User[])
+      }catch(err){
+        console.error('Error loading users:', err);
+      }
+      finally{
         setLoading(false);
       }
-      const usersData = await db.select().from(users)
-      setAllUsers(usersData as User[])
-      // if (sessionId && !currentUser) {
-      //   try {
-      //     // Call Login only if there is a session
-      //     // await login(JSON.parse(sessionId));
-      //   } catch (error) {
-      //     console.error('Error during login', error);
-      //   } finally {
-      //     setLoading(false);
-      //   }
-      // } else {
-      //   // If there is no session, users will be loaded
-      //   try {
-      //     const usersData = await db.select().from(users);
-      //     setAllUsers(usersData);
-      //   } catch (error) {
-      //     console.error('Error loading users:', error);
-      //   } finally {
-      //     setLoading(false);
-      //   }
-      // }
     };
 
     checkSession();
