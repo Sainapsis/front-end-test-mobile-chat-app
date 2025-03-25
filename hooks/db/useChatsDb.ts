@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { db } from '../../database/db';
 import { chats, chatParticipants, messages, messageReadReceipts, messageReactions } from '../../database/schema';
-import { eq, inArray, desc, and, gte, lte } from 'drizzle-orm';
+import { eq, inArray, desc, and, lte } from 'drizzle-orm';
 
 // Constante para el número de mensajes a cargar por página
 const MESSAGES_PER_PAGE = 30;
+
+export type MessageType = 'text' | 'image' | 'voice';
+export type MessageStatus = 'sent' | 'delivered' | 'read';
 
 export interface MessageReaction {
   userId: string;
@@ -17,12 +20,12 @@ export interface Message {
   senderId: string;
   text: string;
   timestamp: number;
-  messageType: 'text' | 'image' | 'voice';
+  messageType: MessageType;
   imageUri?: string;
   imagePreviewUri?: string;
   voiceUri?: string;
   voiceDuration?: number;
-  status: 'sent' | 'delivered' | 'read';
+  status: MessageStatus;
   readBy?: { userId: string; timestamp: number }[];
   reactions: MessageReaction[];
   isEdited: boolean;
@@ -108,23 +111,23 @@ export function useChatsDb(currentUserId: string | null) {
             senderId: m.senderId,
             text: m.text,
             timestamp: m.timestamp,
-            messageType: m.messageType as 'text' | 'image' | 'voice',
-            imageUri: m.imageUri || undefined,
-            imagePreviewUri: m.imagePreviewUri || undefined,
-            voiceUri: m.voiceUri || undefined,
-            voiceDuration: m.voiceDuration || undefined,
-            status: m.status as 'sent' | 'delivered' | 'read',
+            messageType: m.messageType as MessageType,
+            imageUri: m.imageUri ?? undefined,
+            imagePreviewUri: m.imagePreviewUri ?? undefined,
+            voiceUri: m.voiceUri ?? undefined,
+            voiceDuration: m.voiceDuration ?? undefined,
+            status: m.status as MessageStatus,
             readBy: [],  // Se cargarán más tarde si es necesario
             reactions: [], // Se cargarán más tarde si es necesario
             isEdited: m.isEdited === 1,
-            editedAt: m.editedAt || undefined,
+            editedAt: m.editedAt ?? undefined,
             isDeleted: m.isDeleted === 1,
           };
         }
 
         loadedChats.push({
           id: chatId,
-          name: chatData[0].name || undefined,
+          name: chatData[0].name ?? undefined,
           isGroup: chatData[0].isGroup === 1,
           participants: participantIds,
           messages: [], // No cargamos mensajes inicialmente
@@ -223,16 +226,16 @@ export function useChatsDb(currentUserId: string | null) {
         senderId: m.senderId,
         text: m.text,
         timestamp: m.timestamp,
-        messageType: m.messageType as 'text' | 'image' | 'voice',
-        imageUri: m.imageUri || undefined,
-        imagePreviewUri: m.imagePreviewUri || undefined,
-        voiceUri: m.voiceUri || undefined,
-        voiceDuration: m.voiceDuration || undefined,
-        status: m.status as 'sent' | 'delivered' | 'read',
-        readBy: readReceiptsByMessage[m.id] || [],
-        reactions: reactionsByMessage[m.id] || [],
+        messageType: m.messageType as MessageType,
+        imageUri: m.imageUri ?? undefined,
+        imagePreviewUri: m.imagePreviewUri ?? undefined,
+        voiceUri: m.voiceUri ?? undefined,
+        voiceDuration: m.voiceDuration ?? undefined,
+        status: m.status as MessageStatus,
+        readBy: readReceiptsByMessage[m.id] ?? [],
+        reactions: reactionsByMessage[m.id] ?? [],
         isEdited: m.isEdited === 1,
-        editedAt: m.editedAt || undefined,
+        editedAt: m.editedAt ?? undefined,
         isDeleted: m.isDeleted === 1,
       }));
 
@@ -255,78 +258,55 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
-  // Cargar mensajes adicionales (más antiguos) para un chat
-  const loadMoreMessages = useCallback(async (chatId: string, pageSize = MESSAGES_PER_PAGE) => {
-    // Buscar el chat en la caché actual
-    const chat = userChats.find(c => c.id === chatId);
-
-    // Verificar si podemos cargar más mensajes
-    if (!chat) {
-      console.warn('Chat no encontrado:', chatId);
-      return false;
-    }
-
-    // Si no hay más mensajes o no hay timestamp de referencia, no podemos cargar más
-    if (!chat.hasMoreMessages) {
-      console.info('No hay más mensajes para cargar en este chat');
-      return false;
-    }
-
-    // Si no hay timestamp de referencia, usar la fecha actual
-    const beforeTimestamp = chat.oldestMessageTimestamp || Date.now();
-
-    // Intentar cargar más mensajes
-    const result = await loadMessages(chatId, beforeTimestamp, pageSize);
-
-    // Si hay un error o no hay resultados, terminar
-    if (!result || result.messages.length === 0) {
-      // Actualizar el estado del chat para indicar que no hay más mensajes
-      setUserChats(prevChats => {
-        return prevChats.map(c => {
-          if (c.id === chatId) {
-            return {
-              ...c,
-              hasMoreMessages: false
-            };
-          }
-          return c;
-        });
-      });
-      return false;
-    }
-
-    // Verificar si hay mensajes con IDs duplicados
-    const existingMessageIds = new Set(chat.messages.map(msg => msg.id));
-
-    // Modificar los mensajes cargados para garantizar IDs únicos
-    const uniqueMessages = result.messages.map(message => {
-      // Si el ID ya existe en el chat, crear un ID único
-      if (existingMessageIds.has(message.id)) {
-        // Crear un nuevo ID con un prefijo único para evitar duplicados
-        const newId = `unique_${Date.now()}_${message.id}`;
-        return { ...message, id: newId };
+  // Función auxiliar para actualizar un chat específico
+  const updateChatWithMessages = (prevChats: Chat[], chatId: string, result: {
+    messages: Message[],
+    hasMoreMessages: boolean,
+    oldestTimestamp?: number
+  }) => {
+    return prevChats.map(c => {
+      if (c.id === chatId) {
+        return {
+          ...c,
+          messages: result.messages,
+          hasMoreMessages: result.hasMoreMessages,
+          oldestMessageTimestamp: result.oldestTimestamp
+        };
       }
-      return message;
+      return c;
     });
+  };
 
-    // Actualizar los chats con los nuevos mensajes cargados
-    setUserChats(prevChats => {
-      return prevChats.map(c => {
-        if (c.id === chatId) {
-          // Concatenar los mensajes con IDs únicos al principio (más antiguos primero)
-          return {
-            ...c,
-            messages: [...uniqueMessages, ...c.messages],
-            hasMoreMessages: result.hasMoreMessages,
-            oldestMessageTimestamp: result.oldestTimestamp
-          };
-        }
-        return c;
-      });
+  // Función auxiliar para cargar más mensajes antiguos en un chat
+  const appendOlderMessages = (prevChats: Chat[], chatId: string, uniqueMessages: Message[], result: {
+    hasMoreMessages: boolean,
+    oldestTimestamp?: number
+  }) => {
+    return prevChats.map(c => {
+      if (c.id === chatId) {
+        return {
+          ...c,
+          messages: [...uniqueMessages, ...c.messages],
+          hasMoreMessages: result.hasMoreMessages,
+          oldestMessageTimestamp: result.oldestTimestamp
+        };
+      }
+      return c;
     });
+  };
 
-    return true;
-  }, [loadMessages, userChats]);
+  // Función para marcar un chat como sin más mensajes
+  const markChatWithNoMoreMessages = (prevChats: Chat[], chatId: string) => {
+    return prevChats.map(c => {
+      if (c.id === chatId) {
+        return {
+          ...c,
+          hasMoreMessages: false
+        };
+      }
+      return c;
+    });
+  };
 
   // Cargar inicialmente solo los metadatos de chats
   useEffect(() => {
@@ -345,19 +325,7 @@ export function useChatsDb(currentUserId: string | null) {
         for (const chat of initialChats) {
           const result = await loadMessages(chat.id);
           if (result) {
-            setUserChats(prevChats => {
-              return prevChats.map(c => {
-                if (c.id === chat.id) {
-                  return {
-                    ...c,
-                    messages: result.messages,
-                    hasMoreMessages: result.hasMoreMessages,
-                    oldestMessageTimestamp: result.oldestTimestamp
-                  };
-                }
-                return c;
-              });
-            });
+            setUserChats(prevChats => updateChatWithMessages(prevChats, chat.id, result));
           }
         }
       } catch (error) {
@@ -370,64 +338,148 @@ export function useChatsDb(currentUserId: string | null) {
     initializeChats();
   }, [currentUserId, loadBasicChats, loadMessages]);
 
-  const createChat = useCallback(async (participantIds: string[], groupName?: string) => {
-    if (!currentUserId || !participantIds.includes(currentUserId)) {
-      return null;
-    }
-
+  // Función para cargar más mensajes antiguos
+  const loadMoreMessages = useCallback(async (chatId: string) => {
     try {
-      // Determinar si es un grupo o chat individual
-      const isGroup = participantIds.length > 2 || groupName !== undefined;
-
-      // Si no es grupo, verificar si ya existe un chat entre los dos participantes
-      if (!isGroup) {
-        const existingChats = userChats.filter(chat => {
-          const chatParticipantIds = chat.participants;
-          return !chat.isGroup &&
-            participantIds.length === chatParticipantIds.length &&
-            participantIds.every(id => chatParticipantIds.includes(id)) &&
-            chatParticipantIds.every(id => participantIds.includes(id));
-        });
-
-        if (existingChats.length > 0) {
-          return existingChats[0];
-        }
+      const existingChat = userChats.find(chat => chat.id === chatId);
+      if (!existingChat || !existingChat.hasMoreMessages) {
+        return false;
       }
 
-      const chatId = `chat${Date.now()}`;
+      const oldestTimestamp = existingChat.oldestMessageTimestamp || Date.now();
 
-      // Insert new chat
+      // Intentar cargar más mensajes
+      const result = await loadMessages(chatId, oldestTimestamp, MESSAGES_PER_PAGE);
+
+      // Si hay un error o no hay resultados, terminar
+      if (!result || result.messages.length === 0) {
+        // Actualizar el estado del chat para indicar que no hay más mensajes
+        setUserChats(markChatWithNoMoreMessages(userChats, chatId));
+        return false;
+      }
+
+      // Verificar si hay mensajes con IDs duplicados
+      const existingMessageIds = new Set(existingChat.messages.map(msg => msg.id));
+
+      // Modificar los mensajes cargados para garantizar IDs únicos
+      const uniqueMessages = result.messages.map(message => {
+        // Si el ID ya existe en el chat, crear un ID único
+        if (existingMessageIds.has(message.id)) {
+          // Crear un nuevo ID con un prefijo único para evitar duplicados
+          const newId = `unique_${Date.now()}_${message.id}`;
+          return { ...message, id: newId };
+        }
+        return message;
+      });
+
+      // Actualizar los chats con los nuevos mensajes cargados
+      setUserChats(appendOlderMessages(userChats, chatId, uniqueMessages, result));
+
+      return true;
+    } catch (error) {
+      console.error('Error loading more messages:', error);
+      return false;
+    }
+  }, [loadMessages, userChats]);
+
+  // Función para crear un nuevo chat
+  const createChat = useCallback(async (participantIds: string[], groupName?: string) => {
+    try {
+      // Si el usuario actual está intentando crear un chat que lo incluya a él mismo,
+      // verificar esto para evitar duplicados
+      if (currentUserId === null || !participantIds.includes(currentUserId)) {
+        return null;
+      }
+
+      // Verificar si ya existe un chat con los mismos participantes
+      const existingChat = userChats.find(chat => {
+        // Solo comparar chats sin nombre (chats individuales)
+        if (groupName && chat.name) return false;
+
+        // Para chats grupales con nombre, siempre permitir crear uno nuevo
+        const isGroup = participantIds.length > 2 || Boolean(groupName);
+        if (isGroup !== chat.isGroup) return false;
+
+        // Comprobar si los participantes son exactamente los mismos
+        const sameParticipants =
+          participantIds.length === chat.participants.length &&
+          participantIds.every(id => chat.participants.includes(id));
+
+        return sameParticipants;
+      });
+
+      if (existingChat) {
+        return existingChat;
+      }
+
+      // Crear un nuevo chat en la base de datos
+      const chatId = `chat-${Date.now()}`;
+
+      // Determinar si es un chat grupal
+      const isGroup = participantIds.length > 2 || Boolean(groupName);
+
       await db.insert(chats).values({
         id: chatId,
-        name: groupName || null,
+        name: groupName ?? null,
         isGroup: isGroup ? 1 : 0,
       });
 
-      // Insert participants
+      // Insertar participantes
       for (const userId of participantIds) {
         await db.insert(chatParticipants).values({
           id: `cp-${chatId}-${userId}`,
-          chatId: chatId,
-          userId: userId,
+          chatId,
+          userId,
         });
       }
 
+      // Crear el nuevo chat para el estado
       const newChat: Chat = {
         id: chatId,
         name: groupName,
         isGroup,
         participants: participantIds,
         messages: [],
-        hasMoreMessages: true
+        hasMoreMessages: false,
       };
 
+      // Actualizar el estado
       setUserChats(prevChats => [...prevChats, newChat]);
+
       return newChat;
     } catch (error) {
       console.error('Error creating chat:', error);
       return null;
     }
   }, [currentUserId, userChats]);
+
+  // Función auxiliar para actualizar un mensaje en el estado
+  const updateMessageInChat = (chatId: string, messageId: string, messageUpdater: (msg: Message) => Message) => {
+    return (prevChats: Chat[]) => {
+      return prevChats.map(chat => {
+        if (chat.id !== chatId) return chat;
+
+        const updatedMessages = chat.messages.map(msg => {
+          if (msg.id === messageId) {
+            return messageUpdater(msg);
+          }
+          return msg;
+        });
+
+        // Actualizar el lastMessage si corresponde
+        const updatedLastMessage =
+          chat.lastMessage?.id === messageId
+            ? messageUpdater(chat.lastMessage)
+            : chat.lastMessage;
+
+        return {
+          ...chat,
+          messages: updatedMessages,
+          lastMessage: updatedLastMessage,
+        };
+      });
+    };
+  };
 
   const markMessageAsRead = useCallback(async (messageId: string, userId: string) => {
     try {
@@ -465,46 +517,20 @@ export function useChatsDb(currentUserId: string | null) {
         .set({ status: 'read' })
         .where(eq(messages.id, messageId));
 
-      // Actualizar el estado de manera eficiente
-      setUserChats(prevChats => {
-        return prevChats.map(chat => {
-          if (chat.id !== existingChat.id) return chat;
+      // Función para actualizar un mensaje con la marca de lectura
+      const markAsRead = (msg: Message): Message => {
+        return {
+          ...msg,
+          status: 'read' as MessageStatus,
+          readBy: [
+            ...(msg.readBy ?? []),
+            { userId, timestamp }
+          ],
+        };
+      };
 
-          // Crear una copia profunda sólo del mensaje que cambió
-          const updatedMessages = [...chat.messages];
-
-          // Modificar solo el mensaje específico
-          if (messageIndex >= 0) {
-            updatedMessages[messageIndex] = {
-              ...updatedMessages[messageIndex],
-              status: 'read' as 'sent' | 'delivered' | 'read',
-              readBy: [
-                ...(updatedMessages[messageIndex].readBy || []),
-                { userId, timestamp }
-              ],
-            };
-          }
-
-          // Actualizar el lastMessage si corresponde
-          const updatedLastMessage =
-            chat.lastMessage?.id === messageId
-              ? {
-                ...chat.lastMessage,
-                status: 'read' as 'sent' | 'delivered' | 'read',
-                readBy: [
-                  ...(chat.lastMessage.readBy || []),
-                  { userId, timestamp }
-                ],
-              }
-              : chat.lastMessage;
-
-          return {
-            ...chat,
-            messages: updatedMessages,
-            lastMessage: updatedLastMessage,
-          };
-        });
-      });
+      // Actualizar el estado usando la función auxiliar
+      setUserChats(updateMessageInChat(existingChat.id, messageId, markAsRead));
 
       return true;
     } catch (error) {
@@ -512,6 +538,22 @@ export function useChatsDb(currentUserId: string | null) {
       return false;
     }
   }, [userChats]);
+
+  // Función para actualizar los chats tras enviar o reenviar un mensaje
+  const updateChatsWithNewMessage = (chatId: string, newMessage: Message) => {
+    return (prevChats: Chat[]) => {
+      return prevChats.map(chat => {
+        if (chat.id === chatId) {
+          return {
+            ...chat,
+            messages: [...chat.messages, newMessage],
+            lastMessage: newMessage,
+          };
+        }
+        return chat;
+      });
+    };
+  };
 
   const sendMessage = useCallback(async (
     chatId: string,
@@ -525,7 +567,7 @@ export function useChatsDb(currentUserId: string | null) {
     try {
       const messageId = `msg${Date.now()}`;
       const timestamp = Date.now();
-      let messageType: 'text' | 'image' | 'voice' = 'text';
+      let messageType: MessageType = 'text';
 
       if (imageData) {
         messageType = 'image';
@@ -569,18 +611,7 @@ export function useChatsDb(currentUserId: string | null) {
       };
 
       // Update state
-      setUserChats(prevChats => {
-        return prevChats.map(chat => {
-          if (chat.id === chatId) {
-            return {
-              ...chat,
-              messages: [...chat.messages, newMessage],
-              lastMessage: newMessage,
-            };
-          }
-          return chat;
-        });
-      });
+      setUserChats(updateChatsWithNewMessage(chatId, newMessage));
 
       return true;
     } catch (error) {
@@ -620,44 +651,19 @@ export function useChatsDb(currentUserId: string | null) {
         timestamp,
       });
 
-      // Actualizar el estado de manera eficiente
-      setUserChats(prevChats => {
-        return prevChats.map(chat => {
-          if (chat.id !== existingChat.id) return chat;
+      // Función para añadir una reacción a un mensaje
+      const addReactionToMessage = (msg: Message): Message => {
+        return {
+          ...msg,
+          reactions: [
+            ...msg.reactions,
+            { userId, emoji, timestamp }
+          ],
+        };
+      };
 
-          // Crear una copia profunda sólo del mensaje que cambió
-          const updatedMessages = [...chat.messages];
-
-          // Modificar solo el mensaje específico
-          if (messageIndex >= 0) {
-            updatedMessages[messageIndex] = {
-              ...updatedMessages[messageIndex],
-              reactions: [
-                ...updatedMessages[messageIndex].reactions,
-                { userId, emoji, timestamp }
-              ],
-            };
-          }
-
-          // Actualizar el lastMessage si corresponde
-          const updatedLastMessage =
-            chat.lastMessage?.id === messageId
-              ? {
-                ...chat.lastMessage,
-                reactions: [
-                  ...chat.lastMessage.reactions,
-                  { userId, emoji, timestamp }
-                ],
-              }
-              : chat.lastMessage;
-
-          return {
-            ...chat,
-            messages: updatedMessages,
-            lastMessage: updatedLastMessage,
-          };
-        });
-      });
+      // Actualizar el estado usando la función auxiliar
+      setUserChats(updateMessageInChat(existingChat.id, messageId, addReactionToMessage));
 
       return true;
     } catch (error) {
@@ -668,7 +674,14 @@ export function useChatsDb(currentUserId: string | null) {
 
   const removeReaction = useCallback(async (messageId: string, userId: string, emoji: string) => {
     try {
-      // Remove reaction
+      // Identificar el chat que contiene el mensaje
+      const existingChat = userChats.find(chat =>
+        chat.messages.some(msg => msg.id === messageId)
+      );
+
+      if (!existingChat) return false;
+
+      // Remove reaction from database
       await db
         .delete(messageReactions)
         .where(
@@ -677,36 +690,38 @@ export function useChatsDb(currentUserId: string | null) {
           eq(messageReactions.emoji, emoji)
         );
 
-      // Update state
-      setUserChats(prevChats => {
-        return prevChats.map(chat => ({
-          ...chat,
-          messages: chat.messages.map(msg => {
-            if (msg.id === messageId) {
-              return {
-                ...msg,
-                reactions: msg.reactions.filter(
-                  r => !(r.userId === userId && r.emoji === emoji)
-                ),
-              };
-            }
-            return msg;
-          }),
-        }));
-      });
+      // Función para eliminar una reacción de un mensaje
+      const removeReactionFromMessage = (msg: Message): Message => {
+        return {
+          ...msg,
+          reactions: msg.reactions.filter(
+            r => !(r.userId === userId && r.emoji === emoji)
+          ),
+        };
+      };
+
+      // Actualizar el estado usando la función auxiliar
+      setUserChats(updateMessageInChat(existingChat.id, messageId, removeReactionFromMessage));
 
       return true;
     } catch (error) {
       console.error('Error removing reaction:', error);
       return false;
     }
-  }, []);
+  }, [userChats]);
 
   const editMessage = useCallback(async (messageId: string, newText: string) => {
     try {
       const timestamp = Date.now();
 
-      // Update message
+      // Identificar el chat que contiene el mensaje
+      const existingChat = userChats.find(chat =>
+        chat.messages.some(msg => msg.id === messageId)
+      );
+
+      if (!existingChat) return false;
+
+      // Update message in database
       await db
         .update(messages)
         .set({
@@ -716,92 +731,66 @@ export function useChatsDb(currentUserId: string | null) {
         })
         .where(eq(messages.id, messageId));
 
-      // Update state
-      setUserChats(prevChats => {
-        return prevChats.map(chat => ({
-          ...chat,
-          messages: chat.messages.map(msg => {
-            if (msg.id === messageId) {
-              return {
-                ...msg,
-                text: newText,
-                isEdited: true,
-                editedAt: timestamp
-              };
-            }
-            return msg;
-          }),
-          lastMessage: chat.lastMessage?.id === messageId
-            ? {
-              ...chat.lastMessage,
-              text: newText,
-              isEdited: true,
-              editedAt: timestamp
-            }
-            : chat.lastMessage
-        }));
-      });
+      // Función para editar el texto de un mensaje
+      const updateMessageText = (msg: Message): Message => {
+        return {
+          ...msg,
+          text: newText,
+          isEdited: true,
+          editedAt: timestamp
+        };
+      };
+
+      // Actualizar el estado usando la función auxiliar
+      setUserChats(updateMessageInChat(existingChat.id, messageId, updateMessageText));
 
       return true;
     } catch (error) {
       console.error('Error editing message:', error);
       return false;
     }
-  }, []);
+  }, [userChats]);
 
   const deleteMessage = useCallback(async (messageId: string) => {
     try {
-      // Mark message as deleted
+      // Identificar el chat que contiene el mensaje
+      const existingChat = userChats.find(chat =>
+        chat.messages.some(msg => msg.id === messageId)
+      );
+
+      if (!existingChat) return false;
+
+      // Mark message as deleted in database
       await db
         .update(messages)
         .set({ isDeleted: 1 })
         .where(eq(messages.id, messageId));
 
-      // Update state
-      setUserChats(prevChats => {
-        return prevChats.map(chat => ({
-          ...chat,
-          messages: chat.messages.map(msg => {
-            if (msg.id === messageId) {
-              return {
-                ...msg,
-                isDeleted: true
-              };
-            }
-            return msg;
-          }),
-          lastMessage: chat.lastMessage?.id === messageId
-            ? {
-              ...chat.lastMessage,
-              isDeleted: true
-            }
-            : chat.lastMessage
-        }));
-      });
+      // Función para marcar un mensaje como eliminado
+      const markMessageAsDeleted = (msg: Message): Message => {
+        return {
+          ...msg,
+          isDeleted: true
+        };
+      };
+
+      // Actualizar el estado usando la función auxiliar
+      setUserChats(updateMessageInChat(existingChat.id, messageId, markMessageAsDeleted));
 
       return true;
     } catch (error) {
       console.error('Error deleting message:', error);
       return false;
     }
-  }, []);
+  }, [userChats]);
 
   const forwardMessage = useCallback(async (sourceMessageId: string, targetChatId: string) => {
     if (!currentUserId) return false;
 
     try {
-      // Buscar el mensaje original
-      let originalMessage: Message | undefined;
-      let originalChat: Chat | undefined;
-
-      for (const chat of userChats) {
-        const message = chat.messages.find(msg => msg.id === sourceMessageId);
-        if (message) {
-          originalMessage = message;
-          originalChat = chat;
-          break;
-        }
-      }
+      // Buscar el mensaje original usando encadenamiento opcional
+      const originalMessage = userChats.flatMap(chat => chat.messages)
+        .find(msg => msg.id === sourceMessageId);
 
       if (!originalMessage) {
         console.error('Message not found for forwarding');
@@ -848,18 +837,7 @@ export function useChatsDb(currentUserId: string | null) {
       };
 
       // Actualizar estado
-      setUserChats(prevChats => {
-        return prevChats.map(chat => {
-          if (chat.id === targetChatId) {
-            return {
-              ...chat,
-              messages: [...chat.messages, newMessage],
-              lastMessage: newMessage,
-            };
-          }
-          return chat;
-        });
-      });
+      setUserChats(updateChatsWithNewMessage(targetChatId, newMessage));
 
       return true;
     } catch (error) {

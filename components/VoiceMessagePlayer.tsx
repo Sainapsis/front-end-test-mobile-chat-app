@@ -1,292 +1,284 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
+import { Audio } from 'expo-av'; // Usamos la importación directa
 import { ThemedText } from './ThemedText';
 
 interface VoiceMessagePlayerProps {
-  uri: string;
-  duration: number;
+    readonly uri: string;
+    readonly duration: number;
 }
 
 export function VoiceMessagePlayer({ uri, duration }: VoiceMessagePlayerProps) {
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentPosition, setCurrentPosition] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const positionTimer = useRef<NodeJS.Timeout | null>(null);
-  const isMounted = useRef(true);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [position, setPosition] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const soundRef = useRef<Audio.Sound | null>(null);
+    const isMounted = useRef(true);
+    const positionTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Función para limpiar recursos
-  const cleanup = useCallback(() => {
-    if (positionTimer.current) {
-      clearInterval(positionTimer.current);
-      positionTimer.current = null;
-    }
+    // Cargar y descargar el sonido cuando cambia el URI o se desmonta el componente
+    useEffect(() => {
+        loadSound();
 
-    if (sound) {
-      const cleanupSound = async () => {
-        try {
-          // Detener reproducción antes de descargar
-          if (isPlaying) {
-            await sound.stopAsync();
-          }
-          await sound.unloadAsync();
-        } catch (error) {
-          console.error('Error unloading sound:', error);
-        }
-      };
+        // Función de limpieza al desmontar
+        return () => {
+            console.log('Desmontando reproductor de audio:', uri);
+            isMounted.current = false;
+            stopAndUnloadSound();
+        };
+    }, [uri]); // Solo recargar cuando cambia el URI
 
-      cleanupSound();
-      setSound(null);
-    }
-  }, [sound, isPlaying]);
-
-  // Efecto para cargar el sonido inicialmente
-  useEffect(() => {
-    loadSound();
-
-    // Limpiar cuando el componente se desmonta
-    return () => {
-      isMounted.current = false;
-      cleanup();
+    // Función simple para formatear tiempo
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
-  }, [uri]);
 
-  // Control automático de memoria - descargar sonido cuando pierde el foco
-  useEffect(() => {
-    const subscription = Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false, // Para mayor eficiencia de memoria
-      shouldDuckAndroid: true,
-    });
-
-    return () => {
-      // En caso de cambio de configuración de audio
-      cleanup();
+    // Función para detener el temporizador de posición
+    const clearPositionTimer = () => {
+        if (positionTimerRef.current) {
+            clearInterval(positionTimerRef.current);
+            positionTimerRef.current = null;
+        }
     };
-  }, [cleanup]);
 
-  const loadSound = async () => {
-    if (!isMounted.current) return;
+    // Función para iniciar el temporizador de posición
+    const startPositionTimer = () => {
+        clearPositionTimer();
 
-    try {
-      // Primero liberar cualquier recurso existente
-      cleanup();
-
-      setIsLoading(true);
-
-      // Configure audio mode first
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-        shouldDuckAndroid: true,
-      });
-
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri },
-        { shouldPlay: false },
-        (status) => {
-          if (!isMounted.current) return;
-
-          if (!status.isLoaded) return;
-
-          if (status.didJustFinish) {
-            setIsPlaying(false);
-            setCurrentPosition(0);
-            if (positionTimer.current) {
-              clearInterval(positionTimer.current);
-              positionTimer.current = null;
+        positionTimerRef.current = setInterval(async () => {
+            if (!isMounted.current) {
+                clearPositionTimer();
+                return;
             }
-          }
+
+            try {
+                if (soundRef.current) {
+                    const status = await soundRef.current.getStatusAsync();
+                    if (status.isLoaded) {
+                        setPosition(Math.floor(status.positionMillis / 1000));
+
+                        if (!status.isPlaying) {
+                            clearPositionTimer();
+                            if (status.didJustFinish) {
+                                setPosition(0);
+                                setIsPlaying(false);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error actualizando posición:', error);
+            }
+        }, 500);
+    };
+
+    // Detener y descargar el sonido
+    const stopAndUnloadSound = async () => {
+        clearPositionTimer();
+
+        if (soundRef.current) {
+            try {
+                const status = await soundRef.current.getStatusAsync();
+                if (status.isLoaded) {
+                    if (status.isPlaying) {
+                        await soundRef.current.stopAsync();
+                    }
+                    await soundRef.current.unloadAsync();
+                }
+            } catch (error) {
+                console.error('Error al descargar sonido:', error);
+            }
+
+            soundRef.current = null;
         }
-      );
+    };
 
-      if (!isMounted.current) {
-        // Si el componente se desmontó mientras se cargaba
-        newSound.unloadAsync();
-        return;
-      }
+    // Cargar el sonido
+    const loadSound = async () => {
+        if (!isMounted.current) return;
 
-      setSound(newSound);
-      setIsLoaded(true);
-      setIsLoading(false);
-
-      // Cargar y empezar a seguir el progreso
-      const status = await newSound.getStatusAsync();
-      if (status.isLoaded) {
-        setCurrentPosition(Math.floor((status.positionMillis || 0) / 1000));
-      }
-    } catch (error) {
-      console.error('Error loading sound:', error);
-      if (isMounted.current) {
-        setIsLoading(false);
-        Alert.alert('Error', 'Failed to load audio file');
-      }
-    }
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const startTimer = () => {
-    if (positionTimer.current) {
-      clearInterval(positionTimer.current);
-    }
-
-    positionTimer.current = setInterval(async () => {
-      if (!isMounted.current) {
-        if (positionTimer.current) {
-          clearInterval(positionTimer.current);
-          positionTimer.current = null;
-        }
-        return;
-      }
-
-      if (sound) {
         try {
-          const status = await sound.getStatusAsync();
-          if ('positionMillis' in status && status.isLoaded) {
-            setCurrentPosition(Math.floor(status.positionMillis / 1000));
+            setLoading(true);
 
-            if (!status.isPlaying) {
-              clearInterval(positionTimer.current!);
-              positionTimer.current = null;
-              setIsPlaying(false);
-              setCurrentPosition(0);
+            // Descargar cualquier sonido anterior
+            await stopAndUnloadSound();
+
+            if (!uri) {
+                console.error('URI de audio no válido');
+                return;
             }
-          }
+
+            console.log('Cargando audio desde:', uri);
+
+            // Configurar el modo de audio
+            await Audio.setAudioModeAsync({
+                playsInSilentModeIOS: true,
+                staysActiveInBackground: true,
+                shouldDuckAndroid: true,
+                playThroughEarpieceAndroid: false,
+                allowsRecordingIOS: false,
+            });
+
+            // Crear y cargar el sonido
+            const { sound } = await Audio.Sound.createAsync(
+                { uri },
+                { shouldPlay: false },
+                onPlaybackStatusUpdate
+            );
+
+            if (!isMounted.current) {
+                sound.unloadAsync();
+                return;
+            }
+
+            // Guardar la referencia
+            soundRef.current = sound;
+            console.log('Audio cargado correctamente');
         } catch (error) {
-          console.error('Error getting sound status:', error);
-          if (positionTimer.current) {
-            clearInterval(positionTimer.current);
-            positionTimer.current = null;
-          }
-          if (isMounted.current) {
-            setIsPlaying(false);
-          }
+            console.error('Error cargando audio:', error);
+            Alert.alert('Error', 'No se pudo cargar el audio');
+        } finally {
+            if (isMounted.current) {
+                setLoading(false);
+            }
         }
-      }
-    }, 1000);
-  };
+    };
 
-  const handlePlayPause = async () => {
-    try {
-      if (isLoading || !isMounted.current) return;
-      setIsLoading(true);
+    // Callback para actualizar el estado de reproducción
+    const onPlaybackStatusUpdate = (status: any) => {
+        if (!isMounted.current) return;
 
-      if (!sound || !isLoaded) {
-        await loadSound();
-      }
-
-      if (!sound) {
-        setIsLoading(false);
-        return;
-      }
-
-      const status = await sound.getStatusAsync();
-
-      if (!status.isLoaded) {
-        // Si el sonido no está cargado, intentar cargarlo de nuevo
-        await loadSound();
-        setIsLoading(false);
-        return;
-      }
-
-      if (isPlaying) {
-        await sound.pauseAsync();
-        if (positionTimer.current) {
-          clearInterval(positionTimer.current);
-          positionTimer.current = null;
+        if (status.isLoaded) {
+            if (status.didJustFinish) {
+                setIsPlaying(false);
+                setPosition(0);
+                clearPositionTimer();
+            }
         }
-        setIsPlaying(false);
-      } else {
-        await sound.playFromPositionAsync(currentPosition * 1000);
-        startTimer();
-        setIsPlaying(true);
-      }
-    } catch (error) {
-      console.error('Error playing voice message:', error);
-      if (isMounted.current) {
-        Alert.alert('Error', 'Failed to play audio file');
-      }
-    } finally {
-      if (isMounted.current) {
-        setIsLoading(false);
-      }
-    }
-  };
+    };
 
-  return (
-    <View style={styles.container}>
-      <TouchableOpacity
-        onPress={handlePlayPause}
-        style={[styles.playButton, isLoading && styles.disabledButton]}
-        disabled={isLoading}
-      >
-        <MaterialIcons
-          name={isPlaying ? 'pause' : 'play-arrow'}
-          size={24}
-          color={isLoading ? "#999999" : "#007AFF"}
-        />
-      </TouchableOpacity>
+    // Manejar reproducción/pausa
+    const handlePlayPause = async () => {
+        if (loading) return;
 
-      <View style={styles.progressContainer}>
-        <View
-          style={[
-            styles.progressBar,
-            { width: `${(currentPosition / duration) * 100}%` }
-          ]}
-        />
-      </View>
+        try {
+            setLoading(true);
 
-      <ThemedText style={styles.duration}>
-        {formatTime(isPlaying ? currentPosition : duration)}
-      </ThemedText>
-    </View>
-  );
+            // Si no hay sonido cargado, intentar cargarlo
+            if (!soundRef.current) {
+                await loadSound();
+
+                if (!soundRef.current) {
+                    console.error('No se pudo cargar el sonido');
+                    return;
+                }
+            }
+
+            // Verificar estado
+            const status = await soundRef.current.getStatusAsync();
+
+            if (!status.isLoaded) {
+                console.log('Sonido no cargado, recargando...');
+                await loadSound();
+
+                if (!soundRef.current) {
+                    return;
+                }
+            }
+
+            // Reproducir o pausar según el estado actual
+            if (isPlaying) {
+                await soundRef.current.pauseAsync();
+                clearPositionTimer();
+                setIsPlaying(false);
+            } else {
+                // Si estamos al final, volver al inicio
+                if (position >= duration) {
+                    setPosition(0);
+                }
+
+                // Iniciar reproducción desde la posición actual
+                await soundRef.current.playFromPositionAsync(position * 1000);
+                startPositionTimer();
+                setIsPlaying(true);
+            }
+        } catch (error) {
+            console.error('Error en play/pause:', error);
+            Alert.alert('Error', 'No se pudo reproducir el audio');
+        } finally {
+            if (isMounted.current) {
+                setLoading(false);
+            }
+        }
+    };
+
+    return (
+        <View style={styles.container}>
+            <TouchableOpacity
+                onPress={handlePlayPause}
+                style={[styles.playButton, loading && styles.disabledButton]}
+                disabled={loading}
+            >
+                <MaterialIcons
+                    name={isPlaying ? 'pause' : 'play-arrow'}
+                    size={24}
+                    color={loading ? "#999999" : "#007AFF"}
+                />
+            </TouchableOpacity>
+
+            <View style={styles.progressContainer}>
+                <View
+                    style={[
+                        styles.progressBar,
+                        { width: `${(position / duration) * 100}%` }
+                    ]}
+                />
+            </View>
+
+            <ThemedText style={styles.duration}>
+                {formatTime(isPlaying ? position : duration)}
+            </ThemedText>
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    backgroundColor: 'transparent',
-  },
-  playButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F0F0F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  progressContainer: {
-    flex: 1,
-    height: 4,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 2,
-    marginRight: 8,
-    overflow: 'hidden',
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: '#007AFF',
-  },
-  duration: {
-    fontSize: 12,
-    minWidth: 40,
-    textAlign: 'right',
-  },
+    container: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 8,
+        backgroundColor: 'transparent',
+    },
+    playButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#F0F0F0',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 8,
+    },
+    disabledButton: {
+        opacity: 0.5,
+    },
+    progressContainer: {
+        flex: 1,
+        height: 4,
+        backgroundColor: '#E0E0E0',
+        borderRadius: 2,
+        marginRight: 8,
+        overflow: 'hidden',
+    },
+    progressBar: {
+        height: '100%',
+        backgroundColor: '#007AFF',
+    },
+    duration: {
+        fontSize: 12,
+        minWidth: 40,
+        textAlign: 'right',
+    },
 }); 

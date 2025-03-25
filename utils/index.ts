@@ -1,17 +1,10 @@
 // Sistemas de logging y monitoreo
-import log from './logger';
-import monitoring from './monitoring';
-import ErrorBoundary from './errorBoundary';
-
-// Funciones de utilidad para logging
-import {
+import log, {
     getLogFileContents,
     clearLogs,
     getDeviceInfo
 } from './logger';
-
-// Funciones de monitoreo
-import {
+import monitoring, {
     initMonitoring,
     trackNavigation,
     captureError,
@@ -21,6 +14,8 @@ import {
     getErrorReport,
     clearErrorReports
 } from './monitoring';
+import ErrorBoundary from './errorBoundary';
+
 
 // Funciones de retroalimentación háptica
 import {

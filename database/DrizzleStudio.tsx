@@ -13,31 +13,27 @@ if (__DEV__) {
   try {
     // This package may not be installed, so wrap in try-catch
     const expoDrizzleStudioPlugin = require('expo-drizzle-studio-plugin');
-    if (expoDrizzleStudioPlugin && expoDrizzleStudioPlugin.useDrizzleStudio) {
-      useDrizzleStudio = expoDrizzleStudioPlugin.useDrizzleStudio;
-    }
+    useDrizzleStudio = expoDrizzleStudioPlugin?.useDrizzleStudio || NoopStudio;
   } catch (error) {
     console.warn('Drizzle Studio plugin not available, skipping integration', error);
   }
 }
 
 export function DrizzleStudioDevTool() {
-  // Always call the hook, but only pass the database if we're in dev mode
-  // and the plugin is available
+  // Preparar el argumento del hook fuera de la llamada condicional
+  let dbArg = null;
+
   try {
     if (__DEV__ && useDrizzleStudio !== NoopStudio) {
-      const db = SQLite.openDatabaseSync('chat-app.db');
-      useDrizzleStudio(db);
-    } else {
-      // Still call the hook but with null to maintain hook call order
-      useDrizzleStudio(null);
+      dbArg = SQLite.openDatabaseSync('chat-app.db');
     }
   } catch (error) {
     console.warn('Failed to initialize Drizzle Studio:', error);
-    // Ensure the hook is still called to maintain hook order
-    useDrizzleStudio(null);
   }
-  
+
+  // Siempre llamar al hook con el argumento apropiado
+  useDrizzleStudio(dbArg);
+
   // Return an empty view - the actual UI will be provided by the plugin if available
   return <View />;
 } 

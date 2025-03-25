@@ -29,12 +29,14 @@ type IconName =
   | 'photo'
   | 'cancel'
   | 'people'
-  | 'check';
+  | 'check'
+  | 'message'
+  | 'person';
 
 interface IconSymbolProps {
-  name: IconName;
-  size?: number;
-  color?: string;
+  readonly name: IconName;
+  readonly size?: number;
+  readonly color?: string;
 }
 
 const iconMap: Record<IconName, keyof typeof MaterialIcons.glyphMap> = {
@@ -46,6 +48,8 @@ const iconMap: Record<IconName, keyof typeof MaterialIcons.glyphMap> = {
   'cancel': 'cancel',
   'people': 'people',
   'check': 'check',
+  'message': 'message',
+  'person': 'person',
 };
 
 /**

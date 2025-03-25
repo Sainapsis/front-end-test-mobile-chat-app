@@ -6,8 +6,8 @@ import { MessageReaction } from '../hooks/useChats';
 const EMOJI_OPTIONS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
 
 interface MessageReactionsProps {
-  messageId: string;
-  reactions: MessageReaction[];
+  readonly messageId: string;
+  readonly reactions: MessageReaction[];
 }
 
 export function MessageReactions({ messageId, reactions }: MessageReactionsProps) {
@@ -46,7 +46,7 @@ export function MessageReactions({ messageId, reactions }: MessageReactionsProps
             style={[
               styles.reactionBubble,
               reactions.some(r => r.userId === currentUser?.id && r.emoji === emoji) &&
-                styles.selectedReaction,
+              styles.selectedReaction,
             ]}
             onPress={() => handleEmojiPress(emoji)}
           >

@@ -9,7 +9,7 @@ import { VoiceRecordButton } from './VoiceRecordButton';
 import { log, mediumFeedback, selectionFeedback, lightFeedback, successFeedback, errorFeedback } from '@/utils';
 
 interface MessageInputProps {
-  chatId: string;
+  readonly chatId: string;
 }
 
 export function MessageInput({ chatId }: MessageInputProps) {
@@ -62,7 +62,7 @@ export function MessageInput({ chatId }: MessageInputProps) {
 
       // Abrir selector de imágenes
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: true,
         quality: 0.8,
       });
@@ -75,7 +75,7 @@ export function MessageInput({ chatId }: MessageInputProps) {
         const preview = await ImageManipulator.manipulateAsync(
           selectedImage.uri,
           [{ resize: { width: 300 } }],
-          { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG }
+          { format: ImageManipulator.SaveFormat.JPEG, compress: 0.6 }
         );
 
         // Enviar mensaje con imagen
@@ -133,26 +133,39 @@ export function MessageInput({ chatId }: MessageInputProps) {
 
       <View style={styles.buttonsContainer}>
         <VoiceRecordButton onRecordingComplete={handleVoiceRecordingComplete} />
-        <TouchableOpacity
-          style={[
-            styles.sendButton,
-            {
-              backgroundColor: text.trim()
-                ? theme.buttonBackground
-                : colorScheme === 'dark'
-                  ? 'rgba(109, 152, 217, 0.3)'
-                  : theme.buttonDisabled
+
+        {(() => {
+          const getButtonBackgroundColor = () => {
+            if (text.trim()) {
+              return theme.buttonBackground;
             }
-          ]}
-          onPress={handleSend}
-          disabled={!text.trim()}
-        >
-          <Ionicons
-            name="send"
-            size={24}
-            color={text.trim() ? theme.buttonText : colorScheme === 'dark' ? '#9EAEC7' : '#999999'}
-          />
-        </TouchableOpacity>
+            return colorScheme === 'dark' ? 'rgba(109, 152, 217, 0.3)' : theme.buttonDisabled;
+          };
+
+          const getButtonTextColor = () => {
+            if (text.trim()) {
+              return theme.buttonText;
+            }
+            return colorScheme === 'dark' ? '#9EAEC7' : '#999999';
+          };
+
+          return (
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                { backgroundColor: getButtonBackgroundColor() }
+              ]}
+              onPress={handleSend}
+              disabled={!text.trim()}
+            >
+              <Ionicons
+                name="send"
+                size={24}
+                color={getButtonTextColor()}
+              />
+            </TouchableOpacity>
+          );
+        })()}
       </View>
     </View>
   );

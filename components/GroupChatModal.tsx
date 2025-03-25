@@ -8,18 +8,16 @@ import {
     FlatList,
     ScrollView,
     TouchableOpacity,
-    Image
 } from 'react-native';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
-import { User } from '@/hooks/useUser';
 import { IconSymbol } from './ui/IconSymbol';
 import { Avatar } from './Avatar';
 
 interface GroupChatModalProps {
-    visible: boolean;
-    onClose: () => void;
+    readonly visible: boolean;
+    readonly onClose: () => void;
 }
 
 export function GroupChatModal({
@@ -37,13 +35,6 @@ export function GroupChatModal({
         } else {
             setSelectedUsers([...selectedUsers, userId]);
         }
-    };
-
-    const getSelectedUsersList = () => {
-        return users
-            .filter(user => selectedUsers.includes(user.id))
-            .map(user => user.name)
-            .join(', ');
     };
 
     const handleCreateGroup = () => {
@@ -119,7 +110,7 @@ export function GroupChatModal({
                                     <View key={userId} style={styles.selectedUserItem}>
                                         <Avatar user={user} size={40} />
                                         <ThemedText style={styles.selectedUserName} numberOfLines={1}>
-                                            {user?.name || 'Usuario'}
+                                            {user?.name ?? 'Usuario'}
                                         </ThemedText>
                                         <TouchableOpacity
                                             style={styles.removeUserButton}

@@ -27,7 +27,7 @@ const config = {
     severity: isProduction ? 'info' : 'debug',
     transport: (props: any) => {
         // Extraer la información relevante
-        const { msg, level, rawMsg } = props;
+        const { msg, level } = props;
         const timestamp = new Date().toISOString();
 
         // Formato del mensaje
@@ -110,8 +110,8 @@ const saveLogToFile = async (message: string): Promise<void> => {
 
 // Obtener información del dispositivo y aplicación para incluir en logs
 export const getDeviceInfo = (): string => {
-    const appName = Constants.expoConfig?.name || 'Unknown App';
-    const appVersion = Constants.expoConfig?.version || '0.0.0';
+    const appName = Constants.expoConfig?.name ?? 'Unknown App';
+    const appVersion = Constants.expoConfig?.version ?? '0.0.0';
     const device = Platform.OS;
     const deviceVersion = Platform.Version;
 

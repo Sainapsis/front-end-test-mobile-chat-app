@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo } from 'react';
 import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
 import { initializeDatabase } from './db';
 import { seedDatabase } from './seed';
@@ -17,13 +17,18 @@ const DatabaseContext = createContext<DatabaseContextType>({
 export const useDatabaseStatus = () => useContext(DatabaseContext);
 
 interface DatabaseProviderProps {
-  children: ReactNode;
+  readonly children: ReactNode;
 }
 
 export function DatabaseProvider({ children }: DatabaseProviderProps) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const contextValue = useMemo(() => ({
+    isInitialized,
+    error
+  }), [isInitialized, error]);
 
   useEffect(() => {
     let isMounted = true;
@@ -34,7 +39,7 @@ export function DatabaseProvider({ children }: DatabaseProviderProps) {
         const dbPath = `${FileSystem.documentDirectory}chat-app.db`;
         const dbJournalPath = `${FileSystem.documentDirectory}chat-app.db-journal`;
         console.log('Checking database at:', dbPath);
-        
+
         // Delete main database file
         const dbExists = await FileSystem.getInfoAsync(dbPath);
         if (dbExists.exists) {
@@ -50,7 +55,7 @@ export function DatabaseProvider({ children }: DatabaseProviderProps) {
           } catch (deleteError) {
             console.error('Error deleting database:', deleteError);
           }
-          
+
           // Verify deletion
           const dbStillExists = await FileSystem.getInfoAsync(dbPath);
           if (dbStillExists.exists) {
@@ -64,10 +69,10 @@ export function DatabaseProvider({ children }: DatabaseProviderProps) {
         console.log('Initializing new database...');
         await initializeDatabase();
         console.log('Database initialized');
-        
+
         await seedDatabase();
         console.log('Database seeded');
-        
+
         if (isMounted) {
           setIsInitialized(true);
           setLoading(false);
@@ -80,9 +85,9 @@ export function DatabaseProvider({ children }: DatabaseProviderProps) {
         }
       }
     }
-    
+
     setupDatabase();
-    
+
     return () => {
       isMounted = false;
     };
@@ -107,7 +112,7 @@ export function DatabaseProvider({ children }: DatabaseProviderProps) {
   }
 
   return (
-    <DatabaseContext.Provider value={{ isInitialized, error }}>
+    <DatabaseContext.Provider value={contextValue}>
       {children}
     </DatabaseContext.Provider>
   );

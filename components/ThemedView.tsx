@@ -3,10 +3,10 @@ import { View, ViewStyle, useColorScheme, ViewProps } from 'react-native';
 import { Colors } from '@/constants/Colors';
 
 interface ThemedViewProps extends ViewProps {
-  children?: React.ReactNode;
-  style?: ViewStyle;
-  darkBackgroundColor?: string;
-  lightBackgroundColor?: string;
+  readonly children?: React.ReactNode;
+  readonly style?: ViewStyle;
+  readonly darkBackgroundColor?: string;
+  readonly lightBackgroundColor?: string;
 }
 
 export function ThemedView({
@@ -21,8 +21,8 @@ export function ThemedView({
 
   // Usar colores personalizados si se proporcionan, de lo contrario usar los del tema
   const backgroundColor = colorScheme === 'dark'
-    ? darkBackgroundColor || theme.background
-    : lightBackgroundColor || theme.background;
+    ? darkBackgroundColor ?? theme.background
+    : lightBackgroundColor ?? theme.background;
 
   return (
     <View

@@ -1,4 +1,4 @@
-import { Platform, NativeModules } from 'react-native';
+import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import * as Application from 'expo-application';
 import * as FileSystem from 'expo-file-system';
@@ -151,8 +151,8 @@ const saveErrorsToFile = async (): Promise<void> => {
             JSON.stringify({
                 errors: errorLogs,
                 deviceInfo: getDeviceInfo(),
-                appVersion: Constants.expoConfig?.version || '0.0.0',
-                buildId: Application.nativeBuildVersion || '0',
+                appVersion: Constants.expoConfig?.version ?? '0.0.0',
+                buildId: Application.nativeBuildVersion ?? '0',
                 timestamp: new Date().toISOString()
             }, null, 2),
             { encoding: FileSystem.EncodingType.UTF8 }

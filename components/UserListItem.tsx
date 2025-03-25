@@ -6,9 +6,9 @@ import { User } from '@/hooks/useUser';
 import { Colors } from '@/constants/Colors';
 
 interface UserListItemProps {
-  user: User;
-  onSelect?: (user: User) => void;
-  isSelected?: boolean;
+  readonly user: User;
+  readonly onSelect?: (user: User) => void;
+  readonly isSelected?: boolean;
 }
 
 export function UserListItem({ user, onSelect, isSelected }: UserListItemProps) {
@@ -19,6 +19,16 @@ export function UserListItem({ user, onSelect, isSelected }: UserListItemProps) 
     if (onSelect) {
       onSelect(user);
     }
+  };
+
+  const getStatusColor = () => {
+    if (user.status === 'online') {
+      return theme.success;
+    }
+    if (user.status === 'away') {
+      return theme.warning;
+    }
+    return theme.tabIconDefault;
   };
 
   return (
@@ -33,16 +43,10 @@ export function UserListItem({ user, onSelect, isSelected }: UserListItemProps) 
       <Avatar user={user} size={50} />
       <View style={styles.infoContainer}>
         <ThemedText style={styles.nameText}>{user.name}</ThemedText>
-        <ThemedText style={[
-          styles.statusText,
-          {
-            color: user.status === 'online'
-              ? theme.success
-              : user.status === 'away'
-                ? theme.warning
-                : theme.tabIconDefault
-          }
-        ]}>
+        <ThemedText style={{
+          ...styles.statusText,
+          color: getStatusColor()
+        }}>
           {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
         </ThemedText>
       </View>

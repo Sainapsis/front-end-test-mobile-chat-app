@@ -9,9 +9,9 @@ import { IconSymbol } from './ui/IconSymbol';
 import { selectionFeedback } from '@/utils';
 
 interface ChatListItemProps {
-  chat: Chat;
-  currentUserId: string;
-  users: User[];
+  readonly chat: Chat;
+  readonly currentUserId: string;
+  readonly users: User[];
 }
 
 type RootStackParamList = {
@@ -69,6 +69,19 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
 
   const isCurrentUserLastSender = chat.lastMessage?.senderId === currentUserId;
 
+  const getSenderPrefix = () => {
+    if (isCurrentUserLastSender) {
+      return 'You: ';
+    }
+
+    if (chat.isGroup && chat.lastMessage) {
+      const senderName = users.find(u => u.id === chat.lastMessage?.senderId)?.name;
+      return senderName ? `${senderName}: ` : '';
+    }
+
+    return '';
+  };
+
   const renderAvatar = () => {
     if (chat.isGroup) {
       // Avatar para grupos
@@ -98,22 +111,20 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
           <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.name}>
             {chatName}
           </ThemedText>
-          {timeString && (
+          {!!timeString && (
             <ThemedText style={styles.time}>{timeString}</ThemedText>
           )}
         </View>
         <View style={styles.bottomRow}>
-          {chat.lastMessage && (
+          {!!chat.lastMessage && (
             <ThemedText
               numberOfLines={1}
-              style={[
-                styles.lastMessage,
-                isCurrentUserLastSender && styles.currentUserMessage
-              ]}
+              style={{
+                ...styles.lastMessage,
+                ...(isCurrentUserLastSender ? styles.currentUserMessage : {})
+              }}
             >
-              {isCurrentUserLastSender ? 'You: ' : (
-                chat.isGroup ? `${users.find(u => u.id === chat.lastMessage?.senderId)?.name}: ` : ''
-              )}
+              {getSenderPrefix()}
               {chat.lastMessage.text}
             </ThemedText>
           )}

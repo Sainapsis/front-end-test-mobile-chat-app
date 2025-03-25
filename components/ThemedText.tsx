@@ -3,9 +3,9 @@ import { Text, TextStyle, TextProps, useColorScheme } from 'react-native';
 import { Colors } from '@/constants/Colors';
 
 interface ThemedTextProps extends TextProps {
-  children: React.ReactNode;
-  style?: TextStyle;
-  type?: 'title' | 'subtitle' | 'body' | 'caption' | 'defaultSemiBold' | 'default' | 'link';
+  readonly children: React.ReactNode;
+  readonly style?: TextStyle;
+  readonly type?: 'title' | 'subtitle' | 'body' | 'caption' | 'defaultSemiBold' | 'default' | 'link';
 }
 
 export function ThemedText({ children, style, type = 'body', ...props }: ThemedTextProps) {

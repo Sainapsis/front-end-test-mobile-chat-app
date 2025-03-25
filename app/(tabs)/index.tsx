@@ -35,7 +35,7 @@ export default function ChatsScreen() {
     return () => {
       clearTimeout(loadTimer);
       const metric = endMeasure(screenLoadMetric);
-      log.debug(`Chats screen session duration: ${metric?.duration?.toFixed(2) || '?'}ms`);
+      log.debug(`Chats screen session duration: ${metric?.duration?.toFixed(2) ?? '?'}ms`);
     };
   }, []);
 
@@ -102,7 +102,7 @@ export default function ChatsScreen() {
         log.info(`Creating chat with participants: ${selectedUsers.join(', ')}`);
         const participants = [currentUser.id, ...selectedUsers];
         const result = await createChat(participants);
-        log.debug(`Chat created: ${result?.id || 'failed'}`);
+        log.debug(`Chat created: ${result?.id ?? 'failed'}`);
 
         setModalVisible(false);
         setSelectedUsers([]);
@@ -160,7 +160,7 @@ export default function ChatsScreen() {
         renderItem={({ item }) => (
           <ChatListItem
             chat={item}
-            currentUserId={currentUser?.id || ''}
+            currentUserId={currentUser?.id ?? ''}
             users={users}
           />
         )}
@@ -171,7 +171,7 @@ export default function ChatsScreen() {
         onScrollBeginDrag={() => startMeasure('chat_list_scroll')}
         onScrollEndDrag={() => {
           const metric = endMeasure('chat_list_scroll');
-          log.debug(`Chat list scroll: ${metric?.duration?.toFixed(2) || '?'}ms`);
+          log.debug(`Chat list scroll: ${metric?.duration?.toFixed(2) ?? '?'}ms`);
         }}
       />
 
@@ -233,7 +233,7 @@ export default function ChatsScreen() {
                   onSelect={() => {
                     toggleUserSelection(item.id);
                     if (!isCreatingGroup) {
-                      const participants = [currentUser?.id || '', item.id];
+                      const participants = [currentUser?.id ?? '', item.id];
                       createChat(participants);
                       setModalVisible(false);
                       setSelectedUsers([]);

@@ -16,10 +16,10 @@ import { Chat } from '@/hooks/useChats';
 import { selectionFeedback, mediumFeedback, lightFeedback, successFeedback, errorFeedback } from '@/utils';
 
 interface ForwardMessageModalProps {
-    visible: boolean;
-    onClose: () => void;
-    messageId: string;
-    onForwardComplete: () => void;
+    readonly visible: boolean;
+    readonly onClose: () => void;
+    readonly messageId: string;
+    readonly onForwardComplete: () => void;
 }
 
 export function ForwardMessageModal({
@@ -80,10 +80,10 @@ export function ForwardMessageModal({
         if (chatParticipants.length === 0) return 'Unknown';
 
         if (chatParticipants.length === 1) {
-            return chatParticipants[0]?.name || 'Unknown';
+            return chatParticipants[0]?.name ?? 'Unknown';
         }
 
-        return `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
+        return `${chatParticipants[0]?.name ?? 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
     };
 
     return (

@@ -1,6 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
-import monitoring from './monitoring';
 import log from './logger';
 
 interface Props {
@@ -48,11 +47,7 @@ export class ErrorBoundary extends Component<Props, State> {
         // Puedes registrar el error en algún servicio de reporte de errores
         log.error('Error capturado por ErrorBoundary:', error);
 
-        // Registrar el error en el sistema de monitoreo
-        const errorId = monitoring.captureError(error, {
-            componentStack: errorInfo.componentStack,
-            reactError: true
-        });
+
 
         // Llamar al callback onError si existe
         if (this.props.onError) {

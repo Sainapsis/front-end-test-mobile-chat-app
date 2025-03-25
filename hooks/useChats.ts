@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useChatsDb, Chat, Message, MessageReaction } from './db/useChatsDb';
 import { clearImageCache } from '@/components/OptimizedImage';
 
@@ -25,7 +25,7 @@ export function useChats(currentUser: User | null) {
     forwardMessage,
     loadMoreMessages,
     loading
-  } = useChatsDb(currentUser?.id || null);
+  } = useChatsDb(currentUser?.id ?? null);
 
   // Limpiar caché de imágenes periódicamente para evitar problemas de memoria
   useEffect(() => {

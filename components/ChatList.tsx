@@ -1,11 +1,19 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Text, View, FlatList, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { View, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useAppContext } from '@/hooks/AppContext';
 import { Chat } from '@/hooks/useChats';
 import { log, monitoring, startMeasure, endMeasure } from '@/utils';
-import Colors from '@/constants/Colors';
-import { OptimizedImage } from './OptimizedImage';
+
+// Función auxiliar para calcular mensajes no leídos
+const calculateUnreadCount = (chat: Chat, userId?: string): number => {
+    if (!userId || !chat.messages.length) return 0;
+
+    return chat.messages.filter(msg =>
+        msg.senderId !== userId &&
+        !msg.readBy?.some(receipt => receipt.userId === userId)
+    ).length;
+};
 
 export default function ChatList() {
     const router = useRouter();
@@ -19,7 +27,7 @@ export default function ChatList() {
 
         return () => {
             const metric = endMeasure(loadMetricId);
-            log.debug(`Chat list loaded in ${metric?.duration?.toFixed(2) || '?'}ms`);
+            log.debug(`Chat list loaded in ${metric?.duration?.toFixed(2) ?? '?'}ms`);
         };
     }, []);
 
@@ -29,26 +37,25 @@ export default function ChatList() {
             log.info(`Chats updated: count=${chats.length}`);
 
             // Monitorear chats sin leer
-            const unreadCount = chats.reduce((count, chat) => {
-                return count + (chat.unreadCount || 0);
+            const totalUnreadCount = chats.reduce((count, chat) => {
+                const chatUnreadCount = calculateUnreadCount(chat, currentUser?.id);
+                return count + chatUnreadCount;
             }, 0);
 
-            if (unreadCount > 0) {
-                log.debug(`User has ${unreadCount} unread messages`);
+            if (totalUnreadCount > 0) {
+                log.debug(`User has ${totalUnreadCount} unread messages`);
             }
         }
-    }, [chats]);
+    }, [chats, currentUser]);
 
     useEffect(() => {
         if (chats && currentUser) {
             try {
                 const metricId = startMeasure('chat_filtering');
-                // ... existing filtering code ...
-                setFilteredChats(
-                    chats.sort((a, b) => {
-                        // ... existing sorting code ...
-                    })
-                );
+                const sortedChats = [...chats].sort((a, b) => {
+                    return 0;
+                });
+                setFilteredChats(sortedChats);
                 endMeasure(metricId);
             } catch (error) {
                 monitoring.captureError(
@@ -65,8 +72,8 @@ export default function ChatList() {
             const metricId = startMeasure('chat_navigation');
 
             router.push({
-                pathname: '/(tabs)/chatroom/[id]',
-                params: { id: chatId }
+                pathname: '/ChatRoom',
+                params: { chatId: chatId }
             });
 
             endMeasure(metricId);
@@ -112,4 +119,15 @@ export default function ChatList() {
             />
         </View>
     );
-} 
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    chatItem: {
+        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+    }
+}); 

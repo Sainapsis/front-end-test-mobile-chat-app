@@ -6,7 +6,7 @@ import * as FileSystem from 'expo-file-system';
 import { lightFeedback, mediumFeedback, errorFeedback, heavyFeedback } from '@/utils';
 
 interface VoiceRecordButtonProps {
-  onRecordingComplete: (voiceUri: string, duration: number) => void;
+  readonly onRecordingComplete: (voiceUri: string, duration: number) => void;
 }
 
 export function VoiceRecordButton({ onRecordingComplete }: VoiceRecordButtonProps) {

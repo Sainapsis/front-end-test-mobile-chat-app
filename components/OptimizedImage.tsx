@@ -1,15 +1,15 @@
 import React, { useState, memo, useEffect } from 'react';
-import { Image, ImageProps, ActivityIndicator, View, StyleSheet, Platform, StyleProp, ViewStyle, ImageStyle } from 'react-native';
+import { Image, ImageProps, ActivityIndicator, View, StyleSheet, Platform, StyleProp, ViewStyle } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import * as Crypto from 'expo-crypto';
 
 interface OptimizedImageProps extends ImageProps {
-    placeholder?: React.ReactNode;
-    fallback?: React.ReactNode;
-    cacheKey?: string;
-    priority?: 'low' | 'normal' | 'high';
-    prefetch?: boolean;
-    cacheControl?: 'memory-only' | 'disk-only' | 'memory-disk';
+    readonly placeholder?: React.ReactNode;
+    readonly fallback?: React.ReactNode;
+    readonly cacheKey?: string;
+    readonly priority?: 'low' | 'normal' | 'high';
+    readonly prefetch?: boolean;
+    readonly cacheControl?: 'memory-only' | 'disk-only' | 'memory-disk';
 }
 
 // Directorio para almacenar imágenes en caché
@@ -33,7 +33,7 @@ const getCachedImage = async (uri: string, cacheKey?: string): Promise<string | 
         await ensureCacheDirectory();
 
         // Generar un nombre de archivo basado en URI o clave personalizada
-        const filename = cacheKey || await Crypto.digestStringAsync(
+        const filename = cacheKey ?? await Crypto.digestStringAsync(
             Crypto.CryptoDigestAlgorithm.SHA256,
             uri
         );
@@ -96,8 +96,9 @@ function OptimizedImageComponent({
 
     useEffect(() => {
         // Solo cachear URIs remotas
-        if (typeof source === 'object' && source !== null && 'uri' in source && source.uri && source.uri.startsWith('http')) {
-            const uri = source.uri;
+        const sourceObj = source as { uri?: string };
+        if (sourceObj?.uri?.startsWith('http')) {
+            const uri = sourceObj.uri;
 
             // Función para cargar la imagen en caché
             const cacheImage = async () => {
@@ -132,9 +133,10 @@ function OptimizedImageComponent({
     }
 
     // Determinar la fuente final de la imagen
+    const sourceObj = source as { uri?: string };
     const finalSource =
-        (typeof source === 'object' && source !== null && 'uri' in source && source.uri && cachedUri)
-            ? { ...source, uri: cachedUri }
+        (sourceObj?.uri && cachedUri)
+            ? { ...(source as object), uri: cachedUri }
             : source;
 
     return (
@@ -142,13 +144,13 @@ function OptimizedImageComponent({
             {isLoading && (placeholder || defaultPlaceholder)}
             <Image
                 source={finalSource}
-                style={[style as StyleProp<ImageStyle>, isLoading && styles.hidden]}
+                style={[style, isLoading && styles.hidden]}
                 onLoad={() => setIsLoading(false)}
                 onError={() => {
                     setIsLoading(false);
                     setHasError(true);
                     // Si falla con la versión cacheada, intentar con la original
-                    if (cachedUri && typeof source === 'object' && source !== null && 'uri' in source && source.uri) {
+                    if (cachedUri && sourceObj?.uri) {
                         setCachedUri(null);
                     }
                 }}

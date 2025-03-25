@@ -33,6 +33,31 @@ const MAX_TO_RENDER_PER_BATCH = 5;
 const UPDATE_CELL_BATCH_SIZE = 5;
 const VIEWABILITY_THRESHOLD = 50;
 
+// Componentes del encabezado extraídos
+const ChatRoomTitle = ({ chatName, renderAvatar }: { chatName?: string; renderAvatar: () => React.ReactNode }) => (
+  <View style={styles.headerContainer}>
+    {renderAvatar()}
+    <ThemedText type="subtitle" numberOfLines={1}>
+      {chatName ?? ""}
+    </ThemedText>
+  </View>
+);
+
+const BackButton = ({ onPress, color }: { onPress: () => void; color: string }) => (
+  <Pressable onPress={onPress}>
+    <IconSymbol name="chevron-left" size={24} color={color} />
+  </Pressable>
+);
+
+// Componentes de renderizado para Stack.Screen
+const renderHeaderTitle = (props: { chatName?: string; renderAvatar: () => React.ReactNode }) => (
+  <ChatRoomTitle chatName={props.chatName} renderAvatar={props.renderAvatar} />
+);
+
+const renderHeaderLeft = (props: { onPress: () => void; color: string }) => (
+  <BackButton onPress={props.onPress} color={props.color} />
+);
+
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const {
@@ -41,7 +66,6 @@ export default function ChatRoomScreen() {
     chats,
     markMessageAsRead,
     loadMoreMessages,
-    sendMessage
   } = useAppContext();
 
   const flatListRef = useRef<FlatList<Message>>(null);
@@ -56,14 +80,13 @@ export default function ChatRoomScreen() {
 
     return () => {
       const metric = endMeasure(loadMetricId);
-      log.info(`ChatRoom session ended: duration=${metric?.duration?.toFixed(2) || '?'}ms`);
+      log.info(`ChatRoom session ended: duration=${metric?.duration?.toFixed(2) ?? '?'}ms`);
     };
   }, [chatId]);
 
   // Estado para trackear si estamos cargando mensajes más antiguos
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [hasReachedEnd, setHasReachedEnd] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const chat = useMemo(() => {
     const result = chats.find(c => c.id === chatId);
@@ -83,13 +106,19 @@ export default function ChatRoomScreen() {
     , [chat?.participants, currentUser?.id, users]);
 
   // Determinar el nombre del chat
-  const chatName = useMemo(() =>
-    chat?.isGroup && chat?.name
-      ? chat.name
-      : chatParticipants.length === 1
-        ? chatParticipants[0]?.name
-        : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`
-    , [chat?.isGroup, chat?.name, chatParticipants]);
+  const chatName = useMemo(() => {
+    if (chat?.isGroup && chat?.name) {
+      return chat.name;
+    }
+
+    if (chatParticipants.length === 1) {
+      return chatParticipants[0]?.name;
+    }
+
+    const otherCount = chatParticipants.length - 1;
+    const pluralSuffix = otherCount > 1 ? 's' : '';
+    return `${chatParticipants[0]?.name ?? 'Unknown'} & ${otherCount} other${pluralSuffix}`;
+  }, [chat?.isGroup, chat?.name, chatParticipants]);
 
   // Memoizar los renderizadores de items para evitar recreaciones innecesarias
   const renderItem = useMemo(() => {
@@ -140,7 +169,7 @@ export default function ChatRoomScreen() {
           message &&
           message.senderId !== currentUser.id &&
           message.status !== 'read' &&
-          (!message.readBy || !message.readBy.some(receipt => receipt.userId === currentUser.id))
+          !message.readBy?.some(receipt => receipt.userId === currentUser.id)
         ) {
           markMessageAsRead(message.id, currentUser.id);
           log.debug(`Message marked as read: ${message.id}`);
@@ -234,7 +263,7 @@ export default function ChatRoomScreen() {
       const success = await loadMoreMessages(chat.id);
 
       const metric = endMeasure(metricId);
-      log.debug(`Earlier messages loaded in ${metric?.duration?.toFixed(2) || '?'}ms, success: ${success}`);
+      log.debug(`Earlier messages loaded in ${metric?.duration?.toFixed(2) ?? '?'}ms, success: ${success}`);
 
       // Actualizar si hemos llegado al final del historial
       setHasReachedEnd(!success || !chat.hasMoreMessages);
@@ -341,38 +370,16 @@ export default function ChatRoomScreen() {
     return null;
   }, [chat, isLoadingOlder, hasReachedEnd, handleLoadEarlier]);
 
-  // Función para enviar mensajes con métricas y logging
-  const handleSendMessage = useCallback(
-    async (text: string, imageData?: { uri: string; previewUri: string }, voiceData?: { uri: string; duration: number }) => {
-      if (!currentUser || !chat) return;
-
-      const metricId = startMeasure('send_message');
-      try {
-        const msgType = imageData ? 'image' : voiceData ? 'voice' : 'text';
-        log.info(`Sending ${msgType} message in chat: ${chatId}`);
-
-        const result = await sendMessage(chatId, text, currentUser.id, imageData, voiceData);
-
-        const metric = endMeasure(metricId);
-        log.debug(`Message sent in ${metric?.duration?.toFixed(2) || '?'}ms, result: ${result}`);
-
-        return result;
-      } catch (error) {
-        const errorId = monitoring.captureError(
-          error instanceof Error ? error : new Error(String(error)),
-          { context: 'send_message', chatId, messageType: imageData ? 'image' : (voiceData ? 'voice' : 'text') }
-        );
-        log.error(`Failed to send message [errorId: ${errorId}]`);
-        return false;
-      }
-    },
-    [chat, chatId, currentUser, sendMessage]
-  );
-
   const handleGoBack = useCallback(() => {
     log.info(`Navigating back from chat: ${chatId}`);
     router.back();
   }, [router, chatId]);
+
+  // Memoizar las opciones del encabezado para evitar recreación en cada render
+  const screenOptions = useMemo(() => ({
+    headerTitle: renderHeaderTitle.bind(null, { chatName, renderAvatar: renderChatAvatar }),
+    headerLeft: renderHeaderLeft.bind(null, { onPress: handleGoBack, color: theme.primary }),
+  }), [chatName, renderChatAvatar, handleGoBack, theme.primary]);
 
   if (!chat || !currentUser) {
     return (
@@ -389,23 +396,7 @@ export default function ChatRoomScreen() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
       <StatusBar style="auto" />
-      <Stack.Screen
-        options={{
-          headerTitle: () => (
-            <View style={styles.headerContainer}>
-              {renderChatAvatar()}
-              <ThemedText type="subtitle" numberOfLines={1}>
-                {chatName}
-              </ThemedText>
-            </View>
-          ),
-          headerLeft: () => (
-            <Pressable onPress={handleGoBack}>
-              <IconSymbol name="chevron-left" size={24} color={theme.primary} />
-            </Pressable>
-          ),
-        }}
-      />
+      <Stack.Screen options={screenOptions} />
 
       <FlatList
         ref={flatListRef}

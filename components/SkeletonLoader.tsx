@@ -1,17 +1,15 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, Animated, useColorScheme } from 'react-native';
-import { Colors } from '@/constants/Colors';
 
 interface SkeletonLoaderProps {
-    width: number | string;
-    height: number;
-    borderRadius?: number;
-    style?: any;
+    readonly width: number | string;
+    readonly height: number;
+    readonly borderRadius?: number;
+    readonly style?: any;
 }
 
 export function SkeletonLoader({ width, height, borderRadius = 4, style }: SkeletonLoaderProps) {
     const colorScheme = useColorScheme();
-    const theme = colorScheme === 'dark' ? Colors.dark : Colors.light;
 
     const animatedValue = new Animated.Value(0);
 

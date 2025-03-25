@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useMemo } from 'react';
 import { useUser, User } from './useUser';
 import { useChats, Chat } from './useChats';
 import { DatabaseProvider } from '../database/DatabaseProvider';
@@ -37,7 +37,7 @@ export interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export function AppProvider({ children }: { children: ReactNode }) {
+export function AppProvider({ children }: { readonly children: ReactNode }) {
   const { users, currentUser, login, logout, isLoggedIn, loading: userLoading } = useUser();
 
   // Adaptar el objeto currentUser para que sea compatible con User de useChats
@@ -52,7 +52,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Registrar el estado de la aplicación en cada cambio importante
   useEffect(() => {
-    log.info(`App state: loggedIn=${isLoggedIn}, dbInitialized=${dbInitialized}, user=${currentUser?.id || 'none'}`);
+    log.info(`App state: loggedIn=${isLoggedIn}, dbInitialized=${dbInitialized}, user=${currentUser?.id ?? 'none'}`);
 
     if (dbError) {
       monitoring.captureError(dbError, { context: 'database_initialization' });
@@ -65,7 +65,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     if (!userLoading && !chatsLoading) {
       const metric = endMeasure(loadingMetricId);
-      log.debug(`App loading completed in ${metric?.duration?.toFixed(2) || '?'}ms`);
+      log.debug(`App loading completed in ${metric?.duration?.toFixed(2) ?? '?'}ms`);
     }
   }, [userLoading, chatsLoading]);
 
@@ -83,8 +83,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     voiceData?: { uri: string; duration: number }
   ) => {
     const metricId = startMeasure('send_message');
+
+    const getMessageType = () => {
+      if (imageData) return 'image';
+      if (voiceData) return 'voice';
+      return 'text';
+    };
+
     try {
-      log.info(`Sending message: chat=${chatId}, type=${imageData ? 'image' : voiceData ? 'voice' : 'text'}`);
+      log.info(`Sending message: chat=${chatId}, type=${getMessageType()}`);
       const result = await sendMessage(chatId, text, senderId, imageData, voiceData);
       log.debug(`Message sent result: ${result}`);
       return result;
@@ -105,7 +112,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       log.info(`Creating chat: participants=${participantIds.length}, isGroup=${!!groupName}`);
       const result = await createChat(participantIds, groupName);
-      log.debug(`Chat created: ${result?.id || 'failed'}`);
+      log.debug(`Chat created: ${result?.id ?? 'failed'}`);
       return result;
     } catch (error) {
       const errorId = monitoring.captureError(
@@ -122,7 +129,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <DatabaseProvider>
       <AppContext.Provider
-        value={{
+        value={useMemo(() => ({
           users,
           currentUser,
           login,
@@ -142,7 +149,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
           loading: userLoading || chatsLoading,
           dbInitialized,
           clearImageCache
-        }}
+        }), [
+          users,
+          currentUser,
+          login,
+          logout,
+          isLoggedIn,
+          chats,
+          enhancedCreateChat,
+          enhancedSendMessage,
+          forwardMessage,
+          markMessageAsRead,
+          addReaction,
+          removeReaction,
+          editMessage,
+          deleteMessage,
+          loadMoreMessages,
+          userLoading,
+          chatsLoading,
+          dbInitialized,
+          clearImageCache
+        ])}
       >
         {children}
       </AppContext.Provider>
