@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { View, StyleSheet, Image, Pressable, Modal } from "react-native";
+import { View, StyleSheet, Image, Pressable, Modal, Alert, TextInput, TouchableOpacity } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { ThemedText } from "./ThemedText";
 import { Message } from "@/hooks/useChats";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { MessageReactions } from './MessageReactions';
+import { useAppContext } from "@/hooks/AppContext";
 
 interface MessageBubbleProps {
   message: Message;
@@ -15,10 +16,75 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const [showFullImage, setShowFullImage] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(message.text);
+  const { editMessage, deleteMessage } = useAppContext();
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const handleLongPress = () => {
+    if (!isCurrentUser) return;
+
+    Alert.alert(
+      "Message Options",
+      "What would you like to do?",
+      [
+        {
+          text: "Edit",
+          onPress: () => {
+            setEditText(message.text);
+            setIsEditing(true);
+          },
+        },
+        {
+          text: "Delete",
+          onPress: () => {
+            Alert.alert(
+              "Delete Message",
+              "Are you sure you want to delete this message?",
+              [
+                {
+                  text: "Cancel",
+                  style: "cancel",
+                },
+                {
+                  text: "Delete",
+                  style: "destructive",
+                  onPress: () => deleteMessage(message.id),
+                },
+              ]
+            );
+          },
+          style: "destructive",
+        },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+      ]
+    );
+  };
+
+  const handleEditSubmit = async () => {
+    if (editText.trim() === message.text) {
+      setIsEditing(false);
+      return;
+    }
+
+    const success = await editMessage(message.id, editText.trim());
+    if (success) {
+      setIsEditing(false);
+    } else {
+      Alert.alert("Error", "Failed to edit message");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditText(message.text);
+    setIsEditing(false);
   };
 
   const renderMessageStatus = () => {
@@ -57,12 +123,25 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
     }
   };
 
+  if (message.isDeleted) {
+    return (
+      <View style={[styles.container, isCurrentUser ? styles.selfContainer : styles.otherContainer]}>
+        <View style={[styles.bubble, styles.deletedBubble]}>
+          <ThemedText style={styles.deletedText}>
+            This message was deleted
+          </ThemedText>
+        </View>
+      </View>
+    );
+  }
+
   return (
-    <View
+    <Pressable
       style={[
         styles.container,
         isCurrentUser ? styles.selfContainer : styles.otherContainer,
       ]}
+      onLongPress={handleLongPress}
     >
       <View
         style={[
@@ -79,14 +158,50 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
         ]}
       >
         {message.messageType === "text" ? (
-          <ThemedText
-            style={[
-              styles.messageText,
-              isCurrentUser && !isDark && styles.selfMessageText,
-            ]}
-          >
-            {message.text}
-          </ThemedText>
+          isEditing ? (
+            <View>
+              <TextInput
+                value={editText}
+                onChangeText={setEditText}
+                style={[
+                  styles.messageText,
+                  isCurrentUser && !isDark && styles.selfMessageText,
+                  styles.editInput,
+                  { backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF" }
+                ]}
+                multiline
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={handleEditSubmit}
+              />
+              <View style={styles.editButtons}>
+                <TouchableOpacity 
+                  onPress={handleCancelEdit}
+                  style={[styles.editButton, styles.cancelButton]}
+                >
+                  <ThemedText style={styles.editButtonText}>Cancel</ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  onPress={handleEditSubmit}
+                  style={[styles.editButton, styles.saveButton]}
+                >
+                  <ThemedText style={styles.editButtonText}>Save</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <ThemedText
+              style={[
+                styles.messageText,
+                isCurrentUser && !isDark && styles.selfMessageText,
+              ]}
+            >
+              {message.text}
+              {message.isEdited && (
+                <ThemedText style={styles.editedText}> (edited)</ThemedText>
+              )}
+            </ThemedText>
+          )
         ) : (
           <View>
             <Pressable onPress={() => setShowFullImage(true)}>
@@ -104,6 +219,9 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
                 ]}
               >
                 {message.text}
+                {message.isEdited && (
+                  <ThemedText style={styles.editedText}> (edited)</ThemedText>
+                )}
               </ThemedText>
             )}
           </View>
@@ -133,7 +251,7 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
         </Pressable>
       </Modal>
       <MessageReactions messageId={message.id} reactions={message.reactions} />
-    </View>
+    </Pressable>
   );
 }
 
@@ -199,5 +317,45 @@ const styles = StyleSheet.create({
   fullImage: {
     width: "100%",
     height: "80%",
+  },
+  editedText: {
+    fontSize: 12,
+    opacity: 0.7,
+    fontStyle: "italic",
+  },
+  deletedBubble: {
+    backgroundColor: "#F0F0F0",
+  },
+  deletedText: {
+    fontSize: 14,
+    fontStyle: "italic",
+    opacity: 0.7,
+  },
+  editInput: {
+    padding: 8,
+    minHeight: 40,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  editButtons: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 8,
+  },
+  editButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  saveButton: {
+    backgroundColor: "#4CAF50",
+  },
+  cancelButton: {
+    backgroundColor: "#9E9E9E",
+  },
+  editButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

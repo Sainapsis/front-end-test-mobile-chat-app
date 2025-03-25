@@ -10,6 +10,8 @@ export function useChats(currentUserId: string | null) {
     markMessageAsRead,
     addReaction,
     removeReaction,
+    editMessage,
+    deleteMessage,
     loading 
   } = useChatsDb(currentUserId);
 
@@ -20,6 +22,8 @@ export function useChats(currentUserId: string | null) {
     markMessageAsRead,
     addReaction,
     removeReaction,
+    editMessage,
+    deleteMessage,
     loading,
   };
 } 

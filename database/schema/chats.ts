@@ -20,6 +20,9 @@ export const messages = sqliteTable("messages", {
   imageUri: text("image_uri"),
   imagePreviewUri: text("image_preview_uri"),
   status: text("status").notNull().default("sent"),
+  isEdited: integer("is_edited").notNull().default(0),
+  editedAt: integer("edited_at"),
+  isDeleted: integer("is_deleted").notNull().default(0),
 });
 
 export const messageReadReceipts = sqliteTable("message_read_receipts", {

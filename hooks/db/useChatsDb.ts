@@ -20,6 +20,9 @@ export interface Message {
   status: 'sent' | 'delivered' | 'read';
   readBy?: { userId: string; timestamp: number }[];
   reactions: MessageReaction[];
+  isEdited: boolean;
+  editedAt?: number;
+  isDeleted: boolean;
 }
 
 export interface Chat {
@@ -124,6 +127,9 @@ export function useChatsDb(currentUserId: string | null) {
             status: m.status as 'sent' | 'delivered' | 'read',
             readBy: readReceiptsByMessage[m.id] || [],
             reactions: reactionsByMessage[m.id] || [],
+            isEdited: m.isEdited === 1,
+            editedAt: m.editedAt || undefined,
+            isDeleted: m.isDeleted === 1,
           }));
 
           // Determine last message
@@ -278,6 +284,9 @@ export function useChatsDb(currentUserId: string | null) {
         status: 'sent',
         readBy: [],
         reactions: [],
+        isEdited: false,
+        editedAt: undefined,
+        isDeleted: false,
       };
 
       // Update state
@@ -374,6 +383,90 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  const editMessage = useCallback(async (messageId: string, newText: string) => {
+    try {
+      const timestamp = Date.now();
+
+      // Update message
+      await db
+        .update(messages)
+        .set({ 
+          text: newText,
+          isEdited: 1,
+          editedAt: timestamp
+        })
+        .where(eq(messages.id, messageId));
+
+      // Update state
+      setUserChats(prevChats => {
+        return prevChats.map(chat => ({
+          ...chat,
+          messages: chat.messages.map(msg => {
+            if (msg.id === messageId) {
+              return {
+                ...msg,
+                text: newText,
+                isEdited: true,
+                editedAt: timestamp
+              };
+            }
+            return msg;
+          }),
+          lastMessage: chat.lastMessage?.id === messageId
+            ? {
+                ...chat.lastMessage,
+                text: newText,
+                isEdited: true,
+                editedAt: timestamp
+              }
+            : chat.lastMessage
+        }));
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error editing message:', error);
+      return false;
+    }
+  }, []);
+
+  const deleteMessage = useCallback(async (messageId: string) => {
+    try {
+      // Mark message as deleted
+      await db
+        .update(messages)
+        .set({ isDeleted: 1 })
+        .where(eq(messages.id, messageId));
+
+      // Update state
+      setUserChats(prevChats => {
+        return prevChats.map(chat => ({
+          ...chat,
+          messages: chat.messages.map(msg => {
+            if (msg.id === messageId) {
+              return {
+                ...msg,
+                isDeleted: true
+              };
+            }
+            return msg;
+          }),
+          lastMessage: chat.lastMessage?.id === messageId
+            ? {
+                ...chat.lastMessage,
+                isDeleted: true
+              }
+            : chat.lastMessage
+        }));
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      return false;
+    }
+  }, []);
+
   return {
     chats: userChats,
     createChat,
@@ -381,6 +474,8 @@ export function useChatsDb(currentUserId: string | null) {
     markMessageAsRead,
     addReaction,
     removeReaction,
+    editMessage,
+    deleteMessage,
     loading,
   };
 } 

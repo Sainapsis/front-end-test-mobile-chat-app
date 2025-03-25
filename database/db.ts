@@ -51,6 +51,9 @@ export async function initializeDatabase() {
         image_uri TEXT,
         image_preview_uri TEXT,
         status TEXT NOT NULL DEFAULT 'sent',
+        is_edited INTEGER NOT NULL DEFAULT 0,
+        edited_at INTEGER,
+        is_deleted INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (chat_id) REFERENCES chats (id)
       );
     `);
