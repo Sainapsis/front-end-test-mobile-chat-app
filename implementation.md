@@ -52,3 +52,27 @@ The goal of this feature was to add a delete and edit message functionality to t
   - When the delete option is selected, an alert will display to confirm and if confirms the message will be deleted.
   - When the edit option is selected, the input will be shown and the message will be replaced by the input.
 
+
+
+---------------------------------
+
+⏩ **Forward Messages**
+
+🎯 **Feature Overview**
+
+The goal of this feature was to add a forward message functionality to the chat messages.
+
+✅ **Task:** "Add message forwarding"
+
+🔧 **Implementation Breakdown**
+
+🛠️ **Data Handling**
+
+- Backend Integration:
+  - Created a handler to forward a message.
+
+🎨 **UI/UX Changes**
+
+  - Added a modal to select the chat to forward the message.
+  - When long press on a message, the modal to forward the message will be shown.
+
