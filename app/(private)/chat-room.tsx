@@ -106,7 +106,7 @@ export default function ChatRoomScreen() {
           </ThemedView>
         )}
       />
-      <ThemedInput shouldShowButton={true} messageText={messageText} setMessageText={setMessageText} handleSendMessage={handleSendMessage} placeholder="Write a message"></ThemedInput>
+      <ThemedInput shouldShowButton={true} textValue={messageText} setTextValue={setMessageText} handleSendMessage={handleSendMessage} placeholder="Write a message"></ThemedInput>
     </KeyboardAvoidingView>
   );
 }
@@ -134,25 +134,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 10,
-    alignItems: 'flex-end'
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#808080',
-    borderRadius: 10,
-    padding: 10,
-    maxHeight: 100,
-  },
-  sendButton: {
-    marginLeft: 10,
-    marginBottom: 5,
-  },
-  disabledButton: {
-    opacity: 0.5,
   },
 }); 

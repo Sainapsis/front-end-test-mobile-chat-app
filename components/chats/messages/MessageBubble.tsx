@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/ui/text/ThemedText';
-import { Message } from '@/hooks/useChats';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { Message } from '@/hooks/chats/useChats';
+import { useColorScheme } from '@/hooks/themes/useColorScheme';
 import { Avatar } from '@/components/ui/user/Avatar';
-import { User } from '@/hooks/useUser';
+import { User } from '@/hooks/user/useUser';
 import { IconSymbol } from '@/components/ui/icons/IconSymbol';
 
 interface MessageBubbleProps {

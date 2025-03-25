@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
-import { initializeDatabase } from './db';
-import { seedDatabase } from './seed';
+import { initializeDatabase } from '@/providers/database/db';
+import { seedDatabase } from '@/providers/database/seed';
 
 interface DatabaseContextType {
   isInitialized: boolean;
@@ -35,8 +35,8 @@ export function DatabaseProvider({ children }: DatabaseProviderProps) {
         console.log('Database initialized');
         
         // Seed the database with initial data
-        await seedDatabase();
-        console.log('Database seeded');
+        // await seedDatabase();
+        // console.log('Database seeded');
         
         if (isMounted) {
           setIsInitialized(true);

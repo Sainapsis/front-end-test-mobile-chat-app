@@ -11,7 +11,7 @@ import { UserModule } from '../user/user.module';
   imports: [
     JwtModule.register({
       secret: 'O2/X+51vvrs0gaYoT8Zc6K9uEhCvD5ZlkCHW6PPXShmhlIZk4ExFp6aWHDSz9rme', //TO CHANGE!!!!!
-      signOptions: { expiresIn: '3000s' },
+      signOptions: { expiresIn: '7d' },
     }),
     forwardRef(() => UserModule),
     PassportModule,

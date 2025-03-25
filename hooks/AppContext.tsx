@@ -1,14 +1,14 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useUser, User } from './useUser';
-import { useChats, Chat } from './useChats';
-import { DatabaseProvider } from '../database/DatabaseProvider';
-import { useDatabase } from './useDatabase';
+import { useUser, User } from '@/hooks/user/useUser';
+import { useChats, Chat } from '@/hooks/chats/useChats';
+import { DatabaseProvider } from '@/providers/database/DatabaseProvider';
+import { useDatabase } from '@/hooks//db/useDatabase';
 
 type AppContextType = {
   users: User[];
   currentUser: User | null;
   isLoggedIn: boolean;
-  login: (userId: string) => Promise<boolean>;
+  login: (username:string, password: string) => Promise<boolean>;
   logout: () => void;
   chats: Chat[];
   createChat: (participantIds: string[]) => Promise<Chat | null>;

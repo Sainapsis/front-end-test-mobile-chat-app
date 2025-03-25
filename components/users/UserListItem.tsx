@@ -2,15 +2,16 @@ import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { ThemedText } from '../ui/text/ThemedText';
 import { Avatar } from '@/components/ui/user/Avatar';
-import { User } from '@/hooks/useUser';
+import { User } from '@/hooks/user/useUser';
 
 interface UserListItemProps {
   user: User;
   onSelect?: (user: User) => void;
   isSelected?: boolean;
+  showStatus?: boolean;
 }
 
-export function UserListItem({ user, onSelect, isSelected }: UserListItemProps) {
+export function UserListItem({ user, onSelect, isSelected, showStatus = true }: UserListItemProps) {
   const handlePress = () => {
     if (onSelect) {
       onSelect(user);
@@ -22,7 +23,7 @@ export function UserListItem({ user, onSelect, isSelected }: UserListItemProps) 
       style={[styles.container, isSelected && styles.selectedContainer]} 
       onPress={handlePress}
     >
-      <Avatar user={user} size={50} />
+      <Avatar user={user} size={50} showStatus={showStatus}/>
       <View style={styles.infoContainer}>
         <ThemedText type="defaultSemiBold">{user.name}</ThemedText>
         <ThemedText style={styles.statusText}>

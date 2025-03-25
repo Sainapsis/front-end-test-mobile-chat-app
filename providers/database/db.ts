@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/expo-sqlite';
 import * as SQLite from 'expo-sqlite';
-import * as schema from './schema';
+import * as schema from '@/providers/database/schema';
 
 // Open a database connection using the correct async API from Expo SQLite
 const sqlite = SQLite.openDatabaseSync('chat-app.db');
@@ -16,7 +16,8 @@ export async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
-        avatar TEXT NOT NULL,
+        username TEXT NOT NULL,
+        avatar TEXT,
         status TEXT NOT NULL
       );
     `);
@@ -24,7 +25,12 @@ export async function initializeDatabase() {
     console.log('Creating chats table...');
     await sqlite.execAsync(`
       CREATE TABLE IF NOT EXISTS chats (
-        id TEXT PRIMARY KEY
+        id TEXT PRIMARY KEY, 
+        last_message TEXT,
+        chat_name TEXT NOT NULL,
+        last_message_time INTEGER,
+        unread_messages INTEGER,
+        last_message_sender TEXT
       );
     `);
     

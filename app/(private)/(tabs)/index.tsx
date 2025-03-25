@@ -7,42 +7,56 @@ import { ChatListItem } from '@/components/chats/list/ChatListItem';
 import { UserListItem } from '@/components/users/UserListItem';
 import { IconSymbol } from '@/components/ui/icons/IconSymbol';
 import { ThemedInput } from '@/components/ui/inputs/ThemedInput';
-import { User } from '@/hooks/useUser';
-import { Chat } from '@/hooks/useChats';
+import { Chat } from '@/hooks/chats/useChats';
 
+// Enable experimental layout animations on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+
 export default function ChatsScreen() {
+  // Retrieve current user, users list, chats and functions from global context
   const { currentUser, users, chats, createChat } = useAppContext();
+
+  // Local state to control modal visibility and selection of users for a new chat
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [messageText, setMessageText] = useState('');
+
+  // State for search functionality and filtered chats list
+  const [searchText, setSearchText] = useState('');
   const [filteredChats, setFilteredChats] = useState<Chat[]>([]);
 
+  // Animated value to control the header's height and opacity when searching
   const headerAnim = useRef(new Animated.Value(1)).current;
+  // Ref to store the previous search text, used to detect transitions between empty and non-empty search
   const prevTextRef = useRef<string>('');
+  // Ref to hold the debounce timeout for search
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  // Effect to animate the header when the search text changes from empty to non-empty and vice versa
   useEffect(() => {
     const wasEmpty = prevTextRef.current.length === 0;
-    const isEmpty = messageText.length === 0;
+    const isEmpty = searchText.length === 0;
+    // If transitioning from empty to non-empty or vice versa, animate header
     if (wasEmpty !== isEmpty) {
       Animated.timing(headerAnim, {
-        toValue: isEmpty ? 1 : 0,
+        toValue: isEmpty ? 1 : 0, // 1: full header (when search is empty), 0: collapsed header (when searching)
         duration: 300,
         useNativeDriver: false,
       }).start();
     }
-    prevTextRef.current = messageText;
-  }, [messageText, headerAnim]);
+    // Update the previous text ref with current search text
+    prevTextRef.current = searchText;
+  }, [searchText, headerAnim]);
 
+  // Interpolate the animated value to control header height and opacity
   const headerHeight = headerAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 80],
   });
-  const headerOpacity = headerAnim;
+  const headerOpacity = headerAnim; // Directly use the animated value for opacity
 
+  // Toggle user selection for starting a new chat
   const toggleUserSelection = (userId: string) => {
     if (selectedUsers.includes(userId)) {
       setSelectedUsers(selectedUsers.filter(id => id !== userId));
@@ -51,6 +65,7 @@ export default function ChatsScreen() {
     }
   };
 
+  // Handle creation of a new chat when the user confirms selection
   const handleCreateChat = () => {
     if (currentUser && selectedUsers.length > 0) {
       const participants = [currentUser.id, ...selectedUsers];
@@ -60,32 +75,39 @@ export default function ChatsScreen() {
     }
   };
 
+  // Debounce search text changes to filter chats after user stops typing for 300ms
   const handleChangeSearchText = (text: string) => {
-    setMessageText(text)
+    setSearchText(text);
     if (debounceTimeout.current) {
       clearTimeout(debounceTimeout.current);
     }
     debounceTimeout.current = setTimeout(() => {
       if (text.length > 0) {
+        // Filter chats based on chatName property (case insensitive)
+        // Using JSON.parse(JSON.stringify(...)) to deep clone the data, if needed
         setFilteredChats(JSON.parse(JSON.stringify(
-          chats.filter(chat => chat.chatName?.toLocaleLowerCase().indexOf(text.toLocaleLowerCase()) !== -1)
+          chats.filter(chat =>
+            chat.chatName?.toLocaleLowerCase().indexOf(text.toLocaleLowerCase()) !== -1
+          )
         )));
-      }else{
-        setFilteredChats([])
+      } else {
+        setFilteredChats([]);
       }
     }, 300);
-  }
+  };
 
+  // Render component to show when there are no chats
   const renderEmptyComponent = () => (
     <ThemedView style={styles.emptyContainer}>
-      <ThemedText style={styles.emptyText}>No chats yet</ThemedText>
-      <ThemedText>Tap the + button to start a new conversation</ThemedText>
+      <ThemedText style={styles.emptyTextTitle}>No chats yet</ThemedText>
+      <ThemedText style={styles.emptyTextSubtitle}>Tap the + button to start a new conversation</ThemedText>
     </ThemedView>
   );
 
   return (
     <ThemedView style={styles.container}>
-      <Animated.View style={[styles.header, { height: headerHeight, opacity: headerOpacity }]} >
+      {/* Animated header that collapses when search is active */}
+      <Animated.View style={[styles.header, { height: headerHeight, opacity: headerOpacity }]}>
         <ThemedText type="title">Chats</ThemedText>
         <Pressable
           style={styles.newChatButton}
@@ -94,10 +116,20 @@ export default function ChatsScreen() {
           <IconSymbol name="plus" size={24} color="#007AFF" />
         </Pressable>
       </Animated.View>
+
+      {/* Search input field */}
       <Animated.View>
-        <ThemedInput style={styles.searchBarContainer} messageText={messageText} setMessageText={handleChangeSearchText} placeholder='Search' ></ThemedInput>
+        <ThemedInput
+          style={styles.searchBarContainer}
+          textValue={searchText}
+          setTextValue={handleChangeSearchText}
+          placeholder="Search"
+          textArea={false}
+        />
       </Animated.View>
-      {messageText.length === 0 ?
+
+      {/* Show full chat list if searchText is empty, otherwise show filtered chats */}
+      {searchText.length === 0 ? (
         <FlatList
           data={chats}
           keyExtractor={(item) => item.id}
@@ -110,7 +142,9 @@ export default function ChatsScreen() {
           )}
           ListEmptyComponent={renderEmptyComponent}
           contentContainerStyle={styles.listContainer}
-        /> : <FlatList
+        />
+      ) : (
+        <FlatList
           data={filteredChats}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
@@ -120,12 +154,12 @@ export default function ChatsScreen() {
               users={users}
             />
           )}
-          ListEmptyComponent={messageText.length > 0 ? renderEmptyComponent: <></>}
+          ListEmptyComponent={searchText.length > 0 ? renderEmptyComponent : <></>}
           contentContainerStyle={styles.listContainer}
         />
-      }
+      )}
 
-
+      {/* Modal for creating a new chat */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -137,6 +171,7 @@ export default function ChatsScreen() {
       >
         <ThemedView style={styles.modalContainer}>
           <ThemedView style={styles.modalContent}>
+            {/* Modal header with title and close button */}
             <ThemedView style={styles.modalHeader}>
               <ThemedText type="subtitle">New Chat</ThemedText>
               <Pressable onPress={() => {
@@ -151,6 +186,7 @@ export default function ChatsScreen() {
               Select users to chat with
             </ThemedText>
 
+            {/* List of users to select from for new chat */}
             <FlatList
               data={users.filter(user => user.id !== currentUser?.id)}
               keyExtractor={(item) => item.id}
@@ -164,6 +200,7 @@ export default function ChatsScreen() {
               style={styles.userList}
             />
 
+            {/* Button to create chat, disabled if no user is selected */}
             <Pressable
               style={[
                 styles.createButton,
@@ -210,13 +247,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    marginTop: 40,
   },
-  emptyText: {
+  emptyTextTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 3,
+  },
+  emptyTextSubtitle: {
+    marginBottom: 100
   },
   modalContainer: {
     flex: 1,
@@ -264,6 +302,5 @@ const styles = StyleSheet.create({
   searchBarContainer: {
     paddingBottom: 0,
     paddingTop: 0,
-    paddingHorizontal: 15
-  }
+  },
 });

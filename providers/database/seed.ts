@@ -1,5 +1,5 @@
-import { db } from './db';
-import { users, chats, chatParticipants, messages, messagesReadBy } from './schema';
+import { db } from '@/providers/database/db';
+import { users, chats, chatParticipants, messages, messagesReadBy } from '@/providers/database/schema';
 
 // Mock user data from the original useUser hook
 const mockUsers = [
@@ -85,17 +85,17 @@ export async function seedDatabase() {
     console.log('Seeding database...');
     
     // Insert users
-    console.log('Seeding users...');
-    for (const user of mockUsers) {
-      await db.insert(users).values(user).onConflictDoNothing();
-    }
+    // console.log('Seeding users...');
+    // for (const user of mockUsers) {
+    //   await db.insert(users).values(user).onConflictDoNothing();
+    // }
     
     // Insert chats and their relationships
     console.log('Seeding chats...');
     let messageReadById = 1
     for (const chat of initialChats) {
       // Insert chat
-      await db.insert(chats).values({ id: chat.id }).onConflictDoNothing();
+      //await db.insert(chats).values({ id: chat.id }).onConflictDoNothing();
       
       // Insert participants
       console.log(`Adding participants for chat ${chat.id}...`);

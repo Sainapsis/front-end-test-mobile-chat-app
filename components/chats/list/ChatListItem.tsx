@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Chat } from '@/hooks/useChats';
+import { Chat } from '@/hooks/chats/useChats';
 import { Avatar } from '@/components/ui/user/Avatar';
 import { ThemedText } from '../../ui/text/ThemedText';
-import { User } from '@/hooks/useUser';
+import { User } from '@/hooks/user/useUser';
 import { useAppContext } from '@/hooks/AppContext';
 
 interface ChatListItemProps {

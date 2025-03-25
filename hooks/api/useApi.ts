@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import api from './api/api';
+import apiProvider from '@/providers/api/apiProvider';
 
 
 export const useApi = () => {
@@ -10,7 +10,7 @@ export const useApi = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get(endpoint, config);
+      const response = await apiProvider.get(endpoint, config);
       return response.data;
     } catch (err: any) {
       setError(err);
@@ -24,7 +24,7 @@ export const useApi = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.post(endpoint, payload, config);
+      const response = await apiProvider.post(endpoint, payload, config);
       return response.data;
     } catch (err: any) {
       setError(err);
