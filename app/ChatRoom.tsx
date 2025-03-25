@@ -23,11 +23,11 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Message } from '@/hooks/useChats';
 
 // Constantes para mejorar el rendimiento de la virtualización
-const INITIAL_NUM_TO_RENDER = 15;
-const WINDOW_SIZE = 10;
-const MAX_TO_RENDER_PER_BATCH = 10;
-const UPDATE_CELL_BATCH_SIZE = 10;
-const VIEWABILITY_THRESHOLD = 80;
+const INITIAL_NUM_TO_RENDER = 10;
+const WINDOW_SIZE = 5;
+const MAX_TO_RENDER_PER_BATCH = 5;
+const UPDATE_CELL_BATCH_SIZE = 5;
+const VIEWABILITY_THRESHOLD = 50;
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
@@ -44,6 +44,7 @@ export default function ChatRoomScreen() {
 
   // Estado para trackear si estamos cargando mensajes más antiguos
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  const [hasReachedEnd, setHasReachedEnd] = useState(false);
 
   const chat = chats.find(c => c.id === chatId);
 
@@ -64,15 +65,29 @@ export default function ChatRoomScreen() {
     , [chat?.isGroup, chat?.name, chatParticipants]);
 
   // Memoizar los renderizadores de items para evitar recreaciones innecesarias
-  const renderItem = useCallback(({ item }: ListRenderItemInfo<Message>) => (
-    <MessageBubble
-      message={item}
-      isCurrentUser={currentUser ? item.senderId === currentUser.id : false}
-      senderName={chat?.isGroup ? users.find(u => u.id === item.senderId)?.name : undefined}
-    />
-  ), [currentUser, chat?.isGroup, users]);
+  const renderItem = useMemo(() => {
+    return ({ item }: ListRenderItemInfo<Message>) => (
+      <MessageBubble
+        message={item}
+        isCurrentUser={currentUser ? item.senderId === currentUser.id : false}
+        senderName={chat?.isGroup ? users.find(u => u.id === item.senderId)?.name : undefined}
+      />
+    );
+  }, [currentUser, chat?.isGroup, users]);
 
-  const keyExtractor = useCallback((item: Message) => item.id, []);
+  // Asegurar que cada item tiene una clave única
+  const keyExtractor = useCallback((item: Message, index: number) => {
+    // Verificar si el ID existe y es único
+    if (!item.id) {
+      console.warn('Message without ID found:', item);
+      // Fallback a un ID basado en el índice del mensaje y timestamp
+      return `message-${index}-${item.timestamp || Date.now()}`;
+    }
+
+    // Añadir el índice como sufijo para garantizar unicidad absoluta
+    // incluso si hubiera IDs duplicados
+    return `${item.id}-pos${index}`;
+  }, []);
 
   // Mark messages as read when they appear in the viewport
   const handleViewableItemsChanged = useCallback(({
@@ -110,16 +125,68 @@ export default function ChatRoomScreen() {
     index,
   }), []);
 
-  // Actualizar la función handleLoadEarlier para usar la nueva funcionalidad loadMoreMessages
+  // Referencia a las posiciones de mensajes para mantener el scroll
+  const lastPositionRef = useRef(0);
+  const shouldMaintainScrollRef = useRef(false);
+  const messagesLengthRef = useRef(0);
+
+  // Efecto para mantener la posición de scroll cuando se cargan mensajes antiguos
+  useEffect(() => {
+    if (!chat) return;
+
+    // Si la cantidad de mensajes ha aumentado y deberíamos mantener el scroll
+    if (chat.messages.length > messagesLengthRef.current && shouldMaintainScrollRef.current) {
+      // Calcular cuántos mensajes nuevos se han añadido al principio
+      const newMessagesCount = chat.messages.length - messagesLengthRef.current;
+
+      // Solo ajustar si hay nuevos mensajes añadidos al principio
+      if (newMessagesCount > 0 && flatListRef.current) {
+        try {
+          // Mantener la posición relativa después de cargar antiguos mensajes
+          setTimeout(() => {
+            if (flatListRef.current) {
+              // Si conocemos el alto aproximado de cada mensaje (80 según getItemLayout)
+              flatListRef.current.scrollToOffset({
+                offset: lastPositionRef.current + (newMessagesCount * 80),
+                animated: false
+              });
+            }
+            // Resetear el flag
+            shouldMaintainScrollRef.current = false;
+          }, 50);
+        } catch (error) {
+          console.error('Error adjusting scroll position:', error);
+        }
+      }
+    }
+
+    // Actualizar la referencia para la próxima comparación
+    messagesLengthRef.current = chat.messages.length;
+  }, [chat?.messages.length]);
+
+  // Actualizar el manejador de scroll para guardar la posición
+  const handleScroll = useCallback((event: any) => {
+    // Guardar la posición actual del scroll
+    lastPositionRef.current = event.nativeEvent.contentOffset.y;
+  }, []);
+
+  // Actualizar la función handleLoadEarlier
   const handleLoadEarlier = useCallback(async () => {
     if (isLoadingOlder || !chat || !currentUser) return;
+
+    // Activar el flag para mantener la posición después de cargar
+    shouldMaintainScrollRef.current = true;
 
     setIsLoadingOlder(true);
     try {
       // Utilizar la función del contexto
-      await loadMoreMessages(chat.id);
+      const success = await loadMoreMessages(chat.id);
+
+      // Actualizar si hemos llegado al final del historial
+      setHasReachedEnd(!success || !chat.hasMoreMessages);
     } catch (error) {
       console.error('Error loading older messages:', error);
+      setHasReachedEnd(true);
     } finally {
       setIsLoadingOlder(false);
     }
@@ -158,6 +225,58 @@ export default function ChatRoomScreen() {
       <ThemedText>No messages yet. Say hello!</ThemedText>
     </ThemedView>
   ), []);
+
+  // Agregar función para limpiar caché cuando se navega fuera del chat
+  useEffect(() => {
+    return () => {
+      // Liberar recursos cuando se desmonta el componente
+      if (flatListRef.current) {
+        try {
+          // Intentar limpiar la referencia de flatList
+          flatListRef.current.scrollToOffset({ offset: 0, animated: false });
+        } catch (error) {
+          console.error('Error resetting flatList:', error);
+        }
+      }
+
+      // Opcionalmente, limpiar caché de imágenes cuando se sale del chat
+      // clearImageCache(); // Descomentar si queremos limpiar todas las imágenes
+    };
+  }, []);
+
+  // Renderizar el componente de carga o el botón "Cargar más mensajes"
+  const renderLoadMoreHeader = useCallback(() => {
+    if (!chat || chat.messages.length === 0) return null;
+
+    if (isLoadingOlder) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator color="#007AFF" size="small" />
+        </View>
+      );
+    }
+
+    if (!hasReachedEnd && chat.hasMoreMessages) {
+      return (
+        <Pressable
+          style={styles.loadMoreButton}
+          onPress={handleLoadEarlier}
+        >
+          <ThemedText style={styles.loadMoreText}>Cargar mensajes anteriores</ThemedText>
+        </Pressable>
+      );
+    }
+
+    if (hasReachedEnd && chat.messages.length > 0) {
+      return (
+        <View style={styles.historyEndContainer}>
+          <ThemedText style={styles.historyEndText}>Inicio de la conversación</ThemedText>
+        </View>
+      );
+    }
+
+    return null;
+  }, [chat, isLoadingOlder, hasReachedEnd, handleLoadEarlier]);
 
   if (!chat || !currentUser) {
     return (
@@ -201,28 +320,26 @@ export default function ChatRoomScreen() {
         contentContainerStyle={styles.messagesContainer}
         ListEmptyComponent={renderEmptyComponent}
         viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
 
         // Propiedades para virtualización y rendimiento
-        removeClippedSubviews={Platform.OS !== 'web'} // Mejora rendimiento en móviles
+        removeClippedSubviews={true}
         maxToRenderPerBatch={MAX_TO_RENDER_PER_BATCH}
         updateCellsBatchingPeriod={10}
         windowSize={WINDOW_SIZE}
         initialNumToRender={INITIAL_NUM_TO_RENDER}
         getItemLayout={getItemLayout}
 
+        // Más optimizaciones
+        disableVirtualization={false}
+        legacyImplementation={false}
+
         // Mostrar los mensajes en orden normal
         inverted={false}
 
-        // Cargar mensajes más antiguos al llegar al inicio de la lista
-        onEndReached={handleLoadEarlier}
-        onEndReachedThreshold={0.1}
-
         // Indicadores de carga
-        ListHeaderComponent={isLoadingOlder ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator color="#007AFF" size="small" />
-          </View>
-        ) : null}
+        ListHeaderComponent={renderLoadMoreHeader}
 
         // Mejoras visuales al cargar
         maintainVisibleContentPosition={{
@@ -272,5 +389,27 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  loadMoreButton: {
+    padding: 12,
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    borderRadius: 8,
+    margin: 10,
+    alignItems: 'center',
+  },
+  loadMoreText: {
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  historyEndContainer: {
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 8,
+  },
+  historyEndText: {
+    fontSize: 12,
+    opacity: 0.6,
+    fontStyle: 'italic',
   },
 }); 

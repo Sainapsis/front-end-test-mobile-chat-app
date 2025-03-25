@@ -4,7 +4,7 @@ import { useChats, Chat } from './useChats';
 import { DatabaseProvider } from '../database/DatabaseProvider';
 import { useDatabase } from './useDatabase';
 
-type AppContextType = {
+export interface AppContextType {
   users: User[];
   currentUser: User | null;
   isLoggedIn: boolean;
@@ -31,13 +31,22 @@ type AppContextType = {
   loadMoreMessages: (chatId: string) => Promise<boolean>;
   loading: boolean;
   dbInitialized: boolean;
-};
+  clearImageCache?: () => Promise<void>;
+}
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 function AppContent({ children }: { children: ReactNode }) {
   const { isInitialized } = useDatabase();
   const userContext = useUser();
+
+  // Adaptar el objeto currentUser para que sea compatible con User de useChats
+  const adaptedCurrentUser = userContext.currentUser ? {
+    ...userContext.currentUser,
+    isOnline: userContext.currentUser.status === 'online',
+    lastSeen: Date.now(),
+  } : null;
+
   const {
     chats,
     createChat,
@@ -50,7 +59,8 @@ function AppContent({ children }: { children: ReactNode }) {
     forwardMessage,
     loadMoreMessages,
     loading: chatsLoading,
-  } = useChats(userContext.currentUser?.id || null);
+    clearImageCache,
+  } = useChats(adaptedCurrentUser);
 
   const loading = !isInitialized || userContext.loading || chatsLoading;
 
@@ -72,6 +82,7 @@ function AppContent({ children }: { children: ReactNode }) {
     loadMoreMessages,
     loading,
     dbInitialized: isInitialized,
+    clearImageCache,
   };
 
   return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>;

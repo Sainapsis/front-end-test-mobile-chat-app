@@ -256,21 +256,67 @@ export function useChatsDb(currentUserId: string | null) {
   }, []);
 
   // Cargar mensajes adicionales (más antiguos) para un chat
-  const loadMoreMessages = useCallback(async (chatId: string) => {
+  const loadMoreMessages = useCallback(async (chatId: string, pageSize = MESSAGES_PER_PAGE) => {
+    // Buscar el chat en la caché actual
     const chat = userChats.find(c => c.id === chatId);
-    if (!chat || !chat.hasMoreMessages || !chat.oldestMessageTimestamp) {
+
+    // Verificar si podemos cargar más mensajes
+    if (!chat) {
+      console.warn('Chat no encontrado:', chatId);
       return false;
     }
 
-    const result = await loadMessages(chatId, chat.oldestMessageTimestamp);
-    if (!result) return false;
+    // Si no hay más mensajes o no hay timestamp de referencia, no podemos cargar más
+    if (!chat.hasMoreMessages) {
+      console.info('No hay más mensajes para cargar en este chat');
+      return false;
+    }
 
+    // Si no hay timestamp de referencia, usar la fecha actual
+    const beforeTimestamp = chat.oldestMessageTimestamp || Date.now();
+
+    // Intentar cargar más mensajes
+    const result = await loadMessages(chatId, beforeTimestamp, pageSize);
+
+    // Si hay un error o no hay resultados, terminar
+    if (!result || result.messages.length === 0) {
+      // Actualizar el estado del chat para indicar que no hay más mensajes
+      setUserChats(prevChats => {
+        return prevChats.map(c => {
+          if (c.id === chatId) {
+            return {
+              ...c,
+              hasMoreMessages: false
+            };
+          }
+          return c;
+        });
+      });
+      return false;
+    }
+
+    // Verificar si hay mensajes con IDs duplicados
+    const existingMessageIds = new Set(chat.messages.map(msg => msg.id));
+
+    // Modificar los mensajes cargados para garantizar IDs únicos
+    const uniqueMessages = result.messages.map(message => {
+      // Si el ID ya existe en el chat, crear un ID único
+      if (existingMessageIds.has(message.id)) {
+        // Crear un nuevo ID con un prefijo único para evitar duplicados
+        const newId = `unique_${Date.now()}_${message.id}`;
+        return { ...message, id: newId };
+      }
+      return message;
+    });
+
+    // Actualizar los chats con los nuevos mensajes cargados
     setUserChats(prevChats => {
       return prevChats.map(c => {
         if (c.id === chatId) {
+          // Concatenar los mensajes con IDs únicos al principio (más antiguos primero)
           return {
             ...c,
-            messages: [...result.messages, ...c.messages],
+            messages: [...uniqueMessages, ...c.messages],
             hasMoreMessages: result.hasMoreMessages,
             oldestMessageTimestamp: result.oldestTimestamp
           };

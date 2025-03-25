@@ -199,6 +199,10 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName }: MessageB
                 source={{ uri: message.imagePreviewUri ?? message.imageUri }}
                 style={styles.previewImage}
                 resizeMode="cover"
+                cacheKey={`preview_${message.id}`}
+                priority="normal"
+                prefetch={true}
+                cacheControl="memory-disk"
               />
             </Pressable>
             {message.text && (
@@ -295,6 +299,10 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName }: MessageB
             source={{ uri: message.imageUri }}
             style={styles.fullImage}
             resizeMode="contain"
+            cacheKey={`full_${message.id}`}
+            priority="high"
+            prefetch={false}
+            cacheControl="memory-only"
           />
         </Pressable>
       </Modal>

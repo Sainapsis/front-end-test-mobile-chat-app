@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
@@ -14,27 +14,75 @@ export function VoiceMessagePlayer({ uri, duration }: VoiceMessagePlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentPosition, setCurrentPosition] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const positionTimer = useRef<NodeJS.Timeout | null>(null);
+  const isMounted = useRef(true);
 
+  // Función para limpiar recursos
+  const cleanup = useCallback(() => {
+    if (positionTimer.current) {
+      clearInterval(positionTimer.current);
+      positionTimer.current = null;
+    }
+
+    if (sound) {
+      const cleanupSound = async () => {
+        try {
+          // Detener reproducción antes de descargar
+          if (isPlaying) {
+            await sound.stopAsync();
+          }
+          await sound.unloadAsync();
+        } catch (error) {
+          console.error('Error unloading sound:', error);
+        }
+      };
+
+      cleanupSound();
+      setSound(null);
+    }
+  }, [sound, isPlaying]);
+
+  // Efecto para cargar el sonido inicialmente
   useEffect(() => {
     loadSound();
+
+    // Limpiar cuando el componente se desmonta
     return () => {
-      if (positionTimer.current) {
-        clearInterval(positionTimer.current);
-      }
-      if (sound) {
-        sound.unloadAsync();
-      }
+      isMounted.current = false;
+      cleanup();
     };
   }, [uri]);
 
+  // Control automático de memoria - descargar sonido cuando pierde el foco
+  useEffect(() => {
+    const subscription = Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: false, // Para mayor eficiencia de memoria
+      shouldDuckAndroid: true,
+    });
+
+    return () => {
+      // En caso de cambio de configuración de audio
+      cleanup();
+    };
+  }, [cleanup]);
+
   const loadSound = async () => {
+    if (!isMounted.current) return;
+
     try {
+      // Primero liberar cualquier recurso existente
+      cleanup();
+
+      setIsLoading(true);
+
       // Configure audio mode first
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
         playsInSilentModeIOS: true,
-        staysActiveInBackground: true,
+        staysActiveInBackground: false,
         shouldDuckAndroid: true,
       });
 
@@ -42,21 +90,42 @@ export function VoiceMessagePlayer({ uri, duration }: VoiceMessagePlayerProps) {
         { uri },
         { shouldPlay: false },
         (status) => {
+          if (!isMounted.current) return;
+
           if (!status.isLoaded) return;
+
           if (status.didJustFinish) {
             setIsPlaying(false);
             setCurrentPosition(0);
             if (positionTimer.current) {
               clearInterval(positionTimer.current);
+              positionTimer.current = null;
             }
           }
         }
       );
 
+      if (!isMounted.current) {
+        // Si el componente se desmontó mientras se cargaba
+        newSound.unloadAsync();
+        return;
+      }
+
       setSound(newSound);
+      setIsLoaded(true);
+      setIsLoading(false);
+
+      // Cargar y empezar a seguir el progreso
+      const status = await newSound.getStatusAsync();
+      if (status.isLoaded) {
+        setCurrentPosition(Math.floor((status.positionMillis || 0) / 1000));
+      }
     } catch (error) {
       console.error('Error loading sound:', error);
-      Alert.alert('Error', 'Failed to load audio file');
+      if (isMounted.current) {
+        setIsLoading(false);
+        Alert.alert('Error', 'Failed to load audio file');
+      }
     }
   };
 
@@ -72,22 +141,36 @@ export function VoiceMessagePlayer({ uri, duration }: VoiceMessagePlayerProps) {
     }
 
     positionTimer.current = setInterval(async () => {
+      if (!isMounted.current) {
+        if (positionTimer.current) {
+          clearInterval(positionTimer.current);
+          positionTimer.current = null;
+        }
+        return;
+      }
+
       if (sound) {
         try {
           const status = await sound.getStatusAsync();
           if ('positionMillis' in status && status.isLoaded) {
             setCurrentPosition(Math.floor(status.positionMillis / 1000));
-            
+
             if (!status.isPlaying) {
               clearInterval(positionTimer.current!);
+              positionTimer.current = null;
               setIsPlaying(false);
               setCurrentPosition(0);
             }
           }
         } catch (error) {
           console.error('Error getting sound status:', error);
-          clearInterval(positionTimer.current!);
-          setIsPlaying(false);
+          if (positionTimer.current) {
+            clearInterval(positionTimer.current);
+            positionTimer.current = null;
+          }
+          if (isMounted.current) {
+            setIsPlaying(false);
+          }
         }
       }
     }, 1000);
@@ -95,18 +178,32 @@ export function VoiceMessagePlayer({ uri, duration }: VoiceMessagePlayerProps) {
 
   const handlePlayPause = async () => {
     try {
-      if (isLoading || !sound) return;
+      if (isLoading || !isMounted.current) return;
       setIsLoading(true);
 
-      const status = await sound.getStatusAsync();
-      if (!status.isLoaded) {
+      if (!sound || !isLoaded) {
         await loadSound();
+      }
+
+      if (!sound) {
+        setIsLoading(false);
+        return;
+      }
+
+      const status = await sound.getStatusAsync();
+
+      if (!status.isLoaded) {
+        // Si el sonido no está cargado, intentar cargarlo de nuevo
+        await loadSound();
+        setIsLoading(false);
+        return;
       }
 
       if (isPlaying) {
         await sound.pauseAsync();
         if (positionTimer.current) {
           clearInterval(positionTimer.current);
+          positionTimer.current = null;
         }
         setIsPlaying(false);
       } else {
@@ -116,16 +213,20 @@ export function VoiceMessagePlayer({ uri, duration }: VoiceMessagePlayerProps) {
       }
     } catch (error) {
       console.error('Error playing voice message:', error);
-      Alert.alert('Error', 'Failed to play audio file');
+      if (isMounted.current) {
+        Alert.alert('Error', 'Failed to play audio file');
+      }
     } finally {
-      setIsLoading(false);
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
     }
   };
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity 
-        onPress={handlePlayPause} 
+      <TouchableOpacity
+        onPress={handlePlayPause}
         style={[styles.playButton, isLoading && styles.disabledButton]}
         disabled={isLoading}
       >
@@ -137,7 +238,7 @@ export function VoiceMessagePlayer({ uri, duration }: VoiceMessagePlayerProps) {
       </TouchableOpacity>
 
       <View style={styles.progressContainer}>
-        <View 
+        <View
           style={[
             styles.progressBar,
             { width: `${(currentPosition / duration) * 100}%` }
