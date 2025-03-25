@@ -1,26 +1,40 @@
 import React from 'react';
-import { StyleSheet, Pressable, SafeAreaView } from 'react-native';
+import { StyleSheet, Pressable, SafeAreaView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Avatar } from '@/components/Avatar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { SkeletonLoader } from '@/components/SkeletonLoader';
 
 export default function ProfileScreen() {
-  const { currentUser, logout } = useAppContext();
+  const { currentUser, logout, loading } = useAppContext();
   const router = useRouter();
 
   const handleLogout = () => {
     logout();
-    // The navigation to login will be handled by the useProtectedRoute hook in _layout.tsx
   };
+
+  if (loading) {
+    return (
+      <ThemedView style={styles.loadingContainer}>
+        <SkeletonLoader width={100} height={100} style={styles.skeletonAvatar} />
+        <SkeletonLoader width="60%" height={20} style={styles.skeletonText} />
+        <SkeletonLoader width="40%" height={20} style={styles.skeletonText} />
+      </ThemedView>
+    );
+  }
 
   if (!currentUser) {
     return (
-      <ThemedView style={styles.loadingContainer}>
-        <ThemedText>Loading user profile...</ThemedText>
-      </ThemedView>
+      <EmptyState
+        icon="person.crop.circle.badge.exclamationmark"
+        title="No Profile Found"
+        message="We couldn't load your profile. Please try again later."
+        color="#FF3B30"
+      />
     );
   }
 
@@ -36,21 +50,21 @@ export default function ProfileScreen() {
             </ThemedText>
           </ThemedView>
         </ThemedView>
-        
+
         <ThemedView style={styles.section}>
           <ThemedText type="subtitle">Account Information</ThemedText>
-          
+
           <ThemedView style={styles.infoRow}>
             <ThemedText style={styles.infoLabel}>ID:</ThemedText>
             <ThemedText>{currentUser.id}</ThemedText>
           </ThemedView>
-          
+
           <ThemedView style={styles.infoRow}>
             <ThemedText style={styles.infoLabel}>Full Name:</ThemedText>
             <ThemedText>{currentUser.name}</ThemedText>
           </ThemedView>
         </ThemedView>
-        
+
         <ThemedView style={styles.buttonContainer}>
           <Pressable style={styles.logoutButton} onPress={handleLogout}>
             <IconSymbol name="arrow.right.square" size={20} color="#FFFFFF" />
@@ -75,6 +89,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+  },
+  skeletonAvatar: {
+    marginBottom: 16,
+    borderRadius: 50,
+  },
+  skeletonText: {
+    marginBottom: 8,
+    borderRadius: 4,
   },
   profileHeader: {
     alignItems: 'center',
@@ -105,7 +127,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flex: 1,
     justifyContent: 'flex-end',
-    marginBottom: 80, // Add padding to ensure the button is visible above the tab bar
+    marginBottom: 80,
   },
   logoutButton: {
     flexDirection: 'row',
@@ -122,3 +144,4 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
 });
+

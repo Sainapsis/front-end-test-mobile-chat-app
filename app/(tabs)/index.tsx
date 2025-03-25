@@ -6,9 +6,11 @@ import { ThemedView } from '@/components/ThemedView';
 import { ChatListItem } from '@/components/ChatListItem';
 import { UserListItem } from '@/components/UserListItem';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { SkeletonLoader } from '@/components/SkeletonLoader';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export default function ChatsScreen() {
-  const { currentUser, users, chats, createChat } = useAppContext();
+  const { currentUser, users, chats, createChat, loading } = useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
@@ -29,12 +31,26 @@ export default function ChatsScreen() {
     }
   };
 
-  const renderEmptyComponent = () => (
-    <ThemedView style={styles.emptyContainer}>
-      <ThemedText style={styles.emptyText}>No chats yet</ThemedText>
-      <ThemedText>Tap the + button to start a new conversation</ThemedText>
-    </ThemedView>
-  );
+  const renderEmptyComponent = () => {
+    if (loading) {
+      return (
+        <ThemedView style={styles.loadingContainer}>
+          <SkeletonLoader width="100%" height={70} style={styles.skeletonItem} />
+          <SkeletonLoader width="100%" height={70} style={styles.skeletonItem} />
+          <SkeletonLoader width="100%" height={70} style={styles.skeletonItem} />
+        </ThemedView>
+      );
+    }
+
+    return (
+      <EmptyState
+        icon="message.fill"
+        title="No Conversations Yet"
+        message="Start chatting with your friends by tapping the + button above"
+        color="#007AFF"
+      />
+    );
+  };
 
   return (
     <ThemedView style={styles.container}>
@@ -43,8 +59,13 @@ export default function ChatsScreen() {
         <Pressable
           style={styles.newChatButton}
           onPress={() => setModalVisible(true)}
+          disabled={loading}
         >
-          <IconSymbol name="plus" size={24} color="#007AFF" />
+          <IconSymbol 
+            name="plus" 
+            size={24} 
+            color={loading ? '#CCCCCC' : '#007AFF'} 
+          />
         </Pressable>
       </ThemedView>
 
@@ -59,7 +80,10 @@ export default function ChatsScreen() {
           />
         )}
         ListEmptyComponent={renderEmptyComponent}
-        contentContainerStyle={styles.listContainer}
+        contentContainerStyle={[
+          styles.listContainer,
+          !chats.length && styles.emptyListContainer
+        ]}
       />
 
       <Modal
@@ -196,5 +220,17 @@ const styles = StyleSheet.create({
   createButtonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  loadingContainer: {
+    flex: 1,
+    padding: 20,
+    marginTop: 20,
+  },
+  skeletonItem: {
+    marginBottom: 16,
+    borderRadius: 8,
+  },
+  emptyListContainer: {
+    flex: 1,
   },
 });

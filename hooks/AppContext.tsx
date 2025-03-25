@@ -33,16 +33,20 @@ function AppContent({ children }: { children: ReactNode }) {
     dbInitialized: isInitialized,
   };
 
+  if (!isInitialized) {
+    return null; // Or return a loading screen component
+  }
+
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
-export function AppProvider({ children }: { children: ReactNode }) {
+export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <DatabaseProvider>
       <AppContent>{children}</AppContent>
     </DatabaseProvider>
   );
-}
+};
 
 export function useAppContext() {
   const context = useContext(AppContext);
@@ -50,4 +54,4 @@ export function useAppContext() {
     throw new Error('useAppContext must be used within an AppProvider');
   }
   return context;
-} 
+}
