@@ -23,17 +23,17 @@ export function useUserDb() {
   // Check if there is a current session
   useEffect(() => {
     const checkSession = async () => {
-      try{
+      try {
         const token = await SecureStore.getItemAsync('token');
         if (token) {
           setIsLoggedIn(true)
-        } 
+        }
         const usersData = await db.select().from(users)
         setAllUsers(usersData as User[])
-      }catch(err){
+      } catch (err) {
         console.error('Error loading users:', err);
       }
-      finally{
+      finally {
         setLoading(false);
       }
     };
@@ -93,9 +93,16 @@ export function useUserDb() {
   }, []);
 
   const logout = useCallback(async () => {
-    setCurrentUser(null);
-    await SecureStore.deleteItemAsync('token');
-    setIsLoggedIn(false)
+    try{
+      setCurrentUser(null);
+      await SecureStore.deleteItemAsync('token');
+      setIsLoggedIn(false)
+      const usersData = await db.select().from(users)
+      setAllUsers(usersData as User[])
+    }catch (error) {
+      console.error('Error during logout:', error);
+    }
+
   }, []);
 
   return {
