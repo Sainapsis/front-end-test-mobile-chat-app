@@ -10,6 +10,7 @@ import { GroupChatModal } from '@/components/GroupChatModal';
 import { ChatItemSkeleton, UserItemSkeleton } from '@/components/SkeletonLoader';
 import { log, monitoring, startMeasure, endMeasure } from '@/utils';
 import { Colors } from '@/constants/Colors';
+import { EmptyStateView } from '@/components/EmptyStateView';
 
 export default function ChatsScreen() {
   const { currentUser, users, chats, createChat } = useAppContext();
@@ -67,10 +68,13 @@ export default function ChatsScreen() {
     }
 
     return (
-      <ThemedView style={styles.emptyContainer}>
-        <ThemedText style={styles.emptyText}>No chats yet</ThemedText>
-        <ThemedText>Tap the + button to start a new conversation</ThemedText>
-      </ThemedView>
+      <EmptyStateView
+        type="chat"
+        title="No tienes conversaciones"
+        message="Inicia una nueva conversación pulsando el botón + en la esquina superior derecha"
+        actionText="Nuevo Chat"
+        onAction={handleAddChatPress}
+      />
     );
   };
 

@@ -24,6 +24,7 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Message } from '@/hooks/useChats';
 import { log, monitoring, startMeasure, endMeasure } from '@/utils';
 import { Colors } from '@/constants/Colors';
+import { EmptyStateView } from '@/components/EmptyStateView';
 
 // Constantes para mejorar el rendimiento de la virtualización
 const INITIAL_NUM_TO_RENDER = 10;
@@ -277,11 +278,16 @@ export default function ChatRoomScreen() {
     );
   }, [chat?.isGroup, chatParticipants]);
 
-  const renderEmptyComponent = useCallback(() => (
-    <ThemedView style={styles.emptyContainer}>
-      <ThemedText>No messages yet. Say hello!</ThemedText>
-    </ThemedView>
-  ), []);
+  const renderEmptyComponent = useCallback(() => {
+    return (
+      <EmptyStateView
+        type="message"
+        title="No hay mensajes"
+        message="¡Sé el primero en enviar un mensaje!"
+        icon="chatbubble-outline"
+      />
+    );
+  }, []);
 
   // Agregar función para limpiar caché cuando se navega fuera del chat
   useEffect(() => {
