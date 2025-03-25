@@ -1,4 +1,4 @@
-import React, { useState, memo } from "react";
+import React, { useState, memo, useEffect } from "react";
 import { View, StyleSheet, Pressable, Modal, Alert, TextInput, TouchableOpacity } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { ThemedText } from "./ThemedText";
@@ -9,6 +9,7 @@ import { useAppContext } from "@/hooks/AppContext";
 import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
 import { ForwardMessageModal } from "./ForwardMessageModal";
 import { OptimizedImage } from "./OptimizedImage";
+import { log, captureError } from '@/utils';
 
 interface MessageBubbleProps {
   message: Message;
@@ -25,12 +26,20 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName }: MessageB
   const [showForwardModal, setShowForwardModal] = useState(false);
   const { editMessage, deleteMessage } = useAppContext();
 
+  // Log visualization of message when component mounts
+  useEffect(() => {
+    log.debug(`Message displayed [id: ${message.id}, type: ${message.messageType}]`);
+  }, [message.id, message.messageType]);
+
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   const handleLongPress = () => {
+    // Log interaction
+    log.info(`Message long-pressed [id: ${message.id}]`);
+
     const options = [];
 
     // Opciones para mensajes propios
@@ -41,6 +50,7 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName }: MessageB
           onPress: () => {
             setEditText(message.text);
             setIsEditing(true);
+            log.debug(`Edit mode activated for message [id: ${message.id}]`);
           },
         },
         {
@@ -57,7 +67,22 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName }: MessageB
                 {
                   text: "Eliminar",
                   style: "destructive",
-                  onPress: () => deleteMessage(message.id),
+                  onPress: async () => {
+                    try {
+                      log.info(`Deleting message [id: ${message.id}]`);
+                      await deleteMessage(message.id);
+                    } catch (error) {
+                      const errorId = captureError(
+                        error instanceof Error ? error : new Error(String(error)),
+                        {
+                          action: 'deleteMessage',
+                          messageId: message.id
+                        }
+                      );
+                      log.error(`Failed to delete message [errorId: ${errorId}]`);
+                      Alert.alert("Error", "No se pudo eliminar el mensaje. Inténtalo de nuevo.");
+                    }
+                  },
                 },
               ]
             );
@@ -71,7 +96,10 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName }: MessageB
     options.push(
       {
         text: "Reenviar",
-        onPress: () => setShowForwardModal(true),
+        onPress: () => {
+          setShowForwardModal(true);
+          log.debug(`Forward modal opened for message [id: ${message.id}]`);
+        }
       }
     );
 
@@ -94,17 +122,31 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName }: MessageB
       return;
     }
 
-    const success = await editMessage(message.id, editText.trim());
-    if (success) {
-      setIsEditing(false);
-    } else {
-      Alert.alert("Error", "No se pudo editar el mensaje");
+    try {
+      log.info(`Editing message [id: ${message.id}]`);
+      const success = await editMessage(message.id, editText.trim());
+      if (success) {
+        setIsEditing(false);
+      } else {
+        throw new Error("Failed to edit message");
+      }
+    } catch (error) {
+      const errorId = captureError(
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          action: 'editMessage',
+          messageId: message.id
+        }
+      );
+      log.error(`Failed to edit message [errorId: ${errorId}]`);
+      Alert.alert("Error", "No se pudo editar el mensaje. Inténtalo de nuevo.");
     }
   };
 
   const handleCancelEdit = () => {
     setEditText(message.text);
     setIsEditing(false);
+    log.debug(`Edit canceled for message [id: ${message.id}]`);
   };
 
   const renderMessageStatus = () => {
@@ -312,6 +354,7 @@ function MessageBubbleComponent({ message, isCurrentUser, senderName }: MessageB
         onClose={() => setShowForwardModal(false)}
         messageId={message.id}
         onForwardComplete={() => {
+          log.info(`Message forwarded successfully [id: ${message.id}]`);
           Alert.alert("Éxito", "Mensaje reenviado correctamente");
         }}
       />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FlatList, StyleSheet, Pressable, Modal, View } from 'react-native';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
@@ -7,6 +7,7 @@ import { ChatListItem } from '@/components/ChatListItem';
 import { UserListItem } from '@/components/UserListItem';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { GroupChatModal } from '@/components/GroupChatModal';
+import { log, monitoring, startMeasure, endMeasure } from '@/utils';
 
 export default function ChatsScreen() {
   const { currentUser, users, chats, createChat } = useAppContext();
@@ -15,24 +16,66 @@ export default function ChatsScreen() {
   const [groupChatModalVisible, setGroupChatModalVisible] = useState(false);
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
 
+  // Métricas de tiempo de carga de la pantalla
+  useEffect(() => {
+    const screenLoadMetric = startMeasure('chats_screen_load');
+    log.info('Chats screen loaded');
+
+    return () => {
+      const metric = endMeasure(screenLoadMetric);
+      log.debug(`Chats screen session duration: ${metric?.duration?.toFixed(2) || '?'}ms`);
+    };
+  }, []);
+
+  // Monitorear datos cargados
+  useEffect(() => {
+    if (users.length > 0 && chats.length > 0) {
+      log.info(`ChatsScreen data: ${users.length} users, ${chats.length} chats`);
+    }
+  }, [users.length, chats.length]);
+
   const toggleUserSelection = (userId: string) => {
-    if (selectedUsers.includes(userId)) {
-      setSelectedUsers(selectedUsers.filter(id => id !== userId));
-    } else {
-      setSelectedUsers([...selectedUsers, userId]);
+    try {
+      if (selectedUsers.includes(userId)) {
+        log.debug(`User deselected: ${userId}`);
+        setSelectedUsers(selectedUsers.filter(id => id !== userId));
+      } else {
+        log.debug(`User selected: ${userId}`);
+        setSelectedUsers([...selectedUsers, userId]);
+      }
+    } catch (error) {
+      monitoring.captureError(
+        error instanceof Error ? error : new Error(String(error)),
+        { context: 'user_selection', userId }
+      );
     }
   };
 
-  const handleCreateChat = () => {
+  const handleCreateChat = async () => {
     if (currentUser && selectedUsers.length > 0) {
-      const participants = [currentUser.id, ...selectedUsers];
-      createChat(participants);
-      setModalVisible(false);
-      setSelectedUsers([]);
+      const metricId = startMeasure('create_chat_flow');
+      try {
+        log.info(`Creating chat with participants: ${selectedUsers.join(', ')}`);
+        const participants = [currentUser.id, ...selectedUsers];
+        const result = await createChat(participants);
+        log.debug(`Chat created: ${result?.id || 'failed'}`);
+
+        setModalVisible(false);
+        setSelectedUsers([]);
+      } catch (error) {
+        const errorId = monitoring.captureError(
+          error instanceof Error ? error : new Error(String(error)),
+          { context: 'create_chat', participants: selectedUsers.length }
+        );
+        log.error(`Failed to create chat [errorId: ${errorId}]`);
+      } finally {
+        endMeasure(metricId);
+      }
     }
   };
 
   const handleAddChatPress = () => {
+    log.info('Open new chat modal');
     // Mostrar opciones: chat individual o grupal
     setIsCreatingGroup(false);
     setModalVisible(true);
@@ -52,7 +95,10 @@ export default function ChatsScreen() {
         <View style={styles.headerButtons}>
           <Pressable
             style={styles.newGroupButton}
-            onPress={() => setGroupChatModalVisible(true)}
+            onPress={() => {
+              log.info('Open group chat modal');
+              setGroupChatModalVisible(true);
+            }}
           >
             <IconSymbol name="people" size={24} color="#007AFF" />
           </Pressable>
@@ -77,6 +123,15 @@ export default function ChatsScreen() {
         )}
         ListEmptyComponent={renderEmptyComponent}
         contentContainerStyle={styles.listContainer}
+        refreshing={false}
+        onRefresh={() => {
+          log.debug('Chat list manual refresh triggered');
+        }}
+        onScrollBeginDrag={() => startMeasure('chat_list_scroll')}
+        onScrollEndDrag={() => {
+          const metric = endMeasure('chat_list_scroll');
+          log.debug(`Chat list scroll: ${metric?.duration?.toFixed(2) || '?'}ms`);
+        }}
       />
 
       <Modal
@@ -84,6 +139,7 @@ export default function ChatsScreen() {
         transparent={true}
         visible={modalVisible}
         onRequestClose={() => {
+          log.info('Closing new chat modal via back button');
           setModalVisible(false);
           setSelectedUsers([]);
         }}
@@ -146,7 +202,10 @@ export default function ChatsScreen() {
 
       <GroupChatModal
         visible={groupChatModalVisible}
-        onClose={() => setGroupChatModalVisible(false)}
+        onClose={() => {
+          log.info('Closing group chat modal');
+          setGroupChatModalVisible(false);
+        }}
       />
     </ThemedView>
   );

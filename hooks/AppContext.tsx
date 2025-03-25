@@ -1,8 +1,9 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect } from 'react';
 import { useUser, User } from './useUser';
 import { useChats, Chat } from './useChats';
 import { DatabaseProvider } from '../database/DatabaseProvider';
 import { useDatabase } from './useDatabase';
+import { log, monitoring, startMeasure, endMeasure } from '@/utils';
 
 export interface AppContextType {
   users: User[];
@@ -36,62 +37,115 @@ export interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-function AppContent({ children }: { children: ReactNode }) {
-  const { isInitialized } = useDatabase();
-  const userContext = useUser();
+export function AppProvider({ children }: { children: ReactNode }) {
+  const { users, currentUser, login, logout, isLoggedIn, loading: userLoading } = useUser();
 
   // Adaptar el objeto currentUser para que sea compatible con User de useChats
-  const adaptedCurrentUser = userContext.currentUser ? {
-    ...userContext.currentUser,
-    isOnline: userContext.currentUser.status === 'online',
+  const adaptedCurrentUser = currentUser ? {
+    ...currentUser,
+    isOnline: currentUser.status === 'online',
     lastSeen: Date.now(),
   } : null;
 
-  const {
-    chats,
-    createChat,
-    sendMessage,
-    markMessageAsRead,
-    addReaction,
-    removeReaction,
-    editMessage,
-    deleteMessage,
-    forwardMessage,
-    loadMoreMessages,
-    loading: chatsLoading,
-    clearImageCache,
-  } = useChats(adaptedCurrentUser);
+  const { chats, createChat, sendMessage, forwardMessage, markMessageAsRead, addReaction, removeReaction, editMessage, deleteMessage, loadMoreMessages, loading: chatsLoading, clearImageCache } = useChats(adaptedCurrentUser);
+  const { isInitialized: dbInitialized, error: dbError } = useDatabase();
 
-  const loading = !isInitialized || userContext.loading || chatsLoading;
+  // Registrar el estado de la aplicación en cada cambio importante
+  useEffect(() => {
+    log.info(`App state: loggedIn=${isLoggedIn}, dbInitialized=${dbInitialized}, user=${currentUser?.id || 'none'}`);
 
-  const contextValue: AppContextType = {
-    users: userContext.users,
-    currentUser: userContext.currentUser,
-    isLoggedIn: !!userContext.currentUser,
-    login: userContext.login,
-    logout: userContext.logout,
-    chats,
-    createChat,
-    sendMessage,
-    forwardMessage,
-    markMessageAsRead,
-    addReaction,
-    removeReaction,
-    editMessage,
-    deleteMessage,
-    loadMoreMessages,
-    loading,
-    dbInitialized: isInitialized,
-    clearImageCache,
+    if (dbError) {
+      monitoring.captureError(dbError, { context: 'database_initialization' });
+    }
+  }, [isLoggedIn, dbInitialized, currentUser, dbError]);
+
+  // Monitorear los tiempos de carga
+  useEffect(() => {
+    const loadingMetricId = startMeasure('app_loading');
+
+    if (!userLoading && !chatsLoading) {
+      const metric = endMeasure(loadingMetricId);
+      log.debug(`App loading completed in ${metric?.duration?.toFixed(2) || '?'}ms`);
+    }
+  }, [userLoading, chatsLoading]);
+
+  // Monitorear cambios en chats
+  useEffect(() => {
+    log.info(`Chats loaded: count=${chats.length}`);
+  }, [chats.length]);
+
+  // Funciones mejoradas con logging y monitoreo
+  const enhancedSendMessage = async (
+    chatId: string,
+    text: string,
+    senderId: string,
+    imageData?: { uri: string; previewUri: string },
+    voiceData?: { uri: string; duration: number }
+  ) => {
+    const metricId = startMeasure('send_message');
+    try {
+      log.info(`Sending message: chat=${chatId}, type=${imageData ? 'image' : voiceData ? 'voice' : 'text'}`);
+      const result = await sendMessage(chatId, text, senderId, imageData, voiceData);
+      log.debug(`Message sent result: ${result}`);
+      return result;
+    } catch (error) {
+      const errorId = monitoring.captureError(
+        error instanceof Error ? error : new Error(String(error)),
+        { action: 'sendMessage', chatId, senderId }
+      );
+      log.error(`Failed to send message [errorId: ${errorId}]`);
+      return false;
+    } finally {
+      endMeasure(metricId);
+    }
   };
 
-  return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>;
-}
+  const enhancedCreateChat = async (participantIds: string[], groupName?: string) => {
+    const metricId = startMeasure('create_chat');
+    try {
+      log.info(`Creating chat: participants=${participantIds.length}, isGroup=${!!groupName}`);
+      const result = await createChat(participantIds, groupName);
+      log.debug(`Chat created: ${result?.id || 'failed'}`);
+      return result;
+    } catch (error) {
+      const errorId = monitoring.captureError(
+        error instanceof Error ? error : new Error(String(error)),
+        { action: 'createChat', participantCount: participantIds.length }
+      );
+      log.error(`Failed to create chat [errorId: ${errorId}]`);
+      return null;
+    } finally {
+      endMeasure(metricId);
+    }
+  };
 
-export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <DatabaseProvider>
-      <AppContent>{children}</AppContent>
+      <AppContext.Provider
+        value={{
+          users,
+          currentUser,
+          login,
+          logout,
+          isLoggedIn,
+          chats,
+          // Use enhanced functions with monitoring
+          createChat: enhancedCreateChat,
+          sendMessage: enhancedSendMessage,
+          forwardMessage,
+          markMessageAsRead,
+          addReaction,
+          removeReaction,
+          editMessage,
+          deleteMessage,
+          loadMoreMessages,
+          loading: userLoading || chatsLoading,
+          dbInitialized,
+          clearImageCache
+        }}
+      >
+        {children}
+      </AppContext.Provider>
     </DatabaseProvider>
   );
 }

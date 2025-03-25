@@ -21,6 +21,7 @@ import { MessageInput } from '@/components/MessageInput';
 import { Avatar } from '@/components/Avatar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Message } from '@/hooks/useChats';
+import { log, monitoring, startMeasure, endMeasure } from '@/utils';
 
 // Constantes para mejorar el rendimiento de la virtualización
 const INITIAL_NUM_TO_RENDER = 10;
@@ -36,17 +37,38 @@ export default function ChatRoomScreen() {
     users,
     chats,
     markMessageAsRead,
-    loadMoreMessages
+    loadMoreMessages,
+    sendMessage
   } = useAppContext();
 
   const flatListRef = useRef<FlatList<Message>>(null);
   const router = useRouter();
 
+  // Registrar la carga de la sala de chat y métricas de rendimiento
+  useEffect(() => {
+    const loadMetricId = startMeasure('chatroom_load');
+    log.info(`Loading ChatRoom: chatId=${chatId}`);
+
+    return () => {
+      const metric = endMeasure(loadMetricId);
+      log.info(`ChatRoom session ended: duration=${metric?.duration?.toFixed(2) || '?'}ms`);
+    };
+  }, [chatId]);
+
   // Estado para trackear si estamos cargando mensajes más antiguos
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [hasReachedEnd, setHasReachedEnd] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const chat = chats.find(c => c.id === chatId);
+  const chat = useMemo(() => {
+    const result = chats.find(c => c.id === chatId);
+    if (result) {
+      log.debug(`Chat found: ${chatId}, messages=${result.messages.length}`);
+    } else {
+      log.error(`Chat not found: ${chatId}`);
+    }
+    return result;
+  }, [chats, chatId]);
 
   const chatParticipants = useMemo(() =>
     chat?.participants
@@ -89,26 +111,42 @@ export default function ChatRoomScreen() {
     return `${item.id}-pos${index}`;
   }, []);
 
-  // Mark messages as read when they appear in the viewport
+  // Monitor de visualización de mensajes
   const handleViewableItemsChanged = useCallback(({
-    viewableItems
+    viewableItems,
+    changed
   }: {
     viewableItems: ViewToken[];
     changed: ViewToken[];
   }) => {
     if (!currentUser) return;
 
-    viewableItems.forEach((viewToken) => {
-      const message = viewToken.item as Message;
-      if (
-        message &&
-        message.senderId !== currentUser.id &&
-        message.status !== 'read' &&
-        (!message.readBy || !message.readBy.some(receipt => receipt.userId === currentUser.id))
-      ) {
-        markMessageAsRead(message.id, currentUser.id);
+    try {
+      // Registrar mensajes visibles para análisis
+      if (viewableItems.length > 0) {
+        const messageIds = viewableItems.map(item => (item.item as Message).id);
+        log.debug(`Messages viewed: ${messageIds.length}`);
       }
-    });
+
+      // Marcar como leídos
+      viewableItems.forEach((viewToken) => {
+        const message = viewToken.item as Message;
+        if (
+          message &&
+          message.senderId !== currentUser.id &&
+          message.status !== 'read' &&
+          (!message.readBy || !message.readBy.some(receipt => receipt.userId === currentUser.id))
+        ) {
+          markMessageAsRead(message.id, currentUser.id);
+          log.debug(`Message marked as read: ${message.id}`);
+        }
+      });
+    } catch (error) {
+      monitoring.captureError(
+        error instanceof Error ? error : new Error(String(error)),
+        { context: 'message_view_tracking' }
+      );
+    }
   }, [currentUser, markMessageAsRead]);
 
   const viewabilityConfig = useMemo((): ViewabilityConfig => ({
@@ -168,6 +206,11 @@ export default function ChatRoomScreen() {
   const handleScroll = useCallback((event: any) => {
     // Guardar la posición actual del scroll
     lastPositionRef.current = event.nativeEvent.contentOffset.y;
+
+    // Solo registrar eventos de scroll significativos para no saturar los logs
+    if (event.nativeEvent.contentOffset.y % 300 < 10) {
+      log.debug(`Chat scroll position: ${Math.round(event.nativeEvent.contentOffset.y)}`);
+    }
   }, []);
 
   // Actualizar la función handleLoadEarlier
@@ -177,20 +220,30 @@ export default function ChatRoomScreen() {
     // Activar el flag para mantener la posición después de cargar
     shouldMaintainScrollRef.current = true;
 
+    const metricId = startMeasure('load_earlier_messages');
     setIsLoadingOlder(true);
+    log.info(`Loading earlier messages for chat: ${chatId}`);
+
     try {
       // Utilizar la función del contexto
       const success = await loadMoreMessages(chat.id);
 
+      const metric = endMeasure(metricId);
+      log.debug(`Earlier messages loaded in ${metric?.duration?.toFixed(2) || '?'}ms, success: ${success}`);
+
       // Actualizar si hemos llegado al final del historial
       setHasReachedEnd(!success || !chat.hasMoreMessages);
     } catch (error) {
-      console.error('Error loading older messages:', error);
+      const errorId = monitoring.captureError(
+        error instanceof Error ? error : new Error(String(error)),
+        { context: 'load_earlier_messages', chatId }
+      );
+      log.error(`Failed to load earlier messages [errorId: ${errorId}]`);
       setHasReachedEnd(true);
     } finally {
       setIsLoadingOlder(false);
     }
-  }, [isLoadingOlder, chat, currentUser, loadMoreMessages]);
+  }, [isLoadingOlder, chat, currentUser, loadMoreMessages, chatId]);
 
   // Desplazar automáticamente al último mensaje cuando se añade uno nuevo
   useEffect(() => {
@@ -278,6 +331,39 @@ export default function ChatRoomScreen() {
     return null;
   }, [chat, isLoadingOlder, hasReachedEnd, handleLoadEarlier]);
 
+  // Función para enviar mensajes con métricas y logging
+  const handleSendMessage = useCallback(
+    async (text: string, imageData?: { uri: string; previewUri: string }, voiceData?: { uri: string; duration: number }) => {
+      if (!currentUser || !chat) return;
+
+      const metricId = startMeasure('send_message');
+      try {
+        const msgType = imageData ? 'image' : voiceData ? 'voice' : 'text';
+        log.info(`Sending ${msgType} message in chat: ${chatId}`);
+
+        const result = await sendMessage(chatId, text, currentUser.id, imageData, voiceData);
+
+        const metric = endMeasure(metricId);
+        log.debug(`Message sent in ${metric?.duration?.toFixed(2) || '?'}ms, result: ${result}`);
+
+        return result;
+      } catch (error) {
+        const errorId = monitoring.captureError(
+          error instanceof Error ? error : new Error(String(error)),
+          { context: 'send_message', chatId, messageType: imageData ? 'image' : (voiceData ? 'voice' : 'text') }
+        );
+        log.error(`Failed to send message [errorId: ${errorId}]`);
+        return false;
+      }
+    },
+    [chat, chatId, currentUser, sendMessage]
+  );
+
+  const handleGoBack = useCallback(() => {
+    log.info(`Navigating back from chat: ${chatId}`);
+    router.back();
+  }, [router, chatId]);
+
   if (!chat || !currentUser) {
     return (
       <ThemedView style={styles.centerContainer}>
@@ -290,7 +376,7 @@ export default function ChatRoomScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
       <StatusBar style="auto" />
       <Stack.Screen
@@ -304,7 +390,7 @@ export default function ChatRoomScreen() {
             </View>
           ),
           headerLeft: () => (
-            <Pressable onPress={() => router.back()}>
+            <Pressable onPress={handleGoBack}>
               <IconSymbol name="chevron-left" size={24} color="#007AFF" />
             </Pressable>
           ),
