@@ -50,9 +50,20 @@ export async function initializeDatabase() {
       );
     `);
     
+    console.log('Creating chat_participants_history table...');
+    await sqlite.execAsync(`
+      CREATE TABLE IF NOT EXISTS chat_participants_history (
+        id TEXT PRIMARY KEY,
+        chat_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        left_at INTEGER NOT NULL,
+        FOREIGN KEY (chat_id) REFERENCES chats (id)
+      );
+    `);
+    
     console.log('All tables created successfully!');
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;
   }
-} 
+}

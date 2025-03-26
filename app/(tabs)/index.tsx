@@ -38,6 +38,12 @@ export default function ChatsScreen() {
     }
   };
 
+  const handleDeleteChat = async (chatId: string) => {
+    if (currentUser?.id) {
+      await deleteChat?.(chatId, currentUser.id);
+    }
+  };
+
   const renderEmptyComponent = () => {
     if (loading) {
       return (
@@ -62,12 +68,6 @@ export default function ChatsScreen() {
         onClear={handleClearChats}
       />
     );
-  };
-
-  const handleDeleteChat = async (chatId: string) => {
-    if (currentUser?.id) {
-      await deleteChat?.(chatId, currentUser.id);
-    }
   };
 
   const renderRightActions = (chatId: string) => {

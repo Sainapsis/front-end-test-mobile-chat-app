@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../database/db';
-import { chats, chatParticipants, messages } from '../../database/schema';
-import { eq, and } from 'drizzle-orm';
+import { chats, chatParticipants, messages, chatParticipantsHistory } from '../../database/schema';
+import { eq, and, or } from 'drizzle-orm';
 
 export interface Message {
   id: string;
@@ -31,6 +31,7 @@ export function useChatsDb(currentUserId: string | null) {
       }
 
       try {
+        // Obtener chats activos y históricos
         const participantRows = await db
           .select()
           .from(chatParticipants)
@@ -50,12 +51,17 @@ export function useChatsDb(currentUserId: string | null) {
           const chatData = await db.select().from(chats).where(eq(chats.id, chatId));
           if (chatData.length === 0) continue;
 
-          const participantsData = await db
-            .select()
-            .from(chatParticipants)
-            .where(eq(chatParticipants.chatId, chatId));
+          // Obtener participantes actuales y históricos
+          const [currentParticipants, historicalParticipants] = await Promise.all([
+            db.select().from(chatParticipants).where(eq(chatParticipants.chatId, chatId)),
+            db.select().from(chatParticipantsHistory).where(eq(chatParticipantsHistory.chatId, chatId))
+          ]);
 
-          const participantIds = participantsData.map(p => p.userId);
+          // Combinar participantes sin duplicados
+          const participantIds = [...new Set([
+            ...currentParticipants.map(p => p.userId),
+            ...historicalParticipants.map(p => p.userId)
+          ])];
 
           const messagesData = await db
             .select()
@@ -166,16 +172,35 @@ export function useChatsDb(currentUserId: string | null) {
 
   const deleteChat = useCallback(async (chatId: string, userId: string) => {
     try {
-      // Eliminar mensajes del chat
-      await db.delete(messages).where(eq(messages.chatId, chatId));
+      // Guardar registro histórico antes de eliminar
+      await db.insert(chatParticipantsHistory).values({
+        id: `cph-${chatId}-${userId}-${Date.now()}`,
+        chatId,
+        userId,
+        leftAt: Date.now(),
+      });
 
-      // Eliminar participantes del chat
-      await db.delete(chatParticipants).where(eq(chatParticipants.chatId, chatId));
+      // Eliminar participación actual
+      await db
+        .delete(chatParticipants)
+        .where(
+          and(
+            eq(chatParticipants.chatId, chatId),
+            eq(chatParticipants.userId, userId)
+          )
+        );
 
-      // Eliminar el chat
-      await db.delete(chats).where(eq(chats.id, chatId));
+      // Verificar participantes restantes
+      const remainingParticipants = await db
+        .select()
+        .from(chatParticipants)
+        .where(eq(chatParticipants.chatId, chatId));
 
-      // Actualizar el estado
+      if (remainingParticipants.length === 0) {
+        await db.delete(messages).where(eq(messages.chatId, chatId));
+        await db.delete(chats).where(eq(chats.id, chatId));
+      }
+
       setUserChats(prevChats => prevChats.filter(chat => chat.id !== chatId));
     } catch (error) {
       console.error('Error deleting chat:', error);
@@ -184,21 +209,47 @@ export function useChatsDb(currentUserId: string | null) {
 
   const clearChats = useCallback(async (userId: string) => {
     try {
-      // Obtener todos los chats donde el usuario es participante
       const participantRows = await db
         .select()
         .from(chatParticipants)
         .where(eq(chatParticipants.userId, userId));
 
-      const chatIds = participantRows.map(row => row.chatId);
+      // Guardar todos los registros en el historial
+      await Promise.all(
+        participantRows.map(row => 
+          db.insert(chatParticipantsHistory).values({
+            id: `cph-${row.chatId}-${userId}-${Date.now()}`,
+            chatId: row.chatId,
+            userId,
+            leftAt: Date.now(),
+          })
+        )
+      );
 
-      for (const chatId of chatIds) {
-        await deleteChat(chatId, userId);
+      // Eliminar todas las participaciones del usuario
+      await db
+        .delete(chatParticipants)
+        .where(eq(chatParticipants.userId, userId));
+
+      // Verificar cada chat y eliminar los que quedaron sin participantes
+      for (const row of participantRows) {
+        const remainingParticipants = await db
+          .select()
+          .from(chatParticipants)
+          .where(eq(chatParticipants.chatId, row.chatId));
+
+        if (remainingParticipants.length === 0) {
+          await db.delete(messages).where(eq(messages.chatId, row.chatId));
+          await db.delete(chats).where(eq(chats.id, row.chatId));
+        }
       }
+
+      // Actualizar el estado local
+      setUserChats([]);
     } catch (error) {
       console.error('Error clearing chats:', error);
     }
-  }, [deleteChat]);
+  }, []);
 
   return {
     chats: userChats,
