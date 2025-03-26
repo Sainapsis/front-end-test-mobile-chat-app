@@ -55,7 +55,7 @@ export function ChatListItem({ chat, currentUserId, users, onLongPress }: ChatLi
   const isCurrentUserLastSender = chat.lastMessage?.senderId === currentUserId;
 
   return (
-    <Pressable style={styles.container} onPress={handlePress} onLongPress={onLongPress}>
+    <Pressable style={styles.container} onPress={handlePress}>
       <Avatar user={otherParticipants[0]} size={50} />
       <View style={styles.contentContainer}>
         <View style={styles.topRow}>
