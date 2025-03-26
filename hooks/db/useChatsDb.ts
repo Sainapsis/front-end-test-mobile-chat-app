@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../database/db';
-import { chats, chatParticipants, messages, chatParticipantsHistory } from '../../database/schema';
+import { chats, chatParticipants, messages, chatParticipantsHistory, deletedMessages } from '../../database/schema';
 import { eq, and, or } from 'drizzle-orm';
 
 export interface Message {
@@ -69,12 +69,27 @@ export function useChatsDb(currentUserId: string | null) {
             .where(eq(messages.chatId, chatId))
             .orderBy(messages.timestamp);
 
-          const chatMessages = messagesData.map(m => ({
-            id: m.id,
-            senderId: m.senderId,
-            text: m.text,
-            timestamp: m.timestamp,
-          }));
+          // Get deleted messages for current user
+          const deletedMessagesData = await db
+            .select()
+            .from(deletedMessages)
+            .where(
+              and(
+                eq(deletedMessages.chatId, chatId),
+                eq(deletedMessages.userId, currentUserId)
+              )
+            );
+
+          const deletedMessageIds = new Set(deletedMessagesData.map(dm => dm.messageId));
+
+          const chatMessages = messagesData
+            .filter(m => !deletedMessageIds.has(m.id))
+            .map(m => ({
+              id: m.id,
+              senderId: m.senderId,
+              text: m.text,
+              timestamp: m.timestamp,
+            }));
 
           const lastMessage = chatMessages.length > 0 ? chatMessages[chatMessages.length - 1] : undefined;
 
@@ -251,12 +266,49 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  // Add new deleteMessage function
+  const deleteMessage = useCallback(async (messageId: string, chatId: string) => {
+    if (!currentUserId) return false;
+
+    try {
+      await db.insert(deletedMessages).values({
+        id: `dm-${messageId}-${currentUserId}-${Date.now()}`,
+        messageId,
+        userId: currentUserId,
+        chatId,
+        deletedAt: Date.now(),
+      });
+
+      setUserChats(prevChats =>
+        prevChats.map(chat => {
+          if (chat.id === chatId) {
+            const updatedMessages = chat.messages.filter(msg => msg.id !== messageId);
+            return {
+              ...chat,
+              messages: updatedMessages,
+              lastMessage: updatedMessages.length > 0 
+                ? updatedMessages[updatedMessages.length - 1] 
+                : undefined,
+            };
+          }
+          return chat;
+        })
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      return false;
+    }
+  }, [currentUserId]);
+
   return {
     chats: userChats,
     createChat,
     sendMessage,
-    deleteChat, // ✅ Añadido deleteChat
-    clearChats, // ✅ Añadido clearChats
+    deleteChat,
+    clearChats,
+    deleteMessage, // Add new function to return object
     loading,
   };
 }

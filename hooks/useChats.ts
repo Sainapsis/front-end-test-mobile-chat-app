@@ -10,6 +10,7 @@ export function useChats(userId: string | null) {
     loading, 
     clearChats,
     deleteChat,
+    deleteMessage,
   } = useChatsDb(userId);
 
   return {
@@ -19,5 +20,6 @@ export function useChats(userId: string | null) {
     loading,
     clearChats,
     deleteChat,
+    deleteMessage,
   };
 }

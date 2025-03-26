@@ -24,3 +24,11 @@ export const chatParticipantsHistory = sqliteTable("chat_participants_history", 
   userId: text("user_id").notNull(),
   leftAt: integer("left_at").notNull(),
 });
+
+export const deletedMessages = sqliteTable("deleted_messages", {
+  id: text("id").primaryKey(),
+  messageId: text("message_id").notNull(),
+  userId: text("user_id").notNull(),
+  chatId: text("chat_id").notNull(),
+  deletedAt: integer("deleted_at").notNull(),
+});

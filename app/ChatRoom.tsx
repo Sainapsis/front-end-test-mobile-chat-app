@@ -19,7 +19,7 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, users, chats, sendMessage } = useAppContext();
+  const { currentUser, users, chats, sendMessage, deleteMessage } = useAppContext();
   const [messageText, setMessageText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
@@ -39,6 +39,12 @@ export default function ChatRoomScreen() {
     if (messageText.trim() && currentUser && chat) {
       sendMessage(chat.id, messageText.trim(), currentUser.id);
       setMessageText('');
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (chat && currentUser) {
+      await deleteMessage?.(messageId, chat.id);
     }
   };
 
@@ -87,6 +93,8 @@ export default function ChatRoomScreen() {
         }} 
       />
 
+     
+
       <FlatList
         ref={flatListRef}
         data={chat.messages}
@@ -95,6 +103,7 @@ export default function ChatRoomScreen() {
           <MessageBubble
             message={item}
             isCurrentUser={item.senderId === currentUser.id}
+            onDeleteMessage={handleDeleteMessage}
           />
         )}
         contentContainerStyle={styles.messagesContainer}
@@ -172,4 +181,4 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.5,
   },
-}); 
+});

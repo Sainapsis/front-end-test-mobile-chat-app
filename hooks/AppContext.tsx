@@ -17,6 +17,7 @@ type AppContextType = {
   dbInitialized: boolean;
   clearChats: (userId: string) => Promise<void>;
   deleteChat?: (chatId: string, userId: string) => Promise<void>;
+  deleteMessage?: (messageId: string, chatId: string) => Promise<boolean>;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -34,6 +35,7 @@ function AppContent({ children }: { children: ReactNode }) {
     loading,
     dbInitialized: isInitialized,
     deleteChat: chatContext.deleteChat || undefined,
+    deleteMessage: chatContext.deleteMessage || undefined,
   };
 
   if (!isInitialized) {

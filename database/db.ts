@@ -61,6 +61,19 @@ export async function initializeDatabase() {
       );
     `);
     
+    console.log('Creating deleted_messages table...');
+    await sqlite.execAsync(`
+      CREATE TABLE IF NOT EXISTS deleted_messages (
+        id TEXT PRIMARY KEY,
+        message_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        chat_id TEXT NOT NULL,
+        deleted_at INTEGER NOT NULL,
+        FOREIGN KEY (message_id) REFERENCES messages (id),
+        FOREIGN KEY (chat_id) REFERENCES chats (id)
+      );
+    `);
+    
     console.log('All tables created successfully!');
   } catch (error) {
     console.error('Error initializing database:', error);
