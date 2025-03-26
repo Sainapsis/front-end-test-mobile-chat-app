@@ -6,7 +6,7 @@ import { Pressable } from "react-native";
 import { EmojisToReactProps } from "@/interfaces/Messages.interface";
 
 // UI
-import { ThemedText } from "./ThemedText";
+import { ThemedText } from "../ThemedText";
 
 const reactions = ["👍", "❤️", "😂", "😮", "😢", "😡"];
 

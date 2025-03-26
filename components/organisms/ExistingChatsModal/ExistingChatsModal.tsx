@@ -10,13 +10,8 @@ import {
 } from "react-native";
 import Toast from "react-native-toast-message";
 
-// UI
-
 // BL
-import {
-  ChatInterface,
-  MessageInterface,
-} from "@/interfaces/Messages.interface";
+import { MessageInterface } from "@/interfaces/Messages.interface";
 import { useAppContext } from "@/hooks/AppContext";
 import { useChats } from "@/hooks/useChats";
 import formatParticipantInUserChats from "@/helpers/formatParticipantInUserChats";
@@ -34,6 +29,8 @@ const ExistingChatsModal = ({
 }: ExistingChatsModalProps) => {
   const { currentUser, users } = useAppContext();
   const { chats } = useChats(currentUser?.id || null);
+
+  if (!currentUser) return null;
 
   const { forwardMessage } = useAppContext();
 

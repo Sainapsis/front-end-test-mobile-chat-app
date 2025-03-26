@@ -1,29 +1,32 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { ThemedText } from './ThemedText';
-import { User } from '@/hooks/useUser';
+// TP
+import { View, StyleSheet } from "react-native";
+import React from "react";
+// BL
+import { UserInterface } from "@/interfaces/User.interface";
+
+// UI
+import { ThemedText } from "../ThemedText";
 
 interface AvatarProps {
-  user?: User;
+  user?: UserInterface;
   size?: number;
   showStatus?: boolean;
 }
 
-
 const getAvatarColor = (identifier?: string): string => {
-  if (!identifier) return '#C0C0C0';
-  
+  if (!identifier) return "#C0C0C0";
+
   let hash = 0;
   for (let i = 0; i < identifier.length; i++) {
     hash = identifier.charCodeAt(i) + ((hash << 5) - hash);
   }
-  
-  let color = '#';
+
+  let color = "#";
   for (let i = 0; i < 3; i++) {
-    const value = (hash >> (i * 8)) & 0xFF;
-    color += ('00' + value.toString(16)).substr(-2);
+    const value = (hash >> (i * 8)) & 0xff;
+    color += ("00" + value.toString(16)).substr(-2);
   }
-  
+
   return color;
 };
 
@@ -86,19 +89,19 @@ export function Avatar({ user, size = 40, showStatus = true }: AvatarProps) {
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative',
+    position: "relative",
   },
   avatar: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   initials: {
-    color: 'white',
-    fontWeight: 'bold',
+    color: "white",
+    fontWeight: "bold",
   },
   statusIndicator: {
-    position: 'absolute',
+    position: "absolute",
     borderWidth: 1.5,
-    borderColor: 'white',
+    borderColor: "white",
   },
-}); 
+});

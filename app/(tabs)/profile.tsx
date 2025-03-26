@@ -4,9 +4,9 @@ import { useRouter } from 'expo-router';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { Avatar } from '@/components/Avatar';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import { DevTools } from "@/components/resetDB";
+import { Avatar } from "@/components/atoms/Avatar";
+import { IconSymbol } from "@/components/ui/IconSymbol";
+import { DevTools } from "@/components/molecules/resetDB";
 
 export default function ProfileScreen() {
   const { currentUser, logout } = useAppContext();

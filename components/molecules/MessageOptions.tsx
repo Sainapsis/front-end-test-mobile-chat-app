@@ -6,7 +6,7 @@ import { Pressable } from "react-native";
 import { MessageOptionsProps } from "@/interfaces/Messages.interface";
 
 // UI
-import { ThemedText } from "./ThemedText";
+import { ThemedText } from "../ThemedText";
 
 const MessageOptions = ({
   handleDeleteMessage,

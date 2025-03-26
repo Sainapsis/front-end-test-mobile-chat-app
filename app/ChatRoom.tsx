@@ -19,8 +19,8 @@ import { useAppContext } from "@/hooks/AppContext";
 // UI
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { MessageBubble } from "@/components/MessageBubble";
-import { Avatar } from "@/components/Avatar";
+import { MessageBubble } from "@/components/molecules/MessageBubble";
+import { Avatar } from "@/components/atoms/Avatar";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 
 export default function ChatRoomScreen() {
@@ -79,8 +79,6 @@ export default function ChatRoomScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
-        <Toast autoHide visibilityTime={2000} />
-
         <StatusBar style="auto" />
         <Stack.Screen
           options={{
