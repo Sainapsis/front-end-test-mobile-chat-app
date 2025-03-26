@@ -14,7 +14,7 @@ import Toast from "react-native-toast-message";
 import { MessageInterface } from "@/interfaces/Messages.interface";
 import { useAppContext } from "@/hooks/AppContext";
 import { useChats } from "@/hooks/useChats";
-import formatParticipantInUserChats from "@/helpers/formatParticipantInUserChats";
+import formatParticipantInUserChats from "@/bl/helpers/formatParticipantInUserChats";
 
 interface ExistingChatsModalProps {
   visible: boolean;
@@ -68,7 +68,11 @@ const ExistingChatsModal = ({
                 onPress={() => handleForwardMessage(item.id)}
               >
                 <Text style={styles.chatName}>
-                  {formatParticipantInUserChats(item, currentUser, users)}
+                  {formatParticipantInUserChats({
+                    chat: item,
+                    currentUser,
+                    users,
+                  })}
                 </Text>
               </Pressable>
             )}

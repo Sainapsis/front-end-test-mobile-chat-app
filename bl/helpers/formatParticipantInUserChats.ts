@@ -15,11 +15,17 @@ import getUserById from "./getUserById";
 * const formattedParticipant = formatParticipantInUserChats(chat, currentUser, users) // "You, John, Jane"
 */
 
-const formatParticipantInUserChats = (
-  chat: ChatInterface,
-  currentUser: UserInterface,
-  users: UserInterface[]
-): string => {
+interface FormatParticipantInUserChatsProps {
+  chat: ChatInterface;
+  currentUser: UserInterface;
+  users: UserInterface[];
+}
+
+const formatParticipantInUserChats = ({
+  chat,
+  currentUser,
+  users,
+}: FormatParticipantInUserChatsProps): string => {
   return chat.participants
     .sort((a, b) => {
       if (a === currentUser?.id) return -1;
@@ -32,6 +38,7 @@ const formatParticipantInUserChats = (
       }
       return getUserById(participant, users)?.name;
     })
+    .filter((participant) => participant !== undefined)
     .join(", ");
 };
 

@@ -4,11 +4,28 @@ import Toast from "react-native-toast-message";
 //BL
 import { isChatAlreadyCreatedProps } from "@/interfaces/Messages.interface";
 
+/**
+ * Checks if a chat already exists based on the participants and selected users.
+ *
+ * @param {isChatAlreadyCreatedProps} props - The props object containing participants, chats, and selected users.
+ * @param {string[]} props.participants - The participants of the chat.
+ * @param {ChatInterface[]} props.chats - The array of chats.
+ * @param {string[]} props.selectedUsers - The selected users.
+ *
+ * @returns {boolean} - True if the chat already exists, false otherwise.
+ *
+ * @example
+ * const isChatAlreadyCreated = isChatAlreadyCreated({
+ *   participants: ["1", "2"],
+ *   chats: [{ id: "1", participants: ["1", "2"] }],
+ *   selectedUsers: ["1", "2"],
+ * }); //  true
+ */
 export const isChatAlreadyCreated = ({
   participants,
   chats,
   selectedUsers,
-}: isChatAlreadyCreatedProps) => {
+}: isChatAlreadyCreatedProps): boolean => {
   const chatsMap = new Map();
 
   chats.forEach((chat) => {
