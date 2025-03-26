@@ -1,6 +1,11 @@
-import { isChatAlreadyCreated } from "../isChatAlreadyCreated";
-import { isChatAlreadyCreatedProps } from "@/interfaces/Messages.interface";
+// TP
 import Toast from "react-native-toast-message";
+
+// BL
+import { isChatAlreadyCreatedProps } from "../isChatAlreadyCreated";
+
+// UI
+import { isChatAlreadyCreated } from "../isChatAlreadyCreated";
 
 jest.mock("react-native-toast-message", () => ({
   show: jest.fn(),

@@ -18,7 +18,7 @@ import { withSpring } from "react-native-reanimated";
 
 // BL
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { MessageBubbleProps } from "@/interfaces/Messages.interface";
+import { MessageInterface } from "@/interfaces/Messages.interface";
 import { useChats } from "@/hooks/useChats";
 import { useAppContext } from "@/hooks/AppContext";
 import formatTimeTo2HourDigit from "@/helpers/formatTimeTo2HourDigit";
@@ -30,6 +30,12 @@ import EditableMessageInput from "../EditableMessageInput";
 import MessageOptions from "./MessageOptions";
 import ExistingChatsModal from "../organisms/ExistingChatsModal/ExistingChatsModal";
 import EmojisToReact from "./EmojisToReact";
+
+interface MessageBubbleProps {
+  message: MessageInterface;
+  chatId: string;
+  isCurrentUser: boolean;
+}
 
 export function MessageBubble({
   message,

@@ -1,4 +1,4 @@
-import { User } from "@/hooks/useUser";
+import { UserInterface } from "@/interfaces/User.interface";
 
 export interface SendMessageInterface {
   chatId: string;
@@ -22,11 +22,6 @@ export interface ChatInterface {
   lastMessage?: MessageInterface;
 }
 
-export interface EmojisToReactProps {
-  handleReaction: (reaction: string) => void;
-  setShowReactions: (show: boolean) => void;
-}
-
 export interface SetMessageAsReadProps {
   id: string;
   chatId: string;
@@ -43,18 +38,6 @@ export interface EditMessageProps {
   newText: string;
 }
 
-export interface MessageBubbleProps {
-  message: MessageInterface;
-  chatId: string;
-  isCurrentUser: boolean;
-}
-
-export interface MessageOptionsProps {
-  handleDeleteMessage: () => void;
-  setShowInputToEditMessage: (show: boolean) => void;
-  setShowMessageOptions: (show: boolean) => void;
-}
-
 export interface ForwardMessageProps {
   senderId: string;
   targetChatId: string;
@@ -69,16 +52,10 @@ export interface AddReactionToMessageProps {
 }
 
 export interface handleCreateChatProps {
-  currentUser: User | null;
+  currentUser: UserInterface | null;
   createChat: (participants: string[]) => void;
   chats: ChatInterface[];
   selectedUsers: string[];
   setModalVisible: (visible: boolean) => void;
   setSelectedUsers: (users: string[]) => void;
-}
-
-export interface isChatAlreadyCreatedProps {
-  participants: string[];
-  chats: ChatInterface[];
-  selectedUsers: string[];
 }

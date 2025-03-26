@@ -2,11 +2,16 @@
 import { StyleSheet, View } from "react-native";
 import { Pressable } from "react-native";
 
-// BL
-import { MessageOptionsProps } from "@/interfaces/Messages.interface";
-
 // UI
 import { ThemedText } from "../ThemedText";
+
+
+interface MessageOptionsProps {
+  handleDeleteMessage: () => void;
+  setShowInputToEditMessage: (show: boolean) => void;
+  setShowMessageOptions: (show: boolean) => void;
+}
+
 
 const MessageOptions = ({
   handleDeleteMessage,

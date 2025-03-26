@@ -2,7 +2,7 @@
 import Toast from "react-native-toast-message";
 
 //BL
-import { isChatAlreadyCreatedProps } from "@/interfaces/Messages.interface";
+import { ChatInterface } from "@/interfaces/Messages.interface";
 
 /**
  * Checks if a chat already exists based on the participants and selected users.
@@ -21,6 +21,12 @@ import { isChatAlreadyCreatedProps } from "@/interfaces/Messages.interface";
  *   selectedUsers: ["1", "2"],
  * }); //  true
  */
+export interface isChatAlreadyCreatedProps {
+  participants: string[];
+  chats: ChatInterface[];
+  selectedUsers: string[];
+}
+
 export const isChatAlreadyCreated = ({
   participants,
   chats,

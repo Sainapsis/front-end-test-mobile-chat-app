@@ -5,7 +5,6 @@ import Toast from "react-native-toast-message";
 
 // BL
 import { useAppContext } from "@/hooks/AppContext";
-import { handleCreateChat } from "@/bl/handlers/handleCreateChat";
 
 // UI
 import { ThemedText } from "@/components/ThemedText";
@@ -13,6 +12,8 @@ import { ThemedView } from "@/components/ThemedView";
 import { ChatListItem } from "@/components/ChatListItem";
 import { UserListItem } from "@/components/UserListItem";
 import { IconSymbol } from "@/components/ui/IconSymbol";
+import { handleCreateChatProps } from "@/interfaces/Messages.interface";
+import { isChatAlreadyCreated } from "@/bl/helpers/isChatAlreadyCreated";
 
 export default function ChatsScreen() {
   const { currentUser, users, chats, createChat } = useAppContext();
@@ -33,6 +34,27 @@ export default function ChatsScreen() {
       <ThemedText>Tap the + button to start a new conversation</ThemedText>
     </ThemedView>
   );
+
+  const handleCreateChat = ({
+    currentUser,
+    selectedUsers,
+    setModalVisible,
+    setSelectedUsers,
+    chats,
+    createChat,
+  }: handleCreateChatProps) => {
+    if (!currentUser) return;
+
+    if (selectedUsers.length > 0) {
+      const participants = [currentUser.id, ...selectedUsers];
+
+      if (isChatAlreadyCreated({ participants, chats, selectedUsers })) return;
+
+      createChat(participants);
+      setModalVisible(false);
+      setSelectedUsers([]);
+    }
+  };
 
   return (
     <ThemedView style={styles.container}>

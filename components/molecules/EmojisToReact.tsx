@@ -2,13 +2,16 @@
 import { StyleSheet, View } from "react-native";
 import { Pressable } from "react-native";
 
-// BL
-import { EmojisToReactProps } from "@/interfaces/Messages.interface";
-
 // UI
 import { ThemedText } from "../ThemedText";
 
 const reactions = ["👍", "❤️", "😂", "😮", "😢", "😡"];
+
+
+interface EmojisToReactProps {
+  handleReaction: (reaction: string) => void;
+  setShowReactions: (show: boolean) => void;
+}
 
 const MessageReactions = ({
   handleReaction,
