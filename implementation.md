@@ -1,3 +1,4 @@
+**1.**
 💬 **Read Receipts Implementation**
 
 🎯 **Feature Overview**
@@ -28,6 +29,7 @@ The goal of this feature was to add read receipts to the chat messages, providin
 
 ---------------------------------
 
+**2.**
 🗑️ **Delete and edit Messages**
 
 🎯 **Feature Overview**
@@ -56,6 +58,7 @@ The goal of this feature was to add a delete and edit message functionality to t
 
 ---------------------------------
 
+**3.**
 ⏩ **Forward Messages**
 
 🎯 **Feature Overview**
@@ -82,6 +85,8 @@ The goal of this feature was to add a forward message functionality to the chat 
 
 --------------------------------
 
+**4.**
+
 💬 **Create duplicate chat validation**
 
 🎯 **Feature Overview**
@@ -105,6 +110,8 @@ In this implementation a bug was fixed.
 
 
 ---------------------------------
+
+**5.**
 
 ⏩ **Message Reactions**
 
