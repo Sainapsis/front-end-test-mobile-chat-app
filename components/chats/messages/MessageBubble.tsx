@@ -30,7 +30,7 @@ export function MessageBubble({ message, isCurrentUser, otherUser, isReaded }: M
           ? [styles.selfContainer]
           : [styles.otherContainer, styles.otherText]]}>
           {isCurrentUser ? '' : otherUser?.name + ' '}{formatTime(message.timestamp)}
-          {isReaded ?
+          {message.readed ?
             <IconSymbol name="checkmark" color="#808080" size={16}></IconSymbol> : <></>
           }
         </ThemedText>

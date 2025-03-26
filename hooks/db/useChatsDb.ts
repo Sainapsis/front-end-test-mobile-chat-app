@@ -31,44 +31,9 @@ export interface Chat {
   messages?: Message[];
 }
 
-// Load the messages and determine their read status
-// const loadChatMessages = async (chatId: string, currentUserId: string): Promise<{ messages: Message[]; lastMessage?: Message; unreadedCount: number }> => {
-//   const messagesData = await db
-//     .select()
-//     .from(messages)
-//     .where(eq(messages.chatId, chatId))
-//     .orderBy(messages.timestamp);
-
-//   // For each message, determine if it's read or not
-//   // const messagesWithStatus: Message[] = await Promise.all(
-//   //   messagesData.map(async (message) => {
-//   //     // const unreadRows = await db
-//   //     //   .select()
-//   //     //   .from(messagesReadBy)
-//   //     //   .where(and(eq(messagesReadBy.messageId, message.id), eq(messagesReadBy.readed, false)));
-//   //     // return {
-//   //     //   id: message.id,
-//   //     //   senderId: message.senderId,
-//   //     //   text: message.text,
-//   //     //   timestamp: message.timestamp,
-//   //     //   readed: unreadRows.length === 0,
-//   //     // };
-//   //   })
-//   // );
-
-//   // const lastMessage = messagesWithStatus.length > 0 ? messagesWithStatus[messagesWithStatus.length - 1] : undefined;
-//   // Count the number of unread messages by user
-//   // const unreadedCountRows = await db
-//   //   .select()
-//   //   .from(messagesReadBy)
-//   //   .where(and(eq(messagesReadBy.chatId, chatId), eq(messagesReadBy.readed, false), eq(messagesReadBy.userId, currentUserId)));
-//   // return { messages: messagesWithStatus, lastMessage, unreadedCount: 0 };
-// }
-
 export function useChatsDb(currentUserId: string | null) {
   const [userChats, setUserChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
-  const [updateTrigger, setUpdateTrigger] = useState(0);
   const { post, get } = useApi();
   const socketRef = useRef<Socket | null>(null);
 
@@ -76,10 +41,6 @@ export function useChatsDb(currentUserId: string | null) {
   const orderByTimeStamp = async (data: any[], timestamp: string): Promise<any[]> => {
     return data.sort((a: any, b: any) => b[timestamp] - a[timestamp]);
   };
-
-  const refreshChats = useCallback(() => {
-    setUpdateTrigger(prev => prev + 1);
-  }, []);
 
   // Function to transform an API message into the Message format
   const transformMessage = (chat: any, message: any): Message => ({
@@ -97,7 +58,6 @@ export function useChatsDb(currentUserId: string | null) {
 
   // Function to insert new messages into the database
   const storeNewMessages = async (chatId: string, messagesToStore: Message[]) => {
-    // Get all message IDs that already exist for the chat
     const existingMessageIds = new Set(
       (
         await db
@@ -106,7 +66,6 @@ export function useChatsDb(currentUserId: string | null) {
           .where(eq(messages.chatId, chatId))
       ).map((msg) => msg.id)
     );
-    // Filter the messages that are not yet in the DB
     const newMessages = messagesToStore.filter((msg) => !existingMessageIds.has(msg.id));
     if (newMessages.length > 0) {
       await db.insert(messages).values(newMessages);
@@ -137,6 +96,7 @@ export function useChatsDb(currentUserId: string | null) {
 
     // Get chat messages from the API
     const messagesFromAPI = await get(`/chat/${chat._id}/messages`);
+    console.log(messagesFromAPI[0].readBy)
     const messagesToStore: Message[] = messagesFromAPI.map((message: any) =>
       transformMessage(chat, message)
     );
@@ -163,35 +123,34 @@ export function useChatsDb(currentUserId: string | null) {
 
     // Store the chat in the database (if necessary)
     await storeChat(chatToStore);
-
     return chatToStore;
   };
 
+  // Memoized loadChats function that loads chats when the user logs in or on demand
+  const loadChats = useCallback(async () => {
+    if (!currentUserId) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const chatsData = await get('/chat/getChats');
+      const chatPromises = chatsData.map((chat: any) => processChat(chat, currentUserId));
+      const allChats = await Promise.all(chatPromises);
+      const orderedChats = await orderByTimeStamp(allChats, "lastMessageTime");
+      setUserChats(orderedChats);
+    } catch (err) {
+      console.error('Error loading chats:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUserId, get]);
+
+  // Run loadChats only when the currentUserId changes (i.e. on login)
   useEffect(() => {
-    const loadChats = async () => {
-      if (!currentUserId) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const chatsData = await get('/chat/getChats');
-
-        // Process each chat in parallel, passing currentUserId as a parameter
-        const chatPromises = chatsData.map((chat: any) => processChat(chat, currentUserId));
-        const allChats = await Promise.all(chatPromises);
-        const orderedChats = await orderByTimeStamp(allChats, "lastMessageTime");
-        setUserChats(orderedChats);
-      } catch (err) {
-        console.error('Error loading chats:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadChats();
-  }, [currentUserId, updateTrigger]);
+  }, [currentUserId]);
 
+  // Set up socket connection and listen for events
   useEffect(() => {
     console.log('currentUserId:', currentUserId);
     if (!currentUserId) return;
@@ -201,18 +160,18 @@ export function useChatsDb(currentUserId: string | null) {
 
     socket.on('connect', () => {
       console.log('Socket connected');
-      if (currentUserId) {
-        socket.emit('user:join', { userId: currentUserId });
-      }
+      socket.emit('user:join', { userId: currentUserId });
     });
 
     socket.on('chat:update', (data) => {
       console.log('Received chat:update', data);
-      refreshChats();
+      // Reload chats on socket event
+      loadChats();
     });
     socket.on('message:new', (data) => {
       console.log('Received message:new', data);
-      refreshChats();
+      // Reload chats on socket event
+      loadChats();
     });
 
     return () => {
@@ -221,104 +180,30 @@ export function useChatsDb(currentUserId: string | null) {
   }, [currentUserId]);
 
   const createChat = useCallback(async (participantIds: string[]) => {
-    // Uncomment and implement chat creation logic as needed
-    // if (!currentUserId || !participantIds.includes(currentUserId)) {
-    //   return null;
-    // }
-
-    // try {
-    //   const chatId = `chat${Date.now()}`;
-    //   // Insert new chat
-    //   // await db.insert(chats).values({ id: chatId });
-    //   // Insert participants
-    //   await Promise.all(
-    //     participantIds.map(userId =>
-    //       db.insert(chatParticipants).values({
-    //         id: `cp-${chatId}-${userId}`,
-    //         chatId,
-    //         userId,
-    //       })
-    //     )
-    //   );
-    //   const newChat: Chat = {
-    //     id: chatId,
-    //     participants: participantIds,
-    //     messages: [],
-    //     unreadedMessagesCount: 0,
-    //   };
-    //   setUserChats(prevChats => [...prevChats, newChat]);
-    //   return newChat;
-    // } catch (error) {
-    //   console.error('Error creating chat:', error);
-    //   return null;
-    // }
+    // TODO
   }, [currentUserId]);
 
   const sendMessage = useCallback(async (chatId: string, text: string, senderId: string) => {
     if (!text.trim()) return false;
-
     try {
-      // Uncomment and implement message sending logic as needed
-      // const messageId = `msg${Date.now()}`;
-      // const timestamp = Date.now();
-
-      // // Get chat participants
-      // const participantsData = await db
-      //   .select()
-      //   .from(chatParticipants)
-      //   .where(eq(chatParticipants.chatId, chatId));
-
-      // Insert a message
-      // await db.insert(messages).values({
-      //   id: messageId,
-      //   chatId,
-      //   senderId,
-      //   text,
-      //   timestamp,
-      // });
-
-      // Insert the read status per participant
-      // await Promise.all(
-      //   participantsData.map(participant =>
-      //     db.insert(messagesReadBy).values({
-      //       id: `mr-${messageId}-${participant.userId}`,
-      //       messageId,
-      //       userId: participant.userId,
-      //       readed: participant.userId === senderId,
-      //       chatId,
-      //     })
-      //   )
-      // );
-
-      // const newMessage: Message = { id: messageId, senderId, text, timestamp };
-
-      setUserChats(prevChats =>
-        prevChats.map(chat => chat)
-      );
-      refreshChats();
+      // TODO
+      setUserChats(prevChats => prevChats.map(chat => chat));
+      loadChats();
       return true;
     } catch (error) {
       console.error('Error sending message:', error);
       return false;
     }
-  }, [refreshChats]);
+  }, [loadChats]);
 
   const updateReadStatus = useCallback(async (userId: string, chatId: string) => {
     try {
-      // Uncomment and implement read status update logic as needed
-      // await db.update(messagesReadBy)
-      //   .set({ readed: true })
-      //   .where(and(
-      //     eq(messagesReadBy.chatId, chatId),
-      //     eq(messagesReadBy.userId, userId),
-      //     eq(messagesReadBy.readed, false)
-      //   ))
-      //   .execute();
-      refreshChats();
+      // TODO
+      loadChats();
     } catch (error) {
       console.error('Error updating read status:', error);
     }
-  }, [refreshChats]);
+  }, [loadChats]);
 
   return {
     chats: userChats,
