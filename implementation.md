@@ -103,3 +103,30 @@ In this implementation a bug was fixed.
   - If the participants are more than 2, the toast will inform that the group chat already exists.
   - If the participant are 2, the toast will inform that the chat already exists.
 
+
+---------------------------------
+
+⏩ **Message Reactions**
+
+🎯 **Feature Overview**
+
+The goal of this feature was to add a reaction to message functionality to the chat messages.
+
+✅ **Task:** "Add message reactions"
+
+🔧 **Implementation Breakdown**
+
+🛠️ **Data Handling**
+
+- Backend Integration:
+  - Created a handler to add a reaction to a message.
+  - Added a reaction field to the message object.
+  - Updated the message schema to include the reaction field.
+
+🎨 **UI/UX Changes**
+
+  - Added a container to select the emoji to react to the message.
+  - When press on the message, the reaction will be added to the message.
+  - When press on the reaction, the reaction will be removed from the message.
+
+
