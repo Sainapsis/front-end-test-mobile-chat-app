@@ -8,9 +8,10 @@ import { UserListItem } from '@/components/UserListItem';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Swipeable } from 'react-native-gesture-handler';
 
 export default function ChatsScreen() {
-  const { currentUser, users, chats, createChat, loading } = useAppContext();
+  const { currentUser, users, chats, createChat, loading, clearChats, deleteChat } = useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
@@ -31,6 +32,12 @@ export default function ChatsScreen() {
     }
   };
 
+  const handleClearChats = async () => {
+    if (currentUser?.id) {
+      await clearChats(currentUser.id);
+    }
+  };
+
   const renderEmptyComponent = () => {
     if (loading) {
       return (
@@ -45,16 +52,46 @@ export default function ChatsScreen() {
     return (
       <EmptyState
         icon="message.fill"
-        title="No Conversations Yet"
-        message="Start chatting with your friends by tapping the + button above"
+        title={chats.length > 0 ? "Clear Chats" : "No Conversations Yet"}
+        message={chats.length > 0 
+          ? "Clear all your conversations" 
+          : "Start chatting with your friends by tapping the + button above"
+        }
         color="#007AFF"
+        showClearButton={true}
+        onClear={handleClearChats}
       />
+    );
+  };
+
+  const handleDeleteChat = async (chatId: string) => {
+    if (currentUser?.id) {
+      await deleteChat?.(chatId, currentUser.id);
+    }
+  };
+
+  const renderRightActions = (chatId: string) => {
+    return (
+      <Pressable 
+        style={styles.deleteAction}
+        onPress={() => handleDeleteChat(chatId)}
+      >
+        <IconSymbol name="trash.fill" size={24} color="white" />
+      </Pressable>
     );
   };
 
   return (
     <ThemedView style={styles.container}>
       <ThemedView style={styles.header}>
+        {chats.length > 0 && (
+          <Pressable
+            style={styles.clearAllButton}
+            onPress={handleClearChats}
+          >
+            <ThemedText style={styles.clearAllText}>Clear All</ThemedText>
+          </Pressable>
+        )}
         <ThemedText type="title">Chats</ThemedText>
         <Pressable
           style={styles.newChatButton}
@@ -73,11 +110,17 @@ export default function ChatsScreen() {
         data={chats}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <ChatListItem
-            chat={item}
-            currentUserId={currentUser?.id || ''}
-            users={users}
-          />
+          <Swipeable
+            renderRightActions={() => renderRightActions(item.id)}
+            overshootRight={false}
+          >
+            <ChatListItem
+              chat={item}
+              currentUserId={currentUser?.id || ''}
+              users={users}
+              onLongPress={() => handleDeleteChat(item.id)}
+            />
+          </Swipeable>
         )}
         ListEmptyComponent={renderEmptyComponent}
         contentContainerStyle={[
@@ -232,5 +275,24 @@ const styles = StyleSheet.create({
   },
   emptyListContainer: {
     flex: 1,
+  },
+  deleteAction: {
+    backgroundColor: '#FF3B30',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    height: '100%',
+  },
+  clearAllButton: {
+    backgroundColor: '#FF3B30',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginRight: 10,
+  },
+  clearAllText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });

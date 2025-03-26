@@ -5,6 +5,8 @@ import { Stack, usePathname, useSegments, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { StyleSheet } from 'react-native';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AppProvider, useAppContext } from '@/hooks/AppContext';
@@ -73,11 +75,19 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AppProvider>
-        <RootLayoutNav />
-        <StatusBar style="auto" />
-      </AppProvider>
-    </ThemeProvider>
+    <GestureHandlerRootView style={styles.container}>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <AppProvider>
+          <RootLayoutNav />
+          <StatusBar style="auto" />
+        </AppProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});
