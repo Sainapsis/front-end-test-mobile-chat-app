@@ -74,7 +74,7 @@ The goal of this feature was to add a forward message functionality to the chat 
 🎨 **UI/UX Changes**
 
   - Added a modal to select the chat to forward the message.
-  - When long press on a message, the modal to forward the message will be shown.
+  - When swipe right on a message, the modal to forward the message will be shown.
 
 
 

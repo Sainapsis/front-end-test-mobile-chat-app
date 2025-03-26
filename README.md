@@ -34,12 +34,12 @@ In any case, **remember to document your task selection, implementation details,
 
 - [ ] Add media sharing capabilities (photos preferably, with a optimized/compressed preview instead of the original image)
 - [ X ] Add read receipts for messages along with status indicators (sent, read)
-- [ ] Implement message reactions (emoji responses, easy but still gets points)
+- [ X ] Implement message reactions (emoji responses, easy but still gets points)
 - [ ] Create group chat creation and management
 - [ ] Implement message search functionality
-- [ ] Add message deletion and editing
+- [ X] Add message deletion and editing
 - [ ] Add voice messages (recording/playing)
-- [ ] Implement message forwarding
+- [ X ] Implement message forwarding
 
 ### Performance Improvements
 
@@ -51,13 +51,16 @@ In any case, **remember to document your task selection, implementation details,
 ### Code Quality & Architecture
 
 - [ ] Implement comprehensive unit and integration tests
-- [ ] Refactor components for better reusability
+- [ X ] Refactor components for better reusability
 - [ ] Implement proper logging and monitoring
 
 ### Bug Fixes
 
 - [ ] Fix message ordering in chat rooms (newest messages should appear at the bottom, next to the input box)
 - [ ] Resolve keyboard or other components overlap issues on different device sizes
+
+// OWN IMPLEMENTATION
+- [ X] Fix the bug where a user can create a chat or a group chat even if the chat already exists
 
 ### UI/UX Enhancements
 
