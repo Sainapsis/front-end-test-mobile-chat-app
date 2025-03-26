@@ -164,6 +164,7 @@ const styles = StyleSheet.create({
   },
   messagesContainer: {
     padding: 10,
+    gap: 10,
     flexGrow: 1,
   },
   emptyContainer: {

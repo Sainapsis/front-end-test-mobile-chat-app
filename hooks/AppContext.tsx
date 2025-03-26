@@ -2,7 +2,7 @@
 import React, { createContext, useContext, ReactNode } from "react";
 
 // BL
-import { useUser, User } from "./useUser";
+import { useUser } from "./useUser";
 import { useChats } from "./useChats";
 import { DatabaseProvider } from "../database/DatabaseProvider";
 import { useDatabase } from "./useDatabase";
@@ -12,11 +12,13 @@ import {
   EditMessageProps,
   DeleteMessageProps,
   ForwardMessageProps,
+  AddReactionToMessageProps,
 } from "@/interfaces/Messages.interface";
+import { UserInterface } from "@/interfaces/User.interface";
 
 type AppContextType = {
-  users: User[];
-  currentUser: User | null;
+  users: UserInterface[];
+  currentUser: UserInterface | null;
   isLoggedIn: boolean;
   login: (userId: string) => Promise<boolean>;
   logout: () => void;
@@ -27,6 +29,7 @@ type AppContextType = {
   deleteMessage: (props: DeleteMessageProps) => Promise<void>;
   forwardMessage: (props: ForwardMessageProps) => Promise<void>;
   dbInitialized: boolean;
+  addReactionToMessage: (props: AddReactionToMessageProps) => Promise<void>;
   editMessage: (props: EditMessageProps) => Promise<void>;
 };
 

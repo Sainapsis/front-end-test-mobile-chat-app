@@ -46,6 +46,8 @@ export async function initializeDatabase() {
         sender_id TEXT NOT NULL,
         text TEXT NOT NULL,
         timestamp INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'sent',
+        reaction TEXT DEFAULT NULL,
         FOREIGN KEY (chat_id) REFERENCES chats (id)
       );
     `);

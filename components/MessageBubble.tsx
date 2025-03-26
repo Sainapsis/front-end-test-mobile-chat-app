@@ -7,6 +7,15 @@ import {
   Alert,
   KeyboardAvoidingView,
 } from "react-native";
+import Animated, {
+  interpolateColor,
+  measure,
+  useAnimatedRef,
+  useAnimatedStyle,
+  useSharedValue,
+  withDecay,
+  runOnJS,
+} from "react-native-reanimated";
 import Toast from "react-native-toast-message";
 
 // BL
@@ -22,13 +31,16 @@ import { IconSymbol } from "./ui/IconSymbol.ios";
 import EditableMessageInput from "./EditableMessageInput";
 import MessageOptions from "./MessageOptions";
 import ExistingChatsModal from "./organisms/ExistingChatsModal/ExistingChatsModal";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { withSpring } from "react-native-reanimated";
+import EmojisToReact from "./EmojisToReact";
 
 export function MessageBubble({
   message,
   isCurrentUser,
   chatId,
 }: MessageBubbleProps) {
-  const { deleteMessage, editMessage } = useAppContext();
+  const { deleteMessage, editMessage, addReactionToMessage } = useAppContext();
   const { setMessageAsRead } = useChats(message.senderId);
   const colorScheme = useColorScheme();
 
@@ -80,98 +92,176 @@ export function MessageBubble({
     });
   };
 
-  return (
-    <KeyboardAvoidingView keyboardVerticalOffset={100} behavior="padding">
-      <Pressable
-        onLongPress={() => {
-          if (isCurrentUser) {
-            setShowMessageOptions(!showMessageOptions);
-          } else {
-            setShowExistingChatsModal(true);
-          }
-        }}
-        onPress={() => {
-          if (isCurrentUser) {
-            setShowMessageOptions(false);
-          }
-        }}
-        style={[
-          styles.container,
-          isCurrentUser ? styles.selfContainer : styles.otherContainer,
-        ]}
-      >
-        <View
+  const position = useSharedValue(0);
+  const threshold = 100;
+
+  const panGesture = Gesture.Pan()
+    .onUpdate((e) => {
+      if (e.translationX > 0) {
+        position.value = e.translationX; // Solo permite mover hacia la derecha
+      }
+    })
+    .onEnd(() => {
+      if (position.value > threshold) {
+        runOnJS(setShowExistingChatsModal)(true);
+      }
+      position.value = withSpring(0, { damping: 15, stiffness: 120 }); // Regresa suavemente a la posición original
+    });
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: position.value }],
+  }));
+
+  const [showEmojisToReact, setShowEmojisToReact] = useState(false);
+
+const scale = useSharedValue(0);
+
+useEffect(() => {
+  if (message.reaction) {
+    scale.value = withSpring(1); // Animación suave al aparecer
+  } else {
+    scale.value = withSpring(0); // Animación suave al desaparecer
+  }
+}, [message.reaction]);
+
+const animatedStyleEmoji = useAnimatedStyle(() => ({
+  transform: [{ scale: scale.value }],
+  opacity: scale.value,
+}));
+
+console.log(message);
+
+return (
+  <KeyboardAvoidingView keyboardVerticalOffset={100} behavior="padding">
+    <GestureDetector gesture={panGesture}>
+      <Animated.View style={[animatedStyle]}>
+        <Pressable
+          onLongPress={() => {
+            if (isCurrentUser) {
+              setShowMessageOptions(!showMessageOptions);
+            } else {
+              setShowEmojisToReact(true);
+            }
+          }}
+          onPress={() => {
+            if (isCurrentUser) {
+              setShowMessageOptions(false);
+            }
+            setShowEmojisToReact(false);
+          }}
           style={[
-            styles.bubble,
-            isCurrentUser
-              ? [
-                  styles.selfBubble,
-                  { backgroundColor: isDark ? "#235A4A" : "#DCF8C6" },
-                ]
-              : [
-                  styles.otherBubble,
-                  { backgroundColor: isDark ? "#2A2C33" : "#FFFFFF" },
-                ],
+            styles.container,
+            isCurrentUser ? styles.selfContainer : styles.otherContainer,
           ]}
         >
           <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 4,
-            }}
+            style={[
+              styles.bubble,
+              isCurrentUser
+                ? [
+                    styles.selfBubble,
+                    { backgroundColor: isDark ? "#235A4A" : "#DCF8C6" },
+                  ]
+                : [
+                    styles.otherBubble,
+                    { backgroundColor: isDark ? "#2A2C33" : "#FFFFFF" },
+                  ],
+            ]}
           >
-            {showInputToEditMessage ? (
-              <EditableMessageInput
-                prevMessageText={message.text}
-                messageTextToEdit={messageTextToEdit}
-                setMessageTextToEdit={setMessageTextToEdit}
-                setShowInputToEditMessage={setShowInputToEditMessage}
-                handleEditMessage={handleEditMessage}
-              />
-            ) : (
-              <ThemedText
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              {showInputToEditMessage ? (
+                <EditableMessageInput
+                  prevMessageText={message.text}
+                  messageTextToEdit={messageTextToEdit}
+                  setMessageTextToEdit={setMessageTextToEdit}
+                  setShowInputToEditMessage={setShowInputToEditMessage}
+                  handleEditMessage={handleEditMessage}
+                />
+              ) : (
+                <ThemedText
+                  style={[
+                    styles.messageText,
+                    isCurrentUser && !isDark && styles.selfMessageText,
+                  ]}
+                >
+                  {message.text}
+                </ThemedText>
+              )}
+
+              {isCurrentUser && (
+                <IconSymbol
+                  style={{ alignSelf: "flex-start" }}
+                  size={15}
+                  name={
+                    isMessageRead
+                      ? "checkmark.message.fill"
+                      : "checkmark.message"
+                  }
+                  color={isDark ? "#FFFFFF" : "#000000"}
+                />
+              )}
+            </View>
+            <View style={styles.timeContainer}>
+              <ThemedText style={styles.timeText}>
+                {formatTimeTo2HourDigit(message.timestamp)}
+              </ThemedText>
+            </View>
+            {message.reaction && (
+              <Animated.View
                 style={[
-                  styles.messageText,
-                  isCurrentUser && !isDark && styles.selfMessageText,
+                  {
+                    backgroundColor: isCurrentUser ? "#DCF8C6" : "white",
+                    paddingHorizontal: 10,
+                    paddingVertical: 2,
+                    borderRadius: 10,
+                    position: "absolute",
+                    bottom: -10,
+                    left: 0,
+                  },
+                  animatedStyleEmoji,
                 ]}
               >
-                {message.text}
-              </ThemedText>
-            )}
-
-            {isCurrentUser && (
-              <IconSymbol
-                style={{ alignSelf: "flex-start" }}
-                size={15}
-                name={
-                  isMessageRead ? "checkmark.message.fill" : "checkmark.message"
-                }
-                color={isDark ? "#FFFFFF" : "#000000"}
-              />
+                <Pressable>
+                  <ThemedText>{message.reaction}</ThemedText>
+                </Pressable>
+              </Animated.View>
             )}
           </View>
-          <View style={styles.timeContainer}>
-            <ThemedText style={styles.timeText}>
-              {formatTimeTo2HourDigit(message.timestamp)}
-            </ThemedText>
-          </View>
-        </View>
-      </Pressable>
-      {showMessageOptions && (
-        <MessageOptions
-          handleDeleteMessage={handleDeleteMessage}
-          setShowInputToEditMessage={setShowInputToEditMessage}
-          setShowMessageOptions={setShowMessageOptions}
-        />
-      )}
-      <ExistingChatsModal
-        message={message}
-        visible={showExistingChatsModal}
-        onClose={() => setShowExistingChatsModal(false)}
+        </Pressable>
+      </Animated.View>
+    </GestureDetector>
+    {showMessageOptions && (
+      <MessageOptions
+        handleDeleteMessage={handleDeleteMessage}
+        setShowInputToEditMessage={setShowInputToEditMessage}
+        setShowMessageOptions={setShowMessageOptions}
       />
-    </KeyboardAvoidingView>
-  );
+    )}
+    {showEmojisToReact && (
+      <EmojisToReact
+        handleReaction={(e) => {
+          addReactionToMessage({
+            chatId,
+            messageId: message.id,
+            reaction: e,
+          });
+        }}
+        setShowReactions={setShowEmojisToReact}
+      />
+    )}
+    <ExistingChatsModal
+      message={message}
+      visible={showExistingChatsModal}
+      onClose={() => setShowExistingChatsModal(false)}
+    />
+  </KeyboardAvoidingView>
+);
 }
 
 const styles = StyleSheet.create({

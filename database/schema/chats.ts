@@ -19,4 +19,5 @@ export const messages = sqliteTable("messages", {
   text: text("text").notNull(),
   timestamp: integer("timestamp").notNull(),
   status: text("status").notNull().default("sent"),
-}); 
+  reaction: text("reaction"),
+});

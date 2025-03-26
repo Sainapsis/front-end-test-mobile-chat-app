@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Avatar } from '@/components/Avatar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { DevTools } from "@/components/resetDB";
 
 export default function ProfileScreen() {
   const { currentUser, logout } = useAppContext();
@@ -32,30 +33,32 @@ export default function ProfileScreen() {
           <ThemedView style={styles.profileInfo}>
             <ThemedText type="title">{currentUser.name}</ThemedText>
             <ThemedText style={styles.statusText}>
-              {currentUser.status.charAt(0).toUpperCase() + currentUser.status.slice(1)}
+              {currentUser.status.charAt(0).toUpperCase() +
+                currentUser.status.slice(1)}
             </ThemedText>
           </ThemedView>
         </ThemedView>
-        
+
         <ThemedView style={styles.section}>
           <ThemedText type="subtitle">Account Information</ThemedText>
-          
+
           <ThemedView style={styles.infoRow}>
             <ThemedText style={styles.infoLabel}>ID:</ThemedText>
             <ThemedText>{currentUser.id}</ThemedText>
           </ThemedView>
-          
+
           <ThemedView style={styles.infoRow}>
             <ThemedText style={styles.infoLabel}>Full Name:</ThemedText>
             <ThemedText>{currentUser.name}</ThemedText>
           </ThemedView>
         </ThemedView>
-        
+
         <ThemedView style={styles.buttonContainer}>
           <Pressable style={styles.logoutButton} onPress={handleLogout}>
             <IconSymbol name="arrow.right.square" size={20} color="#FFFFFF" />
             <ThemedText style={styles.logoutText}>Log Out</ThemedText>
           </Pressable>
+          <DevTools />
         </ThemedView>
       </ThemedView>
     </SafeAreaView>

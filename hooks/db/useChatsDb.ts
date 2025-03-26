@@ -12,6 +12,7 @@ import {
   SetMessageAsReadInterface,
   DeleteMessageProps,
   ForwardMessageProps,
+  AddReactionToMessageProps,
 } from "@/interfaces/Messages.interface";
 
 export function useChatsDb(currentUserId: string | null) {
@@ -70,6 +71,7 @@ export function useChatsDb(currentUserId: string | null) {
           id: m.id,
           senderId: m.senderId,
           text: m.text,
+          reaction: m.reaction || undefined,
           timestamp: m.timestamp,
           status: m.status as "sent" | "read",
         }));
@@ -211,6 +213,41 @@ export function useChatsDb(currentUserId: string | null) {
     }
   };
 
+  const addReactionToMessage = async ({
+    chatId,
+    messageId,
+    reaction,
+  }: AddReactionToMessageProps) => {
+    try {
+      await db
+        .update(messages)
+        .set({ reaction })
+        .where(eq(messages.id, messageId));
+
+      setUserChats((prevChats) => {
+        return prevChats.map((chat) => {
+          if (chat.id === chatId) {
+            return {
+              ...chat,
+              messages: chat.messages.map((message) => {
+                if (message.id === messageId) {
+                  return {
+                    ...message,
+                    reaction,
+                  };
+                }
+                return message;
+              }),
+            };
+          }
+          return chat;
+        });
+      });
+    } catch (error) {
+      console.error("Error adding reaction:", error);
+    }
+  };
+
   const editMessage = async ({
     chatId,
     messageId,
@@ -334,6 +371,7 @@ export function useChatsDb(currentUserId: string | null) {
     editMessage,
     setMessageAsRead,
     forwardMessage,
+    addReactionToMessage,
   };
 }
 

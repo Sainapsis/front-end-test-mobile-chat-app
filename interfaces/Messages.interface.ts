@@ -10,6 +10,7 @@ export interface MessageInterface {
   text: string;
   timestamp: number;
   status: "sent" | "read";
+  reaction?: string;
 }
 
 export interface ChatInterface {
@@ -17,6 +18,11 @@ export interface ChatInterface {
   participants: string[];
   messages: MessageInterface[];
   lastMessage?: MessageInterface;
+}
+
+export interface EmojisToReactProps {
+  handleReaction: (reaction: string) => void;
+  setShowReactions: (show: boolean) => void;
 }
 
 export interface SetMessageAsReadInterface {
@@ -52,4 +58,10 @@ export interface ForwardMessageProps {
   targetChatId: string;
   targetUserId: string;
   messageId: string;
+}
+
+export interface AddReactionToMessageProps {
+  chatId: string;
+  messageId: string;
+  reaction: string;
 }
