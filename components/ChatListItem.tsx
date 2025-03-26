@@ -11,6 +11,7 @@ interface ChatListItemProps {
   chat: Chat;
   currentUserId: string;
   users: User[];
+  onLongPress?: () => void; // Se agrega la prop opcional
 }
 
 type RootStackParamList = {
@@ -19,9 +20,7 @@ type RootStackParamList = {
 
 type NavigationProps = StackNavigationProp<RootStackParamList, 'ChatRoom'>;
 
-
-
-export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) {
+export function ChatListItem({ chat, currentUserId, users, onLongPress }: ChatListItemProps) {
   const navigation = useNavigation<NavigationProps>();
 
   const otherParticipants = useMemo(() => {
@@ -32,63 +31,44 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
   }, [chat.participants, currentUserId, users]);
 
   const chatName = useMemo(() => {
-    if (otherParticipants.length === 0) {
-      return 'No participants';
-    } else if (otherParticipants.length === 1) {
-      return otherParticipants[0].name;
-    } else {
-      return `${otherParticipants[0].name} & ${otherParticipants.length - 1} other${otherParticipants.length > 2 ? 's' : ''}`;
-    }
+    if (otherParticipants.length === 0) return 'No participants';
+    if (otherParticipants.length === 1) return otherParticipants[0].name;
+    return `${otherParticipants[0].name} & ${otherParticipants.length - 1} other${otherParticipants.length > 2 ? 's' : ''}`;
   }, [otherParticipants]);
 
   const handlePress = () => {
     navigation.navigate('ChatRoom', { chatId: chat.id });
   };
-  
 
   const timeString = useMemo(() => {
     if (!chat.lastMessage) return '';
-    
     const date = new Date(chat.lastMessage.timestamp);
     const now = new Date();
     const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffInDays === 0) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } else if (diffInDays === 1) {
-      return 'Yesterday';
-    } else if (diffInDays < 7) {
-      return date.toLocaleDateString([], { weekday: 'short' });
-    } else {
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
+
+    if (diffInDays === 0) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (diffInDays === 1) return 'Yesterday';
+    if (diffInDays < 7) return date.toLocaleDateString([], { weekday: 'short' });
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   }, [chat.lastMessage]);
 
   const isCurrentUserLastSender = chat.lastMessage?.senderId === currentUserId;
 
   return (
-    <Pressable style={styles.container} onPress={handlePress}>
-      <Avatar 
-        user={otherParticipants[0]} 
-        size={50}
-      />
+    <Pressable style={styles.container} onPress={handlePress} onLongPress={onLongPress}>
+      <Avatar user={otherParticipants[0]} size={50} />
       <View style={styles.contentContainer}>
         <View style={styles.topRow}>
           <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.name}>
             {chatName}
           </ThemedText>
-          {timeString && (
-            <ThemedText style={styles.time}>{timeString}</ThemedText>
-          )}
+          {timeString && <ThemedText style={styles.time}>{timeString}</ThemedText>}
         </View>
         <View style={styles.bottomRow}>
           {chat.lastMessage && (
             <ThemedText 
               numberOfLines={1}
-              style={[
-                styles.lastMessage,
-                isCurrentUserLastSender && styles.currentUserMessage
-              ]}
+              style={[styles.lastMessage, isCurrentUserLastSender && styles.currentUserMessage]}
             >
               {isCurrentUserLastSender && 'You: '}{chat.lastMessage.text}
             </ThemedText>
@@ -138,4 +118,4 @@ const styles = StyleSheet.create({
   currentUserMessage: {
     fontStyle: 'italic',
   },
-}); 
+});
