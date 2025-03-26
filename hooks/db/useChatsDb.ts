@@ -1,35 +1,37 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { db } from '@/providers/database/db';
 import { chats, chatParticipants, messages, users } from '@/providers/database/schema';
 import { eq, and } from 'drizzle-orm';
 import { User } from '@/hooks/user/useUser';
 import { useApi } from '../api/useApi';
 import * as SecureStore from 'expo-secure-store';
+import { io, Socket } from 'socket.io-client';
 
 export interface Message {
-  id: string,
-  chatId: string,
-  senderId: string,
-  senderName: string,
-  text?: string,
-  timestamp: number,
-  responseText?: string,
-  mediaUri?: string,
-  readed?: number,
+  id: string;
+  chatId: string;
+  senderId: string;
+  senderName: string;
+  text?: string;
+  timestamp: number;
+  responseText?: string;
+  mediaUri?: string;
+  readed?: number;
 }
 
 export interface Chat {
-  id: string,
-  lastMessage: string,
-  chatName: string,
-  lastMessageTime: number,
-  unreadedMessages: number,
-  lastMessageSender: string,
-  chatStatus: string
-  messages?: Message[],
+  id: string;
+  lastMessage: string;
+  chatName: string;
+  lastMessageTime: number;
+  unreadedMessages: number;
+  lastMessageSender: string;
+  chatStatus: string;
+  messages?: Message[];
 }
 
-// Load the messages and determinate its read status
+// Load the messages and determine their read status
 // const loadChatMessages = async (chatId: string, currentUserId: string): Promise<{ messages: Message[]; lastMessage?: Message; unreadedCount: number }> => {
 //   const messagesData = await db
 //     .select()
@@ -37,7 +39,7 @@ export interface Chat {
 //     .where(eq(messages.chatId, chatId))
 //     .orderBy(messages.timestamp);
 
-//   // For each message, we determinate if its readed or not
+//   // For each message, determine if it's read or not
 //   // const messagesWithStatus: Message[] = await Promise.all(
 //   //   messagesData.map(async (message) => {
 //   //     // const unreadRows = await db
@@ -55,7 +57,7 @@ export interface Chat {
 //   // );
 
 //   // const lastMessage = messagesWithStatus.length > 0 ? messagesWithStatus[messagesWithStatus.length - 1] : undefined;
-//   // Count the number of unreaded messages by user
+//   // Count the number of unread messages by user
 //   // const unreadedCountRows = await db
 //   //   .select()
 //   //   .from(messagesReadBy)
@@ -63,26 +65,23 @@ export interface Chat {
 //   // return { messages: messagesWithStatus, lastMessage, unreadedCount: 0 };
 // }
 
-// Load the complete information of a chat
-const loadChat = async (currentUserId: string): Promise<any | null> => {
-
-}
-
 export function useChatsDb(currentUserId: string | null) {
   const [userChats, setUserChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
   const [updateTrigger, setUpdateTrigger] = useState(0);
   const { post, get } = useApi();
+  const socketRef = useRef<Socket | null>(null);
 
+  // Sort the data by timestamp in descending order
   const orderByTimeStamp = async (data: any[], timestamp: string): Promise<any[]> => {
     return data.sort((a: any, b: any) => b[timestamp] - a[timestamp]);
-  }
+  };
 
   const refreshChats = useCallback(() => {
     setUpdateTrigger(prev => prev + 1);
   }, []);
 
-  // Función para transformar un mensaje de la API al formato Message
+  // Function to transform an API message into the Message format
   const transformMessage = (chat: any, message: any): Message => ({
     id: message._id,
     chatId: chat._id,
@@ -92,13 +91,13 @@ export function useChatsDb(currentUserId: string | null) {
     timestamp: Date.parse(message.timestamp),
     responseText: message.responseText ?? undefined,
     mediaUri: message.mediaUri ?? undefined,
-    // Aseguramos que 'readed' sea number (0 o 1)
+    // Ensure that 'readed' is a number (0 or 1)
     readed: message.readed !== undefined ? (message.readed ? 1 : 0) : 0,
   });
 
-  // Función para insertar nuevos mensajes en la base de datos
+  // Function to insert new messages into the database
   const storeNewMessages = async (chatId: string, messagesToStore: Message[]) => {
-    // Obtener todos los IDs de mensajes ya existentes para el chat
+    // Get all message IDs that already exist for the chat
     const existingMessageIds = new Set(
       (
         await db
@@ -107,14 +106,14 @@ export function useChatsDb(currentUserId: string | null) {
           .where(eq(messages.chatId, chatId))
       ).map((msg) => msg.id)
     );
-    // Filtrar los mensajes que aún no están en la DB
+    // Filter the messages that are not yet in the DB
     const newMessages = messagesToStore.filter((msg) => !existingMessageIds.has(msg.id));
     if (newMessages.length > 0) {
       await db.insert(messages).values(newMessages);
     }
   };
 
-  // Función para insertar un chat en la base de datos (si no existe)
+  // Function to insert a chat into the database (if it doesn't exist)
   const storeChat = async (chatToStore: Chat) => {
     const existingChat = await db.select().from(chats).where(eq(chats.id, chatToStore.id));
     if (existingChat.length === 0) {
@@ -130,25 +129,25 @@ export function useChatsDb(currentUserId: string | null) {
     }
   };
 
-  // Función para procesar un chat recibido desde la API.
-  // Recibe el chat y el currentUserId como parámetro.
+  // Function to process a chat received from the API.
+  // Receives the chat and the currentUserId as parameters.
   const processChat = async (chat: any, currentUserId: string): Promise<Chat> => {
     const otherUser = chat.members.find((user: any) => user._id !== currentUserId);
     const myUser = chat.members.find((user: any) => user._id === currentUserId);
 
-    // Obtener mensajes del chat desde la API
+    // Get chat messages from the API
     const messagesFromAPI = await get(`/chat/${chat._id}/messages`);
     const messagesToStore: Message[] = messagesFromAPI.map((message: any) =>
       transformMessage(chat, message)
     );
 
-    // Insertar en la DB solo los mensajes nuevos
+    // Insert only the new messages into the DB
     await storeNewMessages(chat._id, messagesToStore);
 
-    // Ordenar los mensajes por timestamp
+    // Sort the messages by timestamp
     const orderedMessages = await orderByTimeStamp(messagesToStore, 'timestamp');
 
-    // Construir el objeto Chat
+    // Build the Chat object
     const chatToStore: Chat = {
       id: chat._id,
       lastMessage: chat.lastMessage?.content ?? "",
@@ -162,7 +161,7 @@ export function useChatsDb(currentUserId: string | null) {
       messages: orderedMessages,
     };
 
-    // Almacenar el chat en la base de datos (si es necesario)
+    // Store the chat in the database (if necessary)
     await storeChat(chatToStore);
 
     return chatToStore;
@@ -178,7 +177,7 @@ export function useChatsDb(currentUserId: string | null) {
       try {
         const chatsData = await get('/chat/getChats');
 
-        // Procesar cada chat en paralelo, pasando currentUserId como parámetro
+        // Process each chat in parallel, passing currentUserId as a parameter
         const chatPromises = chatsData.map((chat: any) => processChat(chat, currentUserId));
         const allChats = await Promise.all(chatPromises);
         const orderedChats = await orderByTimeStamp(allChats, "lastMessageTime");
@@ -193,8 +192,36 @@ export function useChatsDb(currentUserId: string | null) {
     loadChats();
   }, [currentUserId, updateTrigger]);
 
+  useEffect(() => {
+    console.log('currentUserId:', currentUserId);
+    if (!currentUserId) return;
+    
+    const socket = io('http://localhost:3000/socket');
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      console.log('Socket connected');
+      if (currentUserId) {
+        socket.emit('user:join', { userId: currentUserId });
+      }
+    });
+
+    socket.on('chat:update', (data) => {
+      console.log('Received chat:update', data);
+      refreshChats();
+    });
+    socket.on('message:new', (data) => {
+      console.log('Received message:new', data);
+      refreshChats();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [currentUserId]);
 
   const createChat = useCallback(async (participantIds: string[]) => {
+    // Uncomment and implement chat creation logic as needed
     // if (!currentUserId || !participantIds.includes(currentUserId)) {
     //   return null;
     // }
@@ -202,7 +229,7 @@ export function useChatsDb(currentUserId: string | null) {
     // try {
     //   const chatId = `chat${Date.now()}`;
     //   // Insert new chat
-    //   //await db.insert(chats).values({ id: chatId });
+    //   // await db.insert(chats).values({ id: chatId });
     //   // Insert participants
     //   await Promise.all(
     //     participantIds.map(userId =>
@@ -231,6 +258,7 @@ export function useChatsDb(currentUserId: string | null) {
     if (!text.trim()) return false;
 
     try {
+      // Uncomment and implement message sending logic as needed
       // const messageId = `msg${Date.now()}`;
       // const timestamp = Date.now();
 
@@ -249,7 +277,7 @@ export function useChatsDb(currentUserId: string | null) {
       //   timestamp,
       // });
 
-      // Insert the lecture status by participant
+      // Insert the read status per participant
       // await Promise.all(
       //   participantsData.map(participant =>
       //     db.insert(messagesReadBy).values({
@@ -265,8 +293,7 @@ export function useChatsDb(currentUserId: string | null) {
       // const newMessage: Message = { id: messageId, senderId, text, timestamp };
 
       setUserChats(prevChats =>
-        prevChats.map(chat =>
-          chat)
+        prevChats.map(chat => chat)
       );
       refreshChats();
       return true;
@@ -278,6 +305,7 @@ export function useChatsDb(currentUserId: string | null) {
 
   const updateReadStatus = useCallback(async (userId: string, chatId: string) => {
     try {
+      // Uncomment and implement read status update logic as needed
       // await db.update(messagesReadBy)
       //   .set({ readed: true })
       //   .where(and(
@@ -297,6 +325,7 @@ export function useChatsDb(currentUserId: string | null) {
     createChat,
     sendMessage,
     loading,
-    updateReadStatus
+    updateReadStatus,
+    socket: socketRef.current,
   };
 }

@@ -3,6 +3,7 @@ import { useUser, User } from '@/hooks/user/useUser';
 import { useChats, Chat } from '@/hooks/chats/useChats';
 import { DatabaseProvider } from '@/providers/database/DatabaseProvider';
 import { useDatabase } from '@/hooks//db/useDatabase';
+import { Socket } from 'socket.io-client';
 
 type AppContextType = {
   users: User[];
@@ -16,6 +17,7 @@ type AppContextType = {
   updateReadStatus: (chatId: string, userId: string) => Promise<void>;
   loading: boolean;
   dbInitialized: boolean;
+  socket: Socket | null;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
