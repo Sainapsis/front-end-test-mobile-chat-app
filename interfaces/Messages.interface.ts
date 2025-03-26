@@ -1,3 +1,5 @@
+import { User } from "@/hooks/useUser";
+
 export interface SendMessageInterface {
   chatId: string;
   text: string;
@@ -25,7 +27,7 @@ export interface EmojisToReactProps {
   setShowReactions: (show: boolean) => void;
 }
 
-export interface SetMessageAsReadInterface {
+export interface SetMessageAsReadProps {
   id: string;
   chatId: string;
 }
@@ -64,4 +66,19 @@ export interface AddReactionToMessageProps {
   chatId: string;
   messageId: string;
   reaction: string;
+}
+
+export interface handleCreateChatProps {
+  currentUser: User | null;
+  createChat: (participants: string[]) => void;
+  chats: ChatInterface[];
+  selectedUsers: string[];
+  setModalVisible: (visible: boolean) => void;
+  setSelectedUsers: (users: string[]) => void;
+}
+
+export interface isChatAlreadyCreatedProps {
+  participants: string[];
+  chats: ChatInterface[];
+  selectedUsers: string[];
 }

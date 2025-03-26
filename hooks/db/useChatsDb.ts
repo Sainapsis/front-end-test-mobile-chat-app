@@ -9,7 +9,7 @@ import {
   ChatInterface,
   SendMessageInterface,
   MessageInterface,
-  SetMessageAsReadInterface,
+  SetMessageAsReadProps,
   DeleteMessageProps,
   ForwardMessageProps,
   AddReactionToMessageProps,
@@ -333,10 +333,7 @@ export function useChatsDb(currentUserId: string | null) {
     []
   );
 
-  const setMessageAsRead = async ({
-    id,
-    chatId,
-  }: SetMessageAsReadInterface) => {
+  const setMessageAsRead = async ({ id, chatId }: SetMessageAsReadProps) => {
     try {
       await db
         .update(messages)

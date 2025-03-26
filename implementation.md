@@ -76,3 +76,30 @@ The goal of this feature was to add a forward message functionality to the chat 
   - Added a modal to select the chat to forward the message.
   - When long press on a message, the modal to forward the message will be shown.
 
+
+
+
+
+--------------------------------
+
+💬 **Create duplicate chat validation**
+
+🎯 **Feature Overview**
+
+In this implementation a bug was fixed.
+
+🐞 **Bug:** A user can create a chat or a group chat even if the chat already exists.
+
+🔧 **Implementation Breakdown**
+
+🛠️ **Data Handling**
+
+- Backend Validation:
+  - Added a validation in the handler to create chat to check if the chat already exists, and the chat will only be created if it doesn't exist.
+
+🎨 **UI/UX Changes**
+
+- Added a toast to the user to inform that the chat already exists.
+  - If the participants are more than 2, the toast will inform that the group chat already exists.
+  - If the participant are 2, the toast will inform that the chat already exists.
+
