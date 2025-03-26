@@ -53,12 +53,11 @@ export async function initializeDatabase() {
         chat_id TEXT NOT NULL,
         sender_id TEXT NOT NULL,
         sender_name TEXT NOT NULL,
-        text TEXT NOT NULL,
+        text TEXT,
         timestamp INTEGER NOT NULL,
         response_text TEXT,
         media_uri TEXT,
-        read_by_ids TEXT,
-        read_by_names TEXT
+        readed INTEGER NOT NULL
       );
     `);
 

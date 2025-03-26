@@ -25,7 +25,6 @@ export default function ChatRoomScreen() {
   const router = useRouter();
 
   const chat = chats.find(c => c.id === chatId);
-
   // const chatParticipants = chat?.participants
   //   .filter(id => id !== currentUser?.id)
   //   .map(id => chat.participantsData?.find(user => user.id === id))
@@ -89,7 +88,7 @@ export default function ChatRoomScreen() {
 
       <FlatList
         ref={flatListRef}
-        data={[]}
+        data={chat.messages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <MessageBubble
@@ -102,7 +101,7 @@ export default function ChatRoomScreen() {
         contentContainerStyle={styles.messagesContainer}
         ListEmptyComponent={() => (
           <ThemedView style={styles.emptyContainer}>
-            <ThemedText>No messages yet. Say hello! {chat.chatName}</ThemedText>
+            <ThemedText>No messages yet. Say hello! {chat.chatStatus}</ThemedText>
           </ThemedView>
         )}
       />

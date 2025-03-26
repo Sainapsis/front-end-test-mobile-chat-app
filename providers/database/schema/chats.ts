@@ -22,12 +22,11 @@ export const messages = sqliteTable("messages", {
   chatId: text("chat_id").notNull().references(() => chats.id),
   senderId: text("sender_id").notNull(),
   senderName: text("sender_name").notNull(),
-  text: text("text").notNull(),
+  text: text("text"),
   timestamp: integer("timestamp").notNull(),
   responseText: text("response_text"),
   mediaUri: text("media_uri"),
-  readByIds: text("read_by_ids"),
-  readByNames: text("read_by_names")
+  readed: integer("readed")
 });
 
 // export const messagesReadBy = sqliteTable("messages_read_by", {
