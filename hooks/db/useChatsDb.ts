@@ -19,7 +19,80 @@ export function useChatsDb(currentUserId: string | null) {
   const [userChats, setUserChats] = useState<ChatInterface[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // there are so many responsabilities here, we should refactor this
+  const updateChatMessages = (
+    chatId: string,
+    updater: (messages: MessageInterface[]) => MessageInterface[]
+  ) => {
+    setUserChats((prevChats) =>
+      prevChats.map((chat) =>
+        chat.id === chatId
+          ? {
+              ...chat,
+              messages: updater(chat.messages),
+            }
+          : chat
+      )
+    );
+  };
+
+  const getChatIdsWhereTheCurrentUserIsParticipant = async () => {
+    if (!currentUserId) {
+      return [];
+    }
+
+    try {
+      const participantRows = await db
+        .select()
+        .from(chatParticipants)
+        .where(eq(chatParticipants.userId, currentUserId));
+      const chatIds = participantRows.map((row) => row.chatId);
+      return chatIds;
+    } catch (error) {
+      console.error("Error getting chat IDs:", error);
+      return [];
+    }
+  };
+
+  const getSingleChat = async (chatId: string) => {
+    try {
+      const chatData = await db
+        .select()
+        .from(chats)
+        .where(eq(chats.id, chatId));
+      return chatData;
+    } catch (error) {
+      console.error("Error getting chat:", error);
+      throw new Error("Error getting chat");
+    }
+  };
+
+  const getChatMessages = async (chatId: string) => {
+    try {
+      const messagesData = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.chatId, chatId))
+        .orderBy(messages.timestamp);
+      return messagesData;
+    } catch (error) {
+      console.error("Error getting chat messages:", error);
+      throw new Error("Error getting chat messages");
+    }
+  };
+
+  const getChatParticipants = async (chatId: string) => {
+    try {
+      const participantsData = await db
+        .select()
+        .from(chatParticipants)
+        .where(eq(chatParticipants.chatId, chatId));
+      return participantsData;
+    } catch (error) {
+      console.error("Error getting chat participants:", error);
+      throw new Error("Error getting chat participants");
+    }
+  };
+
   const loadChats = async () => {
     if (!currentUserId) {
       setUserChats([]);
@@ -28,45 +101,29 @@ export function useChatsDb(currentUserId: string | null) {
     }
 
     try {
-      // Get chat IDs where the user is a participant
-      const participantRows = await db
-        .select()
-        .from(chatParticipants)
-        .where(eq(chatParticipants.userId, currentUserId));
-
-      const chatIds = participantRows.map((row) => row.chatId);
-
+      // Get all the chat ids where the current user is a participant
+      const chatIds = await getChatIdsWhereTheCurrentUserIsParticipant();
       if (chatIds.length === 0) {
         setUserChats([]);
         setLoading(false);
         return;
       }
+
       // Build the complete chat objects
       const loadedChats: ChatInterface[] = [];
+
       for (const chatId of chatIds) {
         // Get the chat
-        const chatData = await db
-          .select()
-          .from(chats)
-          .where(eq(chats.id, chatId));
+        const chatData = await getSingleChat(chatId);
 
         if (chatData.length === 0) continue;
 
         // Get participants
-        const participantsData = await db
-          .select()
-          .from(chatParticipants)
-          .where(eq(chatParticipants.chatId, chatId));
-
+        const participantsData = await getChatParticipants(chatId);
         const participantIds = participantsData.map((p) => p.userId);
 
         // Get messages
-        const messagesData = await db
-          .select()
-          .from(messages)
-          .where(eq(messages.chatId, chatId))
-          .orderBy(messages.timestamp);
-
+        const messagesData = await getChatMessages(chatId);
         const chatMessages = messagesData.map((m) => ({
           id: m.id,
           senderId: m.senderId,
@@ -157,13 +214,12 @@ export function useChatsDb(currentUserId: string | null) {
       }
 
       const newMessageId = `msg${Date.now()}`;
-      const newMessageTimestamp = Date.now();
 
       const forwardedMessage: MessageInterface = {
         id: newMessageId,
         senderId: senderId,
         text: message.text,
-        timestamp: newMessageTimestamp,
+        timestamp: Date.now(),
         status: "sent",
       };
 
@@ -172,20 +228,13 @@ export function useChatsDb(currentUserId: string | null) {
         chatId: targetChatId,
         senderId: senderId,
         text: message.text,
-        timestamp: newMessageTimestamp,
+        timestamp: Date.now(),
       });
 
-      setUserChats((prevChats) =>
-        prevChats.map((chat) =>
-          chat.id === targetChatId
-            ? {
-                ...chat,
-                messages: [...chat.messages, forwardedMessage],
-                lastMessage: forwardedMessage,
-              }
-            : chat
-        )
-      );
+      updateChatMessages(targetChatId, (messages) => [
+        ...messages,
+        forwardedMessage,
+      ]);
     } catch (error) {
       console.error("Error forwarding message:", error);
     }
@@ -195,19 +244,9 @@ export function useChatsDb(currentUserId: string | null) {
     try {
       await db.delete(messages).where(eq(messages.id, messageId));
 
-      setUserChats((prevChats) => {
-        return prevChats.map((chat) => {
-          if (chat.id === chatId) {
-            return {
-              ...chat,
-              messages: chat.messages.filter(
-                (message) => message.id !== messageId
-              ),
-            };
-          }
-          return chat;
-        });
-      });
+      updateChatMessages(chatId, (messages) =>
+        messages.filter((message) => message.id !== messageId)
+      );
     } catch (error) {
       console.error("Error deleting message:", error);
     }
@@ -224,25 +263,11 @@ export function useChatsDb(currentUserId: string | null) {
         .set({ reaction })
         .where(eq(messages.id, messageId));
 
-      setUserChats((prevChats) => {
-        return prevChats.map((chat) => {
-          if (chat.id === chatId) {
-            return {
-              ...chat,
-              messages: chat.messages.map((message) => {
-                if (message.id === messageId) {
-                  return {
-                    ...message,
-                    reaction,
-                  };
-                }
-                return message;
-              }),
-            };
-          }
-          return chat;
-        });
-      });
+      updateChatMessages(chatId, (messages) =>
+        messages.map((message) =>
+          message.id === messageId ? { ...message, reaction } : message
+        )
+      );
     } catch (error) {
       console.error("Error adding reaction:", error);
     }
@@ -263,21 +288,11 @@ export function useChatsDb(currentUserId: string | null) {
         .set({ text: newText })
         .where(eq(messages.id, messageId));
 
-      setUserChats((prevChats) => {
-        return prevChats.map((chat) => {
-          if (chat.id === chatId) {
-            return {
-              ...chat,
-              messages: chat.messages.map((message) =>
-                message.id === messageId
-                  ? { ...message, text: newText }
-                  : message
-              ),
-            };
-          }
-          return chat;
-        });
-      });
+      updateChatMessages(chatId, (messages) =>
+        messages.map((message) =>
+          message.id === messageId ? { ...message, text: newText } : message
+        )
+      );
 
       loadChats();
     } catch (error) {
@@ -293,7 +308,6 @@ export function useChatsDb(currentUserId: string | null) {
         const messageId = `msg${Date.now()}`;
         const timestamp = Date.now();
 
-        // Insert new message
         await db.insert(messages).values({
           id: messageId,
           chatId: chatId,
@@ -310,19 +324,7 @@ export function useChatsDb(currentUserId: string | null) {
           status: "sent",
         };
 
-        // Update state
-        setUserChats((prevChats) => {
-          return prevChats.map((chat) => {
-            if (chat.id === chatId) {
-              return {
-                ...chat,
-                messages: [...chat.messages, newMessage],
-                lastMessage: newMessage,
-              };
-            }
-            return chat;
-          });
-        });
+        updateChatMessages(chatId, (messages) => [...messages, newMessage]);
 
         return true;
       } catch (error) {
@@ -340,19 +342,11 @@ export function useChatsDb(currentUserId: string | null) {
         .set({ status: "read" })
         .where(eq(messages.id, id));
 
-      setUserChats((prevChats) => {
-        return prevChats.map((chat) => {
-          if (chat.id === chatId) {
-            return {
-              ...chat,
-              messages: chat.messages.map((message) =>
-                message.id === id ? { ...message, status: "read" } : message
-              ),
-            };
-          }
-          return chat;
-        });
-      });
+      updateChatMessages(chatId, (messages) =>
+        messages.map((message) =>
+          message.id === id ? { ...message, status: "read" } : message
+        )
+      );
     } catch (error) {
       console.error("Error setting message as read:", error);
       return false;

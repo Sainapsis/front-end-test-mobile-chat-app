@@ -16,6 +16,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { AppProvider, useAppContext } from "@/hooks/AppContext";
 import { DrizzleStudioDevTool } from "@/database/DrizzleStudio";
+import Toast from "react-native-toast-message";
 
 // UI
 
@@ -82,6 +83,7 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <AppProvider>
         <RootLayoutNav />
+        <Toast autoHide visibilityTime={2000} />
         <StatusBar style="auto" />
       </AppProvider>
     </ThemeProvider>

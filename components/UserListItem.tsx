@@ -1,16 +1,20 @@
-import React from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
-import { ThemedText } from './ThemedText';
-import { Avatar } from './Avatar';
-import { User } from '@/hooks/useUser';
+import React from "react";
+import { View, StyleSheet, Pressable } from "react-native";
+import { ThemedText } from "./ThemedText";
+import { Avatar } from "./atoms/Avatar";
+import { UserInterface } from "@/interfaces/User.interface";
 
 interface UserListItemProps {
-  user: User;
-  onSelect?: (user: User) => void;
+  user: UserInterface;
+  onSelect?: (user: UserInterface) => void;
   isSelected?: boolean;
 }
 
-export function UserListItem({ user, onSelect, isSelected }: UserListItemProps) {
+export function UserListItem({
+  user,
+  onSelect,
+  isSelected,
+}: UserListItemProps) {
   const handlePress = () => {
     if (onSelect) {
       onSelect(user);
@@ -18,8 +22,8 @@ export function UserListItem({ user, onSelect, isSelected }: UserListItemProps) 
   };
 
   return (
-    <Pressable 
-      style={[styles.container, isSelected && styles.selectedContainer]} 
+    <Pressable
+      style={[styles.container, isSelected && styles.selectedContainer]}
       onPress={handlePress}
     >
       <Avatar user={user} size={50} />
@@ -35,14 +39,14 @@ export function UserListItem({ user, onSelect, isSelected }: UserListItemProps) 
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E1E1E1',
+    borderBottomColor: "#E1E1E1",
   },
   selectedContainer: {
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    backgroundColor: "rgba(0, 122, 255, 0.1)",
   },
   infoContainer: {
     marginLeft: 12,
@@ -50,7 +54,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 14,
-    color: '#8F8F8F',
+    color: "#8F8F8F",
     marginTop: 4,
   },
-}); 
+});

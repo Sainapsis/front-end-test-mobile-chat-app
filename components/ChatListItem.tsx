@@ -4,17 +4,17 @@ import { View, StyleSheet, Pressable } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
 // BL
-import { User } from "@/hooks/useUser";
+import { UserInterface } from "@/interfaces/User.interface";
 import { ChatInterface } from "@/interfaces/Messages.interface";
 
 // UI
-import { Avatar } from "./Avatar";
+import { Avatar } from "./atoms/Avatar";
 import { ThemedText } from "./ThemedText";
 
 interface ChatListItemProps {
   chat: ChatInterface;
   currentUserId: string;
-  users: User[];
+  users: UserInterface[];
 }
 
 export function ChatListItem({
@@ -28,7 +28,7 @@ export function ChatListItem({
     return chat.participants
       .filter((id) => id !== currentUserId)
       .map((id) => users.find((user) => user.id === id))
-      .filter(Boolean) as User[];
+      .filter(Boolean) as UserInterface[];
   }, [chat.participants, currentUserId, users]);
 
   const chatName = useMemo(() => {
