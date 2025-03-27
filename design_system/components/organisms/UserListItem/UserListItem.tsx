@@ -2,8 +2,9 @@ import * as React from 'react';
 import { View, Pressable } from 'react-native';
 import { ThemedText } from '@/design_system/components/atoms';
 import { Avatar } from '@/design_system/components/organisms';
-import { User } from '@/hooks/useUser';
 import { styles } from './UserListItem.styles';
+import { useUserListItem } from '@/hooks/components/useUserListItem';
+import { User } from '@/hooks/useUser';
 
 interface UserListItemProps {
   user: User;
@@ -12,11 +13,7 @@ interface UserListItemProps {
 }
 
 export function UserListItem({ user, onSelect, isSelected }: UserListItemProps) {
-  const handlePress = () => {
-    if (onSelect) {
-      onSelect(user);
-    }
-  };
+  const { handlePress } = useUserListItem({ user, onSelect }); 
 
   return (
     <Pressable 

@@ -1,13 +1,8 @@
 import type { PropsWithChildren, ReactElement } from 'react';
-import Animated, {
-  useAnimatedRef,
-  useAnimatedStyle,
-  useScrollViewOffset,
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { ThemedView } from '@/design_system/components/atoms';
-import { useBottomTabOverflow } from '@/design_system/ui/vendors';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { styles, parallaxAnimation } from './ParallaxScrollView.styles';
+import { styles } from './ParallaxScrollView.styles';
+import { useParallaxScrollView } from '@/hooks/components/useParallaxScrollView';
 
 type Props = PropsWithChildren<{
   headerImage: ReactElement;
@@ -19,13 +14,7 @@ export function ParallaxScrollView({
   headerImage,
   headerBackgroundColor,
 }: Props) {
-  const colorScheme = useColorScheme() ?? 'light';
-  const scrollRef = useAnimatedRef<Animated.ScrollView>();
-  const scrollOffset = useScrollViewOffset(scrollRef);
-  const bottom = useBottomTabOverflow();
-  const headerAnimatedStyle = useAnimatedStyle(() => 
-    parallaxAnimation.header(scrollOffset)
-  );
+  const { colorScheme, scrollRef, bottom, headerAnimatedStyle } = useParallaxScrollView();
 
   return (
     <ThemedView style={styles.container}>

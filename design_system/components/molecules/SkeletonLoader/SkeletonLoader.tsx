@@ -1,7 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { Animated } from 'react-native';
-import { skeletonAnimation } from '@/design_system/ui/animations';
 import { styles } from './SkeletonLoader.styles';
+import { useSkeletonLoader } from '@/hooks/components/useSkeletonLoader';
 
 interface SkeletonLoaderProps {
   width: number | string;
@@ -10,14 +10,7 @@ interface SkeletonLoaderProps {
 }
 
 export function SkeletonLoader({ width, height, style }: SkeletonLoaderProps) {
-  const opacity = useRef(new Animated.Value(0.3)).current;
-
-  useEffect(() => {
-    const animation = skeletonAnimation.pulse(opacity);
-    animation.start();
-
-    return () => animation.stop();
-  }, []);
+  const opacity = useSkeletonLoader(); 
 
   return (
     <Animated.View

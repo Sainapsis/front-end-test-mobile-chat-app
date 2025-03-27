@@ -1,6 +1,6 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { Pressable as RNPressable, Animated, ViewStyle, StyleSheet, StyleProp } from 'react-native';
-import { transitions } from '@/design_system/ui/animations/transitions';
+import { useAnimatedPressable } from '@/hooks/components/useAnimatedPressable'; // Importa el hook desde la nueva ubicación
 
 interface AnimatedPressableProps {
   children: React.ReactNode;
@@ -17,22 +17,7 @@ export function AnimatedPressable({
   style,
   disabled,
 }: AnimatedPressableProps) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const opacityAnim = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = () => {
-    Animated.parallel([
-      transitions.scale.pressed(scaleAnim),
-      transitions.opacity.pressed(opacityAnim),
-    ]).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.parallel([
-      transitions.scale.released(scaleAnim),
-      transitions.opacity.released(opacityAnim),
-    ]).start();
-  };
+  const { scaleAnim, opacityAnim, handlePressIn, handlePressOut } = useAnimatedPressable();
 
   return (
     <RNPressable
