@@ -9,7 +9,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { AppProvider, useAppContext } from '@/hooks/AppContext';
+import { AppProvider, useAppContext } from '@/context/AppContext';
 import { DrizzleStudioDevTool } from '@/database/DrizzleStudio';
 
 SplashScreen.preventAutoHideAsync();

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useAppContext } from '@/hooks/AppContext';
+import { useAppContext } from '@/context/AppContext';
 import { ThemedText, ThemedView } from '@/design_system/components/atoms';
 import { MessageBubble } from '@/design_system/components/molecules';
 import { Avatar } from '@/design_system/components/organisms';
