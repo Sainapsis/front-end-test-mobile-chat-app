@@ -11,11 +11,11 @@ import {
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAppContext } from '@/hooks/AppContext';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { MessageBubble } from '@/components/MessageBubble';
-import { Avatar } from '@/components/Avatar';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+import { ThemedText, ThemedView } from '@/design_system/components/atoms';
+import { MessageBubble } from '@/design_system/components/molecules';
+import { Avatar } from '@/design_system/components/organisms';
+import { IconSymbol } from '@/design_system/ui/vendors';
+
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();

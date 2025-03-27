@@ -1,14 +1,14 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { ThemedText } from './ThemedText';
+import { View } from 'react-native';
+import { ThemedText } from '@/design_system/components/atoms';
 import { User } from '@/hooks/useUser';
+import { styles, getAvatarStyles, statusColors } from './Avatar.styles';
 
 interface AvatarProps {
   user?: User;
   size?: number;
   showStatus?: boolean;
 }
-
 
 const getAvatarColor = (identifier?: string): string => {
   if (!identifier) return '#C0C0C0';
@@ -41,62 +41,18 @@ const getInitials = (name?: string): string => {
 export function Avatar({ user, size = 40, showStatus = true }: AvatarProps) {
   const backgroundColor = getAvatarColor(user?.id || user?.name);
   const initials = getInitials(user?.name);
-  
-  const statusColors = {
-    online: '#4CAF50',
-    offline: '#9E9E9E',
-    away: '#FFC107',
-  };
+  const dynamicStyles = getAvatarStyles(size, backgroundColor, user?.status);
 
   return (
     <View style={styles.container}>
-      <View
-        style={[
-          styles.avatar,
-          { width: size, height: size, borderRadius: size / 2, backgroundColor }
-        ]}
-      >
-        <ThemedText style={[
-          styles.initials,
-          { fontSize: size * 0.4 }
-        ]}>
+      <View style={[styles.avatar, dynamicStyles.avatarSize]}>
+        <ThemedText style={[styles.initials, dynamicStyles.initialsSize]}>
           {initials}
         </ThemedText>
       </View>
       {showStatus && user?.status && (
-        <View
-          style={[
-            styles.statusIndicator,
-            {
-              backgroundColor: statusColors[user.status],
-              width: size / 4,
-              height: size / 4,
-              borderRadius: size / 8,
-              right: 0,
-              bottom: 0,
-            },
-          ]}
-        />
+        <View style={[styles.statusIndicator, dynamicStyles.statusSize]} />
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'relative',
-  },
-  avatar: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  initials: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  statusIndicator: {
-    position: 'absolute',
-    borderWidth: 1.5,
-    borderColor: 'white',
-  },
-}); 

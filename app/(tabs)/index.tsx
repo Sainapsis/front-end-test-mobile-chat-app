@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { FlatList, StyleSheet, Pressable, Modal } from 'react-native';
 import { useAppContext } from '@/hooks/AppContext';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { ChatListItem } from '@/components/ChatListItem';
-import { UserListItem } from '@/components/UserListItem';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import { SkeletonLoader } from '@/components/SkeletonLoader';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { ThemedText, ThemedView, EmptyState } from '@/design_system/components/atoms';
+import { SkeletonLoader } from '@/design_system/components/molecules';
+import { ChatListItem, UserListItem } from '@/design_system/components/organisms';
+import { IconSymbol } from '@/design_system/ui/vendors';
+
 import { Swipeable } from 'react-native-gesture-handler';
 
 export default function ChatsScreen() {

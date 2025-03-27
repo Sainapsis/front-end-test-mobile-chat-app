@@ -1,10 +1,11 @@
 import React from 'react';
-import { StyleSheet, Pressable } from 'react-native';
-import { IconSymbol } from './IconSymbol';
+import { Pressable } from 'react-native';
+import { ThemedText, ThemedView } from '@/design_system/components/atoms';
+import { IconSymbol } from '@/design_system/ui/vendors';
+
 import { Colors } from '@/constants/Colors';
 import { SFSymbols6_0 } from 'sf-symbols-typescript';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { styles } from './EmptyState.styles';
 
 interface EmptyStateProps {
   icon: SFSymbols6_0;
@@ -36,35 +37,3 @@ export function EmptyState({
     </ThemedView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  message: {
-    fontSize: 16,
-    textAlign: 'center',
-    color: '#666',
-    maxWidth: '80%',
-    marginBottom: 20,
-  },
-  clearButton: {
-    marginTop: 16,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: Colors.light.tint,
-  },
-  clearButtonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-});

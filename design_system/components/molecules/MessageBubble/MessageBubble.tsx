@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, StyleSheet, Alert, TouchableWithoutFeedback } from 'react-native';
-import { ThemedText } from './ThemedText';
+import { View, Alert, TouchableWithoutFeedback } from 'react-native';
+import { ThemedText } from '@/design_system/components/atoms';
 import { Message } from '@/hooks/useChats';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { styles, getBubbleColors } from './MessageBubble.styles';
 
 interface MessageBubbleProps {
   message: Message;
@@ -13,6 +14,7 @@ interface MessageBubbleProps {
 export function MessageBubble({ message, isCurrentUser, onDeleteMessage }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const bubbleColors = getBubbleColors(isDark, isCurrentUser);
 
   const handleLongPress = () => {
     if (isCurrentUser && onDeleteMessage) {
@@ -36,9 +38,8 @@ export function MessageBubble({ message, isCurrentUser, onDeleteMessage }: Messa
       <View style={[styles.container, isCurrentUser ? styles.selfContainer : styles.otherContainer]}>
         <View style={[
           styles.bubble,
-          isCurrentUser
-            ? [styles.selfBubble, { backgroundColor: isDark ? '#235A4A' : '#DCF8C6' }]
-            : [styles.otherBubble, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }]
+          isCurrentUser ? styles.selfBubble : styles.otherBubble,
+          { backgroundColor: bubbleColors.background }
         ]}>
           <ThemedText style={[styles.messageText, isCurrentUser && !isDark && styles.selfMessageText]}>
             {message.text}
@@ -53,46 +54,3 @@ export function MessageBubble({ message, isCurrentUser, onDeleteMessage }: Messa
     </TouchableWithoutFeedback>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    marginVertical: 4,
-    maxWidth: '80%',
-  },
-  selfContainer: {
-    alignSelf: 'flex-end',
-  },
-  otherContainer: {
-    alignSelf: 'flex-start',
-  },
-  bubble: {
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    elevation: 1,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-  },
-  selfBubble: {
-    borderBottomRightRadius: 4,
-  },
-  otherBubble: {
-    borderBottomLeftRadius: 4,
-  },
-  messageText: {
-    fontSize: 16,
-  },
-  selfMessageText: {
-    color: '#000000',
-  },
-  timeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 2,
-  },
-  timeText: {
-    fontSize: 11,
-    opacity: 0.7,
-  },
-});

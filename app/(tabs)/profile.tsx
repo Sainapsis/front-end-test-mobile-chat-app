@@ -2,12 +2,10 @@ import React from 'react';
 import { StyleSheet, Pressable, SafeAreaView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppContext } from '@/hooks/AppContext';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { Avatar } from '@/components/Avatar';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { SkeletonLoader } from '@/components/SkeletonLoader';
+import { ThemedText, ThemedView, EmptyState } from '@/design_system/components/atoms';
+import { SkeletonLoader } from '@/design_system/components/molecules';
+import { Avatar } from '@/design_system/components/organisms';
+import { IconSymbol } from '@/design_system/ui/vendors';
 
 export default function ProfileScreen() {
   const { currentUser, logout, loading } = useAppContext();
