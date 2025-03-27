@@ -1,5 +1,7 @@
 import React from 'react';
-import { ThemedView, ThemedText } from '@/design_system/components/atoms';
+import { ThemedText } from '@/design_system/components/atoms/ThemedText';
+import { ThemedView } from '@/design_system/components/atoms/ThemedView';
+
 import { colors } from '@/design_system/ui/tokens';
 
 import { styles } from './Badge.styles';

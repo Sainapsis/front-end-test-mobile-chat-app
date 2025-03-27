@@ -1,6 +1,8 @@
 import React from 'react';
 import { ViewStyle, TextStyle, ActivityIndicator, View, StyleProp } from 'react-native';
-import { AnimatedPressable, ThemedText } from '@/design_system/components/atoms';
+import { ThemedText } from '@/design_system/components/atoms/ThemedText';
+import { AnimatedPressable } from '@/design_system/components/atoms/Pressable';
+
 import { colors } from '@/design_system/ui/tokens';
 
 import { styles } from './Button.styles';
