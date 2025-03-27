@@ -32,3 +32,11 @@ export const deletedMessages = sqliteTable("deleted_messages", {
   chatId: text("chat_id").notNull(),
   deletedAt: integer("deleted_at").notNull(),
 });
+
+export const messageReactions = sqliteTable("message_reactions", {
+  id: text("id").primaryKey(),
+  messageId: text("message_id").notNull(),
+  userId: text("user_id").notNull(),
+  emoji: text("emoji").notNull(),
+  createdAt: integer("created_at").notNull(),
+});

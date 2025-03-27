@@ -52,6 +52,7 @@ export const colors = {
     default: '#FFFFFF',
     paper: '#F5F5F5',
     elevated: '#FFFFFF',
+    black: '#000000',
   },
 
   light: {
@@ -69,5 +70,12 @@ export const colors = {
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
+  },
+  overlay: {
+    light: 'rgba(0, 0, 0, 0.5)',
+    dark: 'rgba(255, 255, 255, 0.1)',
+  },
+  border: {
+    default: '#E0E0E0',
   },
 };

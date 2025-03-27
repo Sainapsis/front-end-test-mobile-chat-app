@@ -1,13 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../database/db';
-import { chats, chatParticipants, messages, chatParticipantsHistory, deletedMessages } from '../../database/schema';
+import { chats, chatParticipants, messages, chatParticipantsHistory, deletedMessages, messageReactions } from '../../database/schema';
 import { eq, and, or } from 'drizzle-orm';
+
+export interface MessageReaction {
+  id: string;
+  userId: string;
+  emoji: string;
+  createdAt: number;
+}
 
 export interface Message {
   id: string;
   senderId: string;
   text: string;
   timestamp: number;
+  reactions: MessageReaction[];
 }
 
 export interface Chat {
@@ -63,12 +71,6 @@ export function useChatsDb(currentUserId: string | null) {
             ...historicalParticipants.map(p => p.userId)
           ])];
 
-          const messagesData = await db
-            .select()
-            .from(messages)
-            .where(eq(messages.chatId, chatId))
-            .orderBy(messages.timestamp);
-
           // Get deleted messages for current user
           const deletedMessagesData = await db
             .select()
@@ -82,6 +84,36 @@ export function useChatsDb(currentUserId: string | null) {
 
           const deletedMessageIds = new Set(deletedMessagesData.map(dm => dm.messageId));
 
+          const messagesData = await db
+            .select()
+            .from(messages)
+            .where(eq(messages.chatId, chatId))
+            .orderBy(messages.timestamp);
+
+          // Get reactions for all messages
+          const reactionsData = await db
+            .select()
+            .from(messageReactions)
+            .where(
+              or(
+                ...messagesData.map(m => eq(messageReactions.messageId, m.id))
+              )
+            );
+
+          // Group reactions by message
+          const messageReactionsMap = reactionsData.reduce((acc, reaction) => {
+            if (!acc[reaction.messageId]) {
+              acc[reaction.messageId] = [];
+            }
+            acc[reaction.messageId].push({
+              id: reaction.id,
+              userId: reaction.userId,
+              emoji: reaction.emoji,
+              createdAt: reaction.createdAt,
+            });
+            return acc;
+          }, {} as Record<string, MessageReaction[]>);
+
           const chatMessages = messagesData
             .filter(m => !deletedMessageIds.has(m.id))
             .map(m => ({
@@ -89,6 +121,7 @@ export function useChatsDb(currentUserId: string | null) {
               senderId: m.senderId,
               text: m.text,
               timestamp: m.timestamp,
+              reactions: messageReactionsMap[m.id] || [],
             }));
 
           const lastMessage = chatMessages.length > 0 ? chatMessages[chatMessages.length - 1] : undefined;
@@ -160,6 +193,7 @@ export function useChatsDb(currentUserId: string | null) {
       });
 
       const newMessage: Message = {
+        reactions: [],
         id: messageId,
         senderId,
         text,
@@ -302,13 +336,86 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, [currentUserId]);
 
+  const addReaction = useCallback(async (messageId: string, emoji: string) => {
+    if (!currentUserId) return false;
+
+    try {
+      const reactionId = `react-${messageId}-${currentUserId}-${Date.now()}`;
+      await db.insert(messageReactions).values({
+        id: reactionId,
+        messageId,
+        userId: currentUserId,
+        emoji,
+        createdAt: Date.now(),
+      });
+
+      setUserChats(prevChats =>
+        prevChats.map(chat => ({
+          ...chat,
+          messages: chat.messages.map(msg =>
+            msg.id === messageId
+              ? {
+                  ...msg,
+                  reactions: [
+                    ...msg.reactions,
+                    {
+                      id: reactionId,
+                      userId: currentUserId,
+                      emoji,
+                      createdAt: Date.now(),
+                    },
+                  ],
+                }
+              : msg
+          ),
+        }))
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Error adding reaction:', error);
+      return false;
+    }
+  }, [currentUserId]);
+
+  const removeReaction = useCallback(async (reactionId: string, messageId: string) => {
+    if (!currentUserId) return false;
+
+    try {
+      await db
+        .delete(messageReactions)
+        .where(eq(messageReactions.id, reactionId));
+
+      setUserChats(prevChats =>
+        prevChats.map(chat => ({
+          ...chat,
+          messages: chat.messages.map(msg =>
+            msg.id === messageId
+              ? {
+                  ...msg,
+                  reactions: msg.reactions.filter(r => r.id !== reactionId),
+                }
+              : msg
+          ),
+        }))
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Error removing reaction:', error);
+      return false;
+    }
+  }, [currentUserId]);
+
   return {
     chats: userChats,
     createChat,
     sendMessage,
     deleteChat,
     clearChats,
-    deleteMessage, // Add new function to return object
+    deleteMessage,
+    addReaction,
+    removeReaction,
     loading,
   };
 }

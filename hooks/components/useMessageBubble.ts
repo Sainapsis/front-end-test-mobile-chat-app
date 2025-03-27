@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Alert } from 'react-native';
 import { getBubbleColors } from '@/design_system/components/molecules/MessageBubble/MessageBubble.styles';
@@ -7,9 +8,20 @@ interface UseMessageBubbleProps {
   message: Message;
   isCurrentUser: boolean;
   onDeleteMessage?: (messageId: string) => void;
+  onAddReaction?: (messageId: string, emoji: string) => void;
+  onRemoveReaction?: (reactionId: string, messageId: string) => void;
+  userId?: string; // Agregamos userId como prop
 }
 
-export function useMessageBubble({ message, isCurrentUser, onDeleteMessage }: UseMessageBubbleProps) {
+export function useMessageBubble({ 
+  message, 
+  isCurrentUser,
+  userId, // Recibimos userId
+  onDeleteMessage,
+  onAddReaction,
+  onRemoveReaction 
+}: UseMessageBubbleProps) {
+  const [showEmojiSelector, setShowEmojiSelector] = useState(false);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const bubbleColors = getBubbleColors(isDark, isCurrentUser);
@@ -17,15 +29,56 @@ export function useMessageBubble({ message, isCurrentUser, onDeleteMessage }: Us
   const handleLongPress = () => {
     if (isCurrentUser && onDeleteMessage) {
       Alert.alert(
-        'Delete Message',
-        'Do you want to delete this message?',
+        'Message Options',
+        'What would you like to do?',
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', onPress: () => onDeleteMessage(message.id), style: 'destructive' }
+          { 
+            text: 'Add Reaction', 
+            onPress: () => setShowEmojiSelector(true) 
+          },
+          { 
+            text: 'Delete', 
+            onPress: () => onDeleteMessage(message.id),
+            style: 'destructive' 
+          },
+          { 
+            text: 'Cancel', 
+            style: 'cancel' 
+          }
         ]
       );
+    } else {
+      setShowEmojiSelector(true);
     }
   };
 
-  return { isDark, bubbleColors, handleLongPress };
+  const handleEmojiSelected = (emoji: string) => {
+    if (!userId) return;
+
+    const hasUserReaction = message.reactions.some(reaction => reaction.userId === userId);
+    
+    if (hasUserReaction) {
+      const existingReaction = message.reactions.find(reaction => reaction.userId === userId);
+      if (existingReaction) {
+        handleRemoveReaction(existingReaction.id);
+      }
+    }
+    
+    onAddReaction?.(message.id, emoji);
+    setShowEmojiSelector(false);
+  };
+
+  const handleRemoveReaction = (reactionId: string) => {
+    onRemoveReaction?.(reactionId, message.id);
+  };
+
+  return { 
+    isDark, 
+    bubbleColors, 
+    handleLongPress,
+    showEmojiSelector,
+    setShowEmojiSelector,
+    handleEmojiSelected,
+    handleRemoveReaction
+  };
 }

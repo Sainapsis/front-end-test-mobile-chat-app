@@ -1,6 +1,6 @@
-import { useChatsDb, Chat, Message } from './db/useChatsDb';
+import { useChatsDb, Chat, Message, MessageReaction } from './db/useChatsDb';
 
-export { Chat, Message };
+export { Chat, Message, MessageReaction };
 
 export function useChats(userId: string | null) {
   const { 
@@ -11,6 +11,8 @@ export function useChats(userId: string | null) {
     clearChats,
     deleteChat,
     deleteMessage,
+    addReaction,
+    removeReaction,
   } = useChatsDb(userId);
 
   return {
@@ -21,5 +23,7 @@ export function useChats(userId: string | null) {
     clearChats,
     deleteChat,
     deleteMessage,
+    addReaction,
+    removeReaction,
   };
 }

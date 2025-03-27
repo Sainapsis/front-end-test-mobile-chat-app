@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { View, Pressable } from 'react-native';
-import { ThemedText } from '@/design_system/components/atoms';
-import { Avatar } from '@/design_system/components/organisms';
+import { ThemedText } from '@/design_system/components/atoms/ThemedText';
+import { Avatar } from '@/design_system/components/organisms/Avatar';
 import { styles } from './UserListItem.styles';
 import { useUserListItem } from '@/hooks/components/useUserListItem';
 import { User } from '@/hooks/useUser';

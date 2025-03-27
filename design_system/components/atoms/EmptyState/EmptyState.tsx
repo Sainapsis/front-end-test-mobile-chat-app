@@ -4,7 +4,7 @@ import { ThemedText } from '@/design_system/components/atoms/ThemedText';
 import { ThemedView } from '@/design_system/components/atoms/ThemedView';
 import { IconSymbol } from '@/design_system/ui/vendors';
 
-import { Colors } from '@/constants/Colors';
+import { colors as Colors } from '@/design_system/ui/tokens/colors';
 import { SFSymbols6_0 } from 'sf-symbols-typescript';
 import { styles } from './EmptyState.styles';
 

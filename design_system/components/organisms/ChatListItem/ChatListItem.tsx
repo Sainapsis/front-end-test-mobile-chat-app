@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Pressable, Animated } from 'react-native';
-import { ThemedText } from '@/design_system/components/atoms';
-import { Avatar } from '@/design_system/components/organisms';
+import { ThemedText } from '@/design_system/components/atoms/ThemedText';
+import { Avatar } from '@/design_system/components/organisms/Avatar';
 import { styles, getAnimatedStyle } from './ChatListItem.styles';
 import { useChatListItem } from '@/hooks/components/useChatListItem'; // Import the custom hook
 import { Chat } from '@/hooks/useChats';
