@@ -28,7 +28,6 @@ export function useUserDb() {
         const token = await SecureStore.getItemAsync('token');
         if (token) {
           const currentUserName = await AsyncStorage.getItem('username')
-          console.log(currentUserName, "currentUserName")
           const localUserData = await db.select().from(users).where(eq(users.username, currentUserName || ''))
           if (localUserData && localUserData.length === 0) {
             const remoteUserData = await get('/user/userProfileData')

@@ -16,7 +16,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export default function ChatsScreen() {
   // Retrieve current user, users list, chats and functions from global context
-  const { currentUser, users, chats, createChat } = useAppContext();
+  const { currentUser, users, chats, createChat, loading } = useAppContext();
 
   // Local state to control modal visibility and selection of users for a new chat
   const [modalVisible, setModalVisible] = useState(false);
@@ -98,10 +98,14 @@ export default function ChatsScreen() {
 
   // Render component to show when there are no chats
   const renderEmptyComponent = () => (
-    <ThemedView style={styles.emptyContainer}>
-      <ThemedText style={styles.emptyTextTitle}>No chats yet</ThemedText>
-      <ThemedText style={styles.emptyTextSubtitle}>Tap the + button to start a new conversation</ThemedText>
-    </ThemedView>
+    <>
+      {!loading &&
+        <ThemedView style={styles.emptyContainer}>
+          <ThemedText style={styles.emptyTextTitle}>No chats yet</ThemedText>
+          <ThemedText style={styles.emptyTextSubtitle}>Tap the + button to start a new conversation</ThemedText>
+        </ThemedView>
+      }
+    </>
   );
 
   return (

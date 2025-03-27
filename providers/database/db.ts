@@ -31,6 +31,7 @@ export async function initializeDatabase() {
         last_message_time INTEGER,
         unread_messages INTEGER,
         last_message_sender TEXT,
+        last_message_sender_id TEXT,
         chat_status TEXT
       );
     `);

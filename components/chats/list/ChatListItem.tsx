@@ -41,19 +41,19 @@ export function ChatListItem({ chat, currentUserId }: ChatListItemProps) {
     }
   }, [chat.lastMessage]);
 
-  const isCurrentUserLastSender = true;
+  const isCurrentUserLastSender = currentUserId === chat.lastMessageSenderId;
 
   return (
     <Pressable style={styles.container} onPress={handlePress}>
       <Avatar
-        userName='Jhon Doe'
+        userName={chat.chatName}
         size={50}
         status={chat.chatStatus as "online" | "offline" | "away"}
       />
       <View style={styles.contentContainer}>
         <View style={styles.topRow}>
           <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.name}>
-            {"Jhon Doe"}
+            {chat.chatName}
           </ThemedText>
           {timeString && (
             <ThemedText style={styles.time}>{timeString}</ThemedText>

@@ -26,14 +26,6 @@ export default function ChatRoomScreen() {
   const router = useRouter();
 
   const chat = chats.find(c => c.id === chatId);
-  // const chatParticipants = chat?.participants
-  //   .filter(id => id !== currentUser?.id)
-  //   .map(id => chat.participantsData?.find(user => user.id === id))
-  //   .filter(Boolean) || [];
-
-  // const chatName = chatParticipants.length === 1
-  //   ? chatParticipants[0]?.name
-  //   : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
 
   const handleSendMessage = () => {
     if (messageText.trim() && currentUser && chat) {
@@ -43,7 +35,6 @@ export default function ChatRoomScreen() {
   };
 
   useEffect(() => {
-    console.log(chat)
     if (chat?.messages?.length && chat.messages.length > 0 && flatListRef.current) {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: false });
@@ -87,7 +78,7 @@ export default function ChatRoomScreen() {
                 status={chat.chatStatus as "online" | "offline" | "away"}
               />
               <ThemedText type="defaultSemiBold" numberOfLines={1}>
-                {""}
+                {chat.chatName}
               </ThemedText>
             </View>
           ),

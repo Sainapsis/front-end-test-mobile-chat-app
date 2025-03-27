@@ -7,6 +7,7 @@ export const chats = sqliteTable("chats", {
   lastMessageTime: integer("last_message_time"),
   unreadedMessages: integer("unread_messages"),
   lastMessageSender: text("last_message_sender"),
+  lastMessageSenderId: text("last_message_sender_id"),
   chatStatus: text("chat_status"),
 });
 

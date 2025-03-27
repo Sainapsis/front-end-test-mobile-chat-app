@@ -2,12 +2,13 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { db } from '@/providers/database/db';
 import { chats, chatParticipants, messages, users } from '@/providers/database/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { User } from '@/hooks/user/useUser';
 import { useApi } from '../api/useApi';
 import * as SecureStore from 'expo-secure-store';
 import { io, Socket } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 
 export interface Message {
   id: string;
@@ -28,6 +29,7 @@ export interface Chat {
   lastMessageTime: number;
   unreadedMessages: number;
   lastMessageSender: string;
+  lastMessageSenderId: string,
   chatStatus: string;
   messages?: Message[];
 }
@@ -53,23 +55,37 @@ export function useChatsDb(currentUserId: string | null) {
     timestamp: Date.parse(message.timestamp),
     responseText: message.responseText ?? undefined,
     mediaUri: message.mediaUri ?? undefined,
-    // Ensure that 'readed' is a number (0 or 1)
     readed: message.readBy.length === chat.members.length ? 1 : 0,
   });
 
+  const transformChatToDbFormat = (chat: any, otherUser: any, myUser: any): Chat => ({
+    id: chat._id,
+    lastMessage: chat.lastMessage?.content ?? "",
+    chatName: `${otherUser.firstName} ${otherUser.lastName}`,
+    lastMessageTime: chat.lastMessage ? Date.parse(chat.lastMessage.timestamp) : 0,
+    unreadedMessages: chat.unreadCounts[myUser._id] ?? 0,
+    lastMessageSender: chat.lastMessage
+      ? `${chat.lastMessage.sender.firstName} ${chat.lastMessage.sender.lastName}`
+      : "",
+    lastMessageSenderId: chat.lastMessage
+      ? chat.lastMessage.sender.senderId
+      : "",
+    chatStatus: otherUser.status || 'offline',
+  })
+
 
   // Function to insert a chat into the database (if it doesn't exist)
-  const storeChatDb = async (chatToStore: Chat) => {
-    await db.insert(chats).values({
-      id: chatToStore.id,
-      lastMessage: chatToStore.lastMessage,
-      chatName: chatToStore.chatName,
-      lastMessageTime: chatToStore.lastMessageTime,
-      unreadedMessages: chatToStore.unreadedMessages,
-      lastMessageSender: chatToStore.lastMessageSender,
-      chatStatus: chatToStore.chatStatus,
-    });
-  };
+  // const storeChatDb = async (chatToStore: Chat) => {
+  //   await db.insert(chats).values({
+  //     id: chatToStore.id,
+  //     lastMessage: chatToStore.lastMessage,
+  //     chatName: chatToStore.chatName,
+  //     lastMessageTime: chatToStore.lastMessageTime,
+  //     unreadedMessages: chatToStore.unreadedMessages,
+  //     lastMessageSender: chatToStore.lastMessageSender,
+  //     chatStatus: chatToStore.chatStatus,
+  //   });
+  // };
 
   // Function to process a chat received from the API.
   // Receives the chat and the currentUserId as parameters.
@@ -84,34 +100,102 @@ export function useChatsDb(currentUserId: string | null) {
     );
 
     // Insert messages into the DB
-    await db.insert(messages).values(messagesToStore);
+    await db.insert(messages).values(messagesToStore).onConflictDoUpdate({
+      target: messages.id,
+      set: {
+        chatId: sql`excluded.chat_id`,
+        senderId: sql`excluded.sender_id`,
+        senderName: sql`excluded.sender_name`,
+        text: sql`excluded.text`,
+        timestamp: sql`excluded.timestamp`,
+        responseText: sql`excluded.response_text`,
+        mediaUri: sql`excluded.media_uri`,
+        readed: sql`excluded.readed`,
+      }
+    });
+
+    const chatToStore: Chat = transformChatToDbFormat(chat, otherUser, myUser)
 
     // Sort the messages by timestamp
-    const orderedMessages = await orderByTimeStamp(messagesToStore, 'timestamp', true);
+    // const orderedMessages = await orderByTimeStamp(messagesToStore, 'timestamp', true);
 
     // Build the Chat object
-    const chatToStore: Chat = {
-      id: chat._id,
-      lastMessage: chat.lastMessage?.content ?? "",
-      chatName: `${otherUser.firstName} ${otherUser.lastName}`,
-      lastMessageTime: chat.lastMessage ? Date.parse(chat.lastMessage.timestamp) : 0,
-      unreadedMessages: chat.unreadCounts[myUser._id] ?? 0,
-      lastMessageSender: chat.lastMessage
-        ? `${chat.lastMessage.sender.firstName} ${chat.lastMessage.sender.lastName}`
-        : "",
-      chatStatus: otherUser.status || 'offline',
-      messages: orderedMessages,
-    };
+    // const chatToStore: Chat = {
+    //   id: chat._id,
+    //   lastMessage: chat.lastMessage?.content ?? "",
+    //   chatName: `${otherUser.firstName} ${otherUser.lastName}`,
+    //   lastMessageTime: chat.lastMessage ? Date.parse(chat.lastMessage.timestamp) : 0,
+    //   unreadedMessages: chat.unreadCounts[myUser._id] ?? 0,
+    //   lastMessageSender: chat.lastMessage
+    //     ? `${chat.lastMessage.sender.firstName} ${chat.lastMessage.sender.lastName}`
+    //     : "",
+    //   chatStatus: otherUser.status || 'offline',
+    //   messages: orderedMessages,
+    // };
 
     // Store the chat in the database
-    await storeChatDb(chatToStore);
+    // await storeChatDb(chatToStore);
+    await db.insert(chats).values(chatToStore).onConflictDoUpdate({
+      target: chats.id,
+      set: {
+        lastMessage: sql`excluded.last_message`,
+        chatName: sql`excluded.chat_name`,
+        lastMessageTime: sql`excluded.last_message_time`,
+        unreadedMessages: sql`excluded.unread_messages`,
+        lastMessageSender: sql`excluded.last_message_sender`,
+        chatStatus: sql`excluded.chat_status`,
+      }
+    });
     return chatToStore;
   };
   const syncChatsData = async () => {
-    const chatsData = await get('/chat/getChats');
-    const chatPromises = chatsData.map((chat: any) => processChat(chat, currentUserId || ''));
-    await Promise.all(chatPromises);
-    await AsyncStorage.setItem('has_logged_in_before', 'true')
+    try {
+      const chatsData = await get('/chat/getChats');
+      const chatPromises = chatsData.map((chat: any) => processChat(chat, currentUserId || ''));
+      await Promise.all(chatPromises);
+      await AsyncStorage.setItem('has_logged_in_before', 'true')
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        if (!err.response) {
+          console.log("Offline mode", Date.now());
+          const retryInterval = setInterval(async () => {
+            try {
+              const chatsData = await get('/chat/getChats');
+              clearInterval(retryInterval);
+              const chatPromises = chatsData.map((chat: any) => processChat(chat, currentUserId || ''));
+              await Promise.all(chatPromises);
+            } catch (err) {
+              console.log("Offline mode", Date.now());
+            }
+          }, 60000)
+        } else {
+          console.log("Error connecting to server", err.message)
+        }
+      } else {
+        console.log("Unexpected error syncing to server")
+      }
+    }
+  }
+
+  const setChatStatesFromDB = async () => {
+    try {
+      const chatData = await db.select().from(chats);
+      const chatPromises = chatData.map(async (chat: any): Promise<Chat> => {
+        const chatMessages = await db
+          .select()
+          .from(messages)
+          .where(eq(messages.chatId, chat.id));
+        return {
+          ...chat,
+          messages: chatMessages,
+        };
+      })
+      const disorderedChats = await Promise.all(chatPromises);
+      const orderedChats = await orderByTimeStamp(disorderedChats, "lastMessageTime");
+      setUserChats(orderedChats);
+    } catch (err) {
+      console.error('Error setting chat states from DB:', err);
+    }
   }
   // Memoized loadChats function that loads chats when the user logs in or on demand
   const loadChats = useCallback(async () => {
@@ -120,19 +204,16 @@ export function useChatsDb(currentUserId: string | null) {
       return;
     }
     try {
-      const hasLoggedInBefore = await AsyncStorage.getItem('has_logged_in_before')
-      if (!hasLoggedInBefore) {
-        await syncChatsData()
-      }
-
-      //const orderedChats = await orderByTimeStamp(allChats, "lastMessageTime");
-      //setUserChats(orderedChats);
+      setLoading(true);
+      console.log("Syncronizing chats")
+      await syncChatsData()
+      await setChatStatesFromDB()
     } catch (err) {
       console.error('Error loading chats:', err);
     } finally {
       setLoading(false);
     }
-  }, [currentUserId, get]);
+  }, [currentUserId]);
 
   // Run loadChats only when the currentUserId changes (i.e. on login)
   useEffect(() => {
@@ -141,7 +222,6 @@ export function useChatsDb(currentUserId: string | null) {
 
   // Set up socket connection and listen for events
   useEffect(() => {
-    console.log('currentUserId:', currentUserId);
     if (!currentUserId) return;
 
     const socket: Socket = io('http://192.168.20.82:3000/socket', {
@@ -155,8 +235,10 @@ export function useChatsDb(currentUserId: string | null) {
       socket.emit('user:join', { userId: currentUserId });
     });
 
-    socket.on('newMessage', (message) => {
+    socket.on('newMessage', async (message) => {
       console.log('Received new message notification:', message);
+      await syncChatsData()
+      await setChatStatesFromDB()
     });
 
     return () => {
@@ -184,7 +266,7 @@ export function useChatsDb(currentUserId: string | null) {
   const updateReadStatus = useCallback(async (userId: string, chatId: string) => {
     try {
       // TODO
-      loadChats();
+      //loadChats();
     } catch (error) {
       console.error('Error updating read status:', error);
     }
