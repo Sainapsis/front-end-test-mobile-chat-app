@@ -65,6 +65,21 @@ export class ChatController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('markAsRead')
+  async marAsRead(@Request() req): Promise<any> {
+    const chatData = req.body;
+    const createdBy = req.user;
+    try {
+      const message = await this.chatService.markMessagesAsRead(chatData.chatId, createdBy._id);
+      await this.chatService.markChatAsRead(chatData.chatId, createdBy._id);
+      return message;
+    } catch (err) {
+      this.logger.error('Something went wrong at creating message', err);
+      throw new HttpException({ status: HttpStatus.BAD_REQUEST, name: err.name, message: err.message }, HttpStatus.BAD_REQUEST)
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get(':chatId/messages')
   async getMessagesPaginated(
     @Param('chatId') chatId: string,

@@ -10,11 +10,10 @@ import { IconSymbol } from '@/components/ui/icons/IconSymbol';
 interface MessageBubbleProps {
   message: Message;
   isCurrentUser: boolean;
-  otherUser: User | undefined;
   isReaded: boolean;
 }
 
-export function MessageBubble({ message, isCurrentUser, otherUser, isReaded }: MessageBubbleProps) {
+export function MessageBubble({ message, isCurrentUser, isReaded }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -29,7 +28,7 @@ export function MessageBubble({ message, isCurrentUser, otherUser, isReaded }: M
         <ThemedText style={[styles.timeText, isCurrentUser
           ? [styles.selfContainer]
           : [styles.otherContainer, styles.otherText]]}>
-          {isCurrentUser ? '' : otherUser?.name + ' '}{formatTime(message.timestamp)}
+          {isCurrentUser ? '' : message.senderName + ' '}{formatTime(message.timestamp)}
           {message.readed ?
             <IconSymbol name="checkmark" color="#808080" size={16}></IconSymbol> : <></>
           }
@@ -41,7 +40,7 @@ export function MessageBubble({ message, isCurrentUser, otherUser, isReaded }: M
       ]}>
         <View style={styles.bubbleContainer}>
           <View style={styles.avatar}>
-            {isCurrentUser ? <></> : <Avatar userName={otherUser?.name} size={30} status={otherUser?.status}></Avatar>}
+            {isCurrentUser ? <></> : <Avatar userName={message.senderName} size={30} status={"online"}></Avatar>}
           </View>
           <View style={[
             styles.bubble,

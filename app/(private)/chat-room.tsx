@@ -6,6 +6,7 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -41,14 +42,26 @@ export default function ChatRoomScreen() {
     }
   };
 
-  // useEffect(() => {
-  //   if (chat?.messages.length && flatListRef.current) {
-  //     setTimeout(() => {
-  //       flatListRef.current?.scrollToEnd({ animated: true });
-  //     }, 100);
-  //   }
-  // }, [chat?.messages.length]);
-
+  useEffect(() => {
+    console.log(chat)
+    if (chat?.messages?.length && chat.messages.length > 0 && flatListRef.current) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: false });
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 200);
+      }, 100);
+    }
+    }, [chat?.messages?.length]);
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      // Scroll to the end when the keyboard appears
+      flatListRef.current?.scrollToEnd({ animated: false });
+    });
+    return () => {
+      keyboardDidShowListener.remove();
+    };
+  }, []);
   if (!chat || !currentUser) {
     return (
       <ThemedView style={styles.centerContainer}>
@@ -60,7 +73,7 @@ export default function ChatRoomScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <StatusBar style="auto" />
@@ -94,7 +107,6 @@ export default function ChatRoomScreen() {
           <MessageBubble
             message={item}
             isCurrentUser={item.senderId === currentUser.id}
-            otherUser={undefined}
             isReaded={item.readed}
           />
         )}
@@ -104,8 +116,9 @@ export default function ChatRoomScreen() {
             <ThemedText>No messages yet. Say hello! {chat.chatStatus}</ThemedText>
           </ThemedView>
         )}
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
       />
-      <ThemedInput shouldShowButton={true} textValue={messageText} setTextValue={setMessageText} handleSendMessage={handleSendMessage} placeholder="Write a message"></ThemedInput>
+      <ThemedInput shouldShowButton={true} textValue={messageText} setTextValue={setMessageText} handleSendMessage={handleSendMessage} placeholder="Write a message" style={styles.messageInput}></ThemedInput>
     </KeyboardAvoidingView>
   );
 }
@@ -113,6 +126,9 @@ export default function ChatRoomScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  messageInput: {
+    paddingBottom: Platform.OS === 'ios' ? 10 : 0
   },
   centerContainer: {
     flex: 1,
@@ -126,7 +142,7 @@ const styles = StyleSheet.create({
   },
   messagesContainer: {
     padding: 10,
-    flexGrow: 1,
+    flexGrow: 1
   },
   emptyContainer: {
     flex: 1,
