@@ -11,14 +11,13 @@ import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-
-// BL
-import { useColorScheme } from "@/hooks/useColorScheme";
-import { AppProvider, useAppContext } from "@/hooks/AppContext";
-import { DrizzleStudioDevTool } from "@/database/DrizzleStudio";
 import Toast from "react-native-toast-message";
 
-// UI
+// BL
+import { useColorScheme } from "@/lib/hooks/useColorScheme";
+import { AppProvider, useAppContext } from "@/hooks/AppContext";
+import { DrizzleStudioDevTool } from "@/lib/database/DrizzleStudio";
+
 
 SplashScreen.preventAutoHideAsync();
 

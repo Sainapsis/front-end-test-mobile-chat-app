@@ -5,7 +5,7 @@
     "paths": {
       "@/*": ["./*"],
       "@/app/*": ["./app/*"],
-      "@/components/*": ["./components/*"],
+      "@/components/*": ["UI/components/*"],
       "@/hooks/*": ["./hooks/*"],
       "@/drizzle/*": ["./drizzle/*"]
     }

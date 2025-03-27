@@ -17,18 +17,19 @@ import { StatusBar } from "expo-status-bar";
 import { useAppContext } from "@/hooks/AppContext";
 
 // UI
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import { MessageBubble } from "@/components/molecules/MessageBubble";
-import { Avatar } from "@/components/atoms/Avatar";
-import { IconSymbol } from "@/components/ui/IconSymbol";
+import { ThemedText } from "@/UI/components/atoms/ThemedText";
+import { ThemedView } from "@/UI/components/atoms/ThemedView";
+import { MessageBubble } from "@/UI/components/molecules/MessageBubble";
+import { Avatar } from "@/UI/components/atoms/Avatar";
+import { IconSymbol } from "@/UI/components/ui/IconSymbol";
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const { currentUser, users, chats, sendMessage } = useAppContext();
-  const [messageText, setMessageText] = useState("");
-  const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
+  const flatListRef = useRef<FlatList>(null);
+
+  const [messageText, setMessageText] = useState("");
 
   const chat = chats.find((c) => c.id === chatId);
 
@@ -163,6 +164,7 @@ const styles = StyleSheet.create({
   messagesContainer: {
     padding: 10,
     gap: 10,
+    paddingBottom: 10,
     flexGrow: 1,
   },
   emptyContainer: {
@@ -174,6 +176,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     padding: 10,
+    paddingBottom: 50,
     alignItems: "flex-end",
     borderTopWidth: 1,
     borderTopColor: "#E1E1E1",

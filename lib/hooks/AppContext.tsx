@@ -2,10 +2,10 @@
 import React, { createContext, useContext, ReactNode } from "react";
 
 // BL
-import { useUser } from "@/lib/hooks/useUser";
-import { useChats } from "@/lib/hooks/useChats";
-import { DatabaseProvider } from "@/lib/database/DatabaseProvider";
-import { useDatabase } from "@/lib/hooks/useDatabase";
+import { useUser } from "./useUser";
+import { useChats } from "./useChats";
+import { DatabaseProvider } from "../database/DatabaseProvider";
+import { useDatabase } from "./useDatabase";
 import {
   SendMessageInterface,
   ChatInterface,

@@ -1,19 +1,19 @@
 // TP
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FlatList, StyleSheet, Pressable, Modal } from "react-native";
 import Toast from "react-native-toast-message";
 
 // BL
 import { useAppContext } from "@/hooks/AppContext";
+import { handleCreateChatProps } from "@/lib/interfaces/Messages.interface";
+import { isChatAlreadyCreated } from "@/lib/helpers/isChatAlreadyCreated";
 
 // UI
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import { ChatListItem } from "@/components/ChatListItem";
-import { UserListItem } from "@/components/UserListItem";
-import { IconSymbol } from "@/components/ui/IconSymbol";
-import { handleCreateChatProps } from "@/interfaces/Messages.interface";
-import { isChatAlreadyCreated } from "@/bl/helpers/isChatAlreadyCreated";
+import { ThemedText } from "@/UI/components/atoms/ThemedText";
+import { ThemedView } from "@/UI/components/atoms/ThemedView";
+import { ChatListItem } from "@/UI/components/organisms/ExistingChatsModal/ChatListItem";
+import { UserListItem } from "@/UI/components/molecules/UserListItem";
+import { IconSymbol } from "@/UI/components/ui/IconSymbol";
 
 export default function ChatsScreen() {
   const { currentUser, users, chats, createChat } = useAppContext();
