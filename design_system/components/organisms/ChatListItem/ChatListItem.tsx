@@ -3,7 +3,7 @@ import { View, Pressable, Animated } from 'react-native';
 import { ThemedText } from '@/design_system/components/atoms/ThemedText';
 import { Avatar } from '@/design_system/components/organisms/Avatar';
 import { styles, getAnimatedStyle } from './ChatListItem.styles';
-import { useChatListItem } from '@/hooks/components/useChatListItem'; // Import the custom hook
+import { useChatListItem } from '@/hooks/components/useChatListItem';
 import { Chat } from '@/hooks/useChats';
 import { User } from '@/hooks/useUser';
 
@@ -11,7 +11,7 @@ interface ChatListItemProps {
   chat: Chat;
   currentUserId: string;
   users: User[];
-  onLongPress?: () => void; // Se agrega la prop opcional
+  onLongPress?: () => void;
 }
 
 export function ChatListItem({ chat, currentUserId, users, onLongPress }: ChatListItemProps) {
@@ -30,7 +30,7 @@ export function ChatListItem({ chat, currentUserId, users, onLongPress }: ChatLi
   return (
     <Pressable 
       onPress={handlePress}
-      onLongPress={onLongPress}
+      //onLongPress={onLongPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
     >

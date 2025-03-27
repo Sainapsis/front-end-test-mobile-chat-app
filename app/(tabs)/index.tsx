@@ -7,8 +7,11 @@ import { ChatListItem, UserListItem } from '@/design_system/components/organisms
 import { IconSymbol } from '@/design_system/ui/vendors';
 
 import { Swipeable } from 'react-native-gesture-handler';
+import { spacing } from '@/design_system/ui/tokens';
+import { useRouter } from 'expo-router';
 
 export default function ChatsScreen() {
+  const router = useRouter();
   const { currentUser, users, chats, createChat, loading, clearChats, deleteChat } = useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
@@ -91,17 +94,30 @@ export default function ChatsScreen() {
           </Pressable>
         )}
         <ThemedText type="title">Chats</ThemedText>
-        <Pressable
-          style={styles.newChatButton}
-          onPress={() => setModalVisible(true)}
-          disabled={loading}
-        >
-          <IconSymbol 
-            name="plus" 
-            size={24} 
-            color={loading ? '#CCCCCC' : '#007AFF'} 
-          />
-        </Pressable>
+        <ThemedView style={styles.headerButtons}>
+          <Pressable
+            style={styles.iconButton}
+            onPress={() => router.push('/search')}
+            disabled={loading}
+          >
+            <IconSymbol 
+              name="magnifyingglass" 
+              size={24} 
+              color={loading ? '#CCCCCC' : '#007AFF'} 
+            />
+          </Pressable>
+          <Pressable
+            style={styles.iconButton}
+            onPress={() => setModalVisible(true)}
+            disabled={loading}
+          >
+            <IconSymbol 
+              name="plus" 
+              size={24} 
+              color={loading ? '#CCCCCC' : '#007AFF'} 
+            />
+          </Pressable>
+        </ThemedView>
       </ThemedView>
 
       <FlatList
@@ -195,6 +211,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 20,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
   },
   newChatButton: {
     width: 40,

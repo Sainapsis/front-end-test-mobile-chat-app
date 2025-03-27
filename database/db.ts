@@ -102,3 +102,56 @@ export async function initializeDatabase() {
     throw error;
   }
 }
+
+export async function searchMessages(searchTerm: string, userId: string) {
+  try {
+    console.log('Search params:', { searchTerm, userId });
+
+    const query = `
+      SELECT 
+        m.*,
+        c.id AS chat_id,
+        (SELECT COALESCE(u.name, cph.user_id) 
+         FROM users u
+         LEFT JOIN chat_participants_history cph ON u.id = cph.user_id
+         WHERE (cph.chat_id = m.chat_id OR u.id IN (
+           SELECT user_id FROM chat_participants WHERE chat_id = m.chat_id
+         ))
+         AND u.id != ?
+         ORDER BY cph.left_at DESC LIMIT 1) AS chat_partner_name,
+        (SELECT GROUP_CONCAT(COALESCE(u2.name, cph2.user_id), ', ') 
+         FROM users u2
+         LEFT JOIN chat_participants_history cph2 ON u2.id = cph2.user_id
+         WHERE cph2.chat_id = m.chat_id OR u2.id IN (
+           SELECT user_id FROM chat_participants WHERE chat_id = m.chat_id
+         )) AS participant_names
+      FROM messages m
+      INNER JOIN chats c ON m.chat_id = c.id
+      INNER JOIN chat_participants cp ON c.id = cp.chat_id
+      INNER JOIN users u ON cp.user_id = u.id
+      LEFT JOIN deleted_messages dm ON m.id = dm.message_id AND dm.user_id = ?
+      WHERE cp.user_id = ?
+        AND m.text LIKE ?
+        AND dm.id IS NULL
+      GROUP BY m.id, c.id
+      ORDER BY m.timestamp DESC
+      LIMIT 50
+    `;
+
+    const stmt = await sqlite.prepareAsync(query);
+    const params = [userId, userId, userId, `%${searchTerm}%`];
+    const statement = await stmt.executeAsync(params);
+    const results = await statement.getAllAsync();
+    
+    await stmt.finalizeAsync();
+    return results;
+  } catch (error) {
+    console.error('Error searching messages:', error);
+    throw error;
+  }
+}
+
+
+
+
+
