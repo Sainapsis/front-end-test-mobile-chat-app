@@ -15,22 +15,13 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 export default function ChatsScreen() {
-  // Retrieve current user, users list, chats and functions from global context
   const { currentUser, users, chats, createChat, loading } = useAppContext();
-
-  // Local state to control modal visibility and selection of users for a new chat
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-
-  // State for search functionality and filtered chats list
   const [searchText, setSearchText] = useState('');
   const [filteredChats, setFilteredChats] = useState<Chat[]>([]);
-
-  // Animated value to control the header's height and opacity when searching
   const headerAnim = useRef(new Animated.Value(1)).current;
-  // Ref to store the previous search text, used to detect transitions between empty and non-empty search
   const prevTextRef = useRef<string>('');
-  // Ref to hold the debounce timeout for search
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Effect to animate the header when the search text changes from empty to non-empty and vice versa

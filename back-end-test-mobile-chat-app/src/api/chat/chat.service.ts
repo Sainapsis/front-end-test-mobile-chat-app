@@ -57,6 +57,8 @@ export class ChatService {
       content:createdMessage.content,
       media: createdMessage.media,
       response: createdMessage.response,
+      responseTo: createdMessage.responseTo,
+      responseId: createdMessage.responseId,
       timestamp: new Date(),
       sender: new mongoose.Types.ObjectId(userId),
       chatId: new mongoose.Types.ObjectId(createdMessage.chatId),

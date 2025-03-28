@@ -53,11 +53,11 @@ export function useChatsDb(currentUserId: string | null) {
     senderName: `${message.sender.firstName} ${message.sender.lastName}`,
     text: message.content,
     timestamp: Date.parse(message.timestamp),
-    responseText: message.responseText ?? undefined,
+    responseText: message.response ?? undefined,
     mediaUri: message.mediaUri ?? undefined,
     readed: message.readBy.length === chat.members.length ? 1 : 0,
-    responseTo: message.response?? undefined,
-    responseId: message.responseId?? undefined,
+    responseTo: message.responseTo ?? undefined,
+    responseId: message.responseId ?? undefined,
   });
 
   const transformChatToDbFormat = (chat: any, otherUser: any, myUser: any): Chat => ({
@@ -81,25 +81,39 @@ export function useChatsDb(currentUserId: string | null) {
     const otherUser = chat.members.find((user: any) => user._id !== currentUserId);
     const myUser = chat.members.find((user: any) => user._id === currentUserId);
     // Get chat messages from the API
-    const messagesFromAPI = await get(`/chat/${chat._id}/messages`);
-    const messagesToStore: Message[] = messagesFromAPI.map((message: any) =>
-      transformMessageToDbFormat(chat, message)
-    );
+    const remoteMessagesData = await get(`/chat/${chat._id}/messages`);
+    if (remoteMessagesData.length > 0) {
+      const messagesToStore: Message[] = remoteMessagesData.map((message: any) =>
+        transformMessageToDbFormat(chat, message)
+      );
 
-    // Insert messages into the DB
-    await db.insert(messages).values(messagesToStore).onConflictDoUpdate({
-      target: messages.id,
-      set: {
-        chatId: sql`excluded.chat_id`,
-        senderId: sql`excluded.sender_id`,
-        senderName: sql`excluded.sender_name`,
-        text: sql`excluded.text`,
-        timestamp: sql`excluded.timestamp`,
-        responseText: sql`excluded.response_text`,
-        mediaUri: sql`excluded.media_uri`,
-        readed: sql`excluded.readed`,
-      }
-    });
+      // Insert messages into the DB
+      await db.insert(messages).values(messagesToStore).onConflictDoUpdate({
+        target: messages.id,
+        set: {
+          chatId: sql`excluded.chat_id`,
+          senderId: sql`excluded.sender_id`,
+          senderName: sql`excluded.sender_name`,
+          text: sql`excluded.text`,
+          timestamp: sql`excluded.timestamp`,
+          responseText: sql`excluded.response_text`,
+          responseTo: sql`excluded.response_to`,
+          responseId: sql`excluded.response_id`,
+          mediaUri: sql`excluded.media_uri`,
+          readed: sql`excluded.readed`,
+        }
+      });
+    }
+
+    const remoteMessagesIds = remoteMessagesData.map((message: any) => message._id);
+    const localMessages = await db.select().from(messages).where(eq(messages.chatId,chat._id));
+    const idsToDelete = localMessages
+      .map((message: any) => message.id)
+      .filter((localId: string) => !remoteMessagesIds.includes(localId));
+
+    for (const id of idsToDelete) {
+      await db.delete(messages).where(eq(messages.id, id));
+    }
 
     const chatToStore: Chat = transformChatToDbFormat(chat, otherUser, myUser)
 
@@ -119,10 +133,18 @@ export function useChatsDb(currentUserId: string | null) {
   };
   const syncChatsData = async () => {
     try {
-      const chatsData = await get('/chat/getChats');
-      const chatPromises = chatsData.map((chat: any) => processChat(chat, currentUserId || ''));
+      const remoteChatsData = await get('/chat/getChats');
+      const chatPromises = remoteChatsData.map((chat: any) => processChat(chat, currentUserId || ''));
       await Promise.all(chatPromises);
-      await AsyncStorage.setItem('has_logged_in_before', 'true')
+      const remoteChatIds = remoteChatsData.map((chat: any) => chat._id);
+      const localChats = await db.select().from(chats);
+      const idsToDelete = localChats
+        .map((chat: any) => chat.id)
+        .filter((localId: string) => !remoteChatIds.includes(localId));
+      for (const id of idsToDelete) {
+        await db.delete(chats).where(eq(chats.id, id));
+        await db.delete(messages).where(eq(messages.chatId, id));
+      }
     } catch (err) {
       if (axios.isAxiosError(err)) {
         if (!err.response) {
@@ -221,11 +243,12 @@ export function useChatsDb(currentUserId: string | null) {
 
   const sendMessage = useCallback(async (chatId: string, message: any) => {
     if (!message.content.trim()) return false;
+    console.log(message, 'message before sending')
     try {
       setLoading(true);
       let response = await post("/chat/sendMessage", { chatId, ...message })
-      if(response){
-        setTimeout(async () =>{
+      if (response) {
+        setTimeout(async () => {
           await loadChats()
         }, 1000)
       }
@@ -238,7 +261,6 @@ export function useChatsDb(currentUserId: string | null) {
 
   const updateReadStatus = useCallback(async (userId: string, chatId: string) => {
     try {
-      console.log('here')
       await post("/chat/markAsRead", { chatId })
       await loadChats(false);
     } catch (error) {
