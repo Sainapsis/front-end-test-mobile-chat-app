@@ -3,7 +3,7 @@
 ## Features
 - Design system for Chat App using styles as shown in the Bridge app.
 - Information and UI/elements about unreaded messages
-- Search messages by user name
+- Search messages by user name and message content
 - Data fetch by backend node in node JS and bussiness logic isolated from front end 
 - If and user have already logged in into the aplication, its profile is saved, and it could be switched easily
 - Chat logic managed by web sockets for real time communication
