@@ -86,7 +86,6 @@ export class ChatService {
     for (const member of chatData.members) {
       if (member.toString() !== userId.toString()) {
         chatData.unreadCounts[member.toString()] = (chatData.unreadCounts[member.toString()] || 0) + 1;
-        console.log(chatData.unreadCounts[member.toString()])
       }
     }
     chatData.markModified('unreadCounts');

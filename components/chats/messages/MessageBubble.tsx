@@ -49,6 +49,17 @@ export function MessageBubble({ message, isCurrentUser, isReaded }: MessageBubbl
               ? [styles.selfBubble, { backgroundColor: isDark ? Colors.dark.chatBubble.backgroundSelf : Colors.light.chatBubble.backgroundSelf }]
               : [styles.otherBubble, { backgroundColor: isDark ? Colors.dark.chatBubble.backgroundOther : Colors.light.chatBubble.backgroundOther }]
           ]}>
+            <View style={[styles.response, {backgroundColor: isDark ? 'rgba(0,0,0,0.5)': 'rgba(61,99,201,0.1)', borderColor: Colors.light.chatBubble.responseBorder}]}>
+              <ThemedText style={[
+                styles.messageText,
+                styles.responseTitle
+              ]}>John Doe</ThemedText>
+              <ThemedText style={[
+                styles.messageText,
+                isCurrentUser && !isDark && styles.selfMessageText
+              ]}
+              >response response response response response response</ThemedText>
+            </View>
             <ThemedText style={[
               styles.messageText,
               isCurrentUser && !isDark && styles.selfMessageText
@@ -98,6 +109,7 @@ const styles = StyleSheet.create({
   },
   messageText: {
     fontSize: 16,
+    lineHeight: 18,
   },
   selfMessageText: {
     color: '#000000',
@@ -114,5 +126,17 @@ const styles = StyleSheet.create({
   },
   avatar: {
     marginRight: 5
+  },
+  response: {
+    width: 'auto',
+    maxHeight: 80,
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+    borderLeftWidth: 5
+  },
+  responseTitle:{
+    fontWeight: 600,
+    marginBottom: 5,
   }
 }); 

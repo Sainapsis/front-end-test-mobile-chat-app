@@ -36,7 +36,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // New method to notify a specific user about a new message
     notifyNewMessage(roomId: string, message: any, targetUserId: string) {
-        console.log("here", targetUserId)
         // Emit a 'newMessage' event to the target user's personal room
         this.server.to(targetUserId).emit('newMessage', message);
     }

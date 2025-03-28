@@ -30,7 +30,6 @@ export function ChatListItem({ chat, currentUserId }: ChatListItemProps) {
     const date = new Date(chat.lastMessageTime);
     const now = new Date();
     const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    console.log(diffInDays)
     if (diffInDays === 0) {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } else if (diffInDays === 1) {
@@ -43,7 +42,6 @@ export function ChatListItem({ chat, currentUserId }: ChatListItemProps) {
   }, [chat.lastMessage]);
 
   const isCurrentUserLastSender = currentUserId === chat.lastMessageSenderId;
-  console.log(isCurrentUserLastSender, currentUserId, chat.lastMessageSenderId )
 
   return (
     <Pressable style={styles.container} onPress={handlePress}>

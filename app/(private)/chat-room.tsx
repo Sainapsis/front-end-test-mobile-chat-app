@@ -47,7 +47,7 @@ export default function ChatRoomScreen() {
 
   const handleSendMessage = () => {
     if (messageText.trim() && currentUser && chat) {
-      sendMessage(chat.id, messageText.trim(), currentUser.id);
+      sendMessage(chat.id, {content: messageText.trim()});
       setMessageText('');
     }
   };

@@ -26,6 +26,7 @@ export const Colors = {
     chatBubble: {
       backgroundSelf: weTalkLightBlue,
       backgroundOther:  '#fff',
+      responseBorder: bridgeBlue
     },
     badges:{
       secondary: '#D9D9D9'

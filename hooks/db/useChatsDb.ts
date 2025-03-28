@@ -1,11 +1,9 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { db } from '@/providers/database/db';
-import { chats, chatParticipants, messages, users } from '@/providers/database/schema';
-import { eq, and, sql } from 'drizzle-orm';
-import { User } from '@/hooks/user/useUser';
+import { chats, messages, users } from '@/providers/database/schema';
+import { eq, sql } from 'drizzle-orm';
 import { useApi } from '../api/useApi';
-import * as SecureStore from 'expo-secure-store';
 import { io, Socket } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -18,8 +16,10 @@ export interface Message {
   text?: string;
   timestamp: number;
   responseText?: string;
-  mediaUri?: string;
+  responseId?: string;
+  responseTo?: string;
   readed?: number;
+  mediaUri?: string;
 }
 
 export interface Chat {
@@ -56,6 +56,8 @@ export function useChatsDb(currentUserId: string | null) {
     responseText: message.responseText ?? undefined,
     mediaUri: message.mediaUri ?? undefined,
     readed: message.readBy.length === chat.members.length ? 1 : 0,
+    responseTo: message.response?? undefined,
+    responseId: message.responseId?? undefined,
   });
 
   const transformChatToDbFormat = (chat: any, otherUser: any, myUser: any): Chat => ({
@@ -78,7 +80,6 @@ export function useChatsDb(currentUserId: string | null) {
   const processChat = async (chat: any, currentUserId: string): Promise<Chat> => {
     const otherUser = chat.members.find((user: any) => user._id !== currentUserId);
     const myUser = chat.members.find((user: any) => user._id === currentUserId);
-    console.log(chat.lastMessage)
     // Get chat messages from the API
     const messagesFromAPI = await get(`/chat/${chat._id}/messages`);
     const messagesToStore: Message[] = messagesFromAPI.map((message: any) =>
@@ -140,7 +141,7 @@ export function useChatsDb(currentUserId: string | null) {
           console.log("Error connecting to server", err.message)
         }
       } else {
-        console.log("Unexpected error syncing to server")
+        console.log("Unexpected error syncing to server", err)
       }
     }
   }
@@ -218,11 +219,11 @@ export function useChatsDb(currentUserId: string | null) {
     // TODO
   }, [currentUserId]);
 
-  const sendMessage = useCallback(async (chatId: string, content: string) => {
-    if (!content.trim()) return false;
+  const sendMessage = useCallback(async (chatId: string, message: any) => {
+    if (!message.content.trim()) return false;
     try {
       setLoading(true);
-      let response = await post("/chat/sendMessage", { chatId, content })
+      let response = await post("/chat/sendMessage", { chatId, ...message })
       if(response){
         setTimeout(async () =>{
           await loadChats()

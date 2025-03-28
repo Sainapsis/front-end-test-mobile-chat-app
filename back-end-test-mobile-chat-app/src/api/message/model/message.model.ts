@@ -17,6 +17,12 @@ export class Message {
   response: string;
 
   @Prop()
+  responseTo: string;
+
+  @Prop()
+  responseId: string;
+
+  @Prop()
   media: string;
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Chat', required: true })

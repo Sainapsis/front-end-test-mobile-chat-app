@@ -11,13 +11,6 @@ export const chats = sqliteTable("chats", {
   chatStatus: text("chat_status"),
 });
 
-export const chatParticipants = sqliteTable("chat_participants", {
-  id: text("id").primaryKey(),
-  chatId: text("chat_id").notNull().references(() => chats.id),
-  userId: text("user_id").notNull(),
-  unreadedMessages: integer("unreaded_messages").notNull().default(0)
-});
-
 export const messages = sqliteTable("messages", {
   id: text("id").primaryKey(),
   chatId: text("chat_id").notNull().references(() => chats.id),
@@ -26,14 +19,8 @@ export const messages = sqliteTable("messages", {
   text: text("text"),
   timestamp: integer("timestamp").notNull(),
   responseText: text("response_text"),
+  responseTo: text("response_to"),
+  responseId: text("response_id"),
   mediaUri: text("media_uri"),
   readed: integer("readed")
 });
-
-// export const messagesReadBy = sqliteTable("messages_read_by", {
-//   id: text("id").primaryKey(),
-//   messageId: text("message_id").notNull().references(() => messages.id),
-//   userId: text("user_id").notNull(),
-//   chatId: text("chat_id").notNull(),
-//   readed: integer("readed", { mode: "boolean" }).default(false)
-// })
