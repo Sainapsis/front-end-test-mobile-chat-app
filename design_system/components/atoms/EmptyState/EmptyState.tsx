@@ -13,8 +13,6 @@ interface EmptyStateProps {
   title: string;
   message: string;
   color?: string;
-  onClear?: () => void;
-  showClearButton?: boolean;
 }
 
 export function EmptyState({ 
@@ -22,19 +20,13 @@ export function EmptyState({
   title, 
   message, 
   color, 
-  onClear, 
-  showClearButton = false 
 }: EmptyStateProps) {
   return (
     <ThemedView style={styles.container}>
       <IconSymbol size={64} name={icon} color={color || Colors.light.tint} />
       <ThemedText style={styles.title}>{title}</ThemedText>
       <ThemedText style={styles.message}>{message}</ThemedText>
-      {showClearButton && onClear && (
-        <Pressable style={styles.clearButton} onPress={onClear}>
-          <ThemedText style={styles.clearButtonText}>Clear All</ThemedText>
-        </Pressable>
-      )}
+      
     </ThemedView>
   );
 }

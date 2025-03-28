@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { View, TouchableWithoutFeedback, Modal } from 'react-native';
 import { ThemedText } from '@/design_system/components/atoms';
 import { styles } from './MessageBubble.styles';
 import { useMessageBubble } from '@/hooks/components/useMessageBubble';
 import { Message } from '@/hooks/useChats';
 import EmojiSelector, { Categories } from 'react-native-emoji-selector';
+import { OptionsMenu } from '@/components/OptionsMenu';
 
 interface MessageBubbleProps {
   message: Message;
@@ -13,7 +14,7 @@ interface MessageBubbleProps {
   onDeleteMessage?: (messageId: string) => void;
   onAddReaction?: (messageId: string, emoji: string) => void;
   onRemoveReaction?: (reactionId: string, messageId: string) => void;
-  onEditMessage?: (messageId: string, currentText: string) => void; // Add onEditMessage prop
+  onEditMessage?: (messageId: string, currentText: string) => void;
 }
 
 export function MessageBubble({ 
@@ -23,7 +24,7 @@ export function MessageBubble({
   onDeleteMessage,
   onAddReaction,
   onRemoveReaction,
-  onEditMessage // Include onEditMessage
+  onEditMessage,
 }: MessageBubbleProps) {
   const { 
     isDark,
@@ -32,7 +33,9 @@ export function MessageBubble({
     showEmojiSelector,
     setShowEmojiSelector,
     handleEmojiSelected,
-    handleRemoveReaction
+    handleRemoveReaction,
+    showOptionsMenu,
+    setShowOptionsMenu
   } = useMessageBubble({ 
     message, 
     isCurrentUser,
@@ -43,14 +46,27 @@ export function MessageBubble({
     onRemoveReaction 
   });
 
+  const bubbleRef = useRef<View>(null);
+  const [bubblePosition, setBubblePosition] = useState({ x: 0, y: 0, width: 0 });
+
   const formatTime = (timestamp: number) => {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const handleLayout = () => {
+    bubbleRef.current?.measure((x, y, width, height, pageX, pageY) => {
+      setBubblePosition({ x: pageX, y: pageY, width });
+    });
   };
 
   return (
     <>
       <TouchableWithoutFeedback onLongPress={handleLongPress}>
-        <View style={[styles.container, isCurrentUser ? styles.selfContainer : styles.otherContainer]}>
+        <View 
+          ref={bubbleRef} 
+          onLayout={handleLayout} 
+          style={[styles.container, isCurrentUser ? styles.selfContainer : styles.otherContainer]}
+        >
           <View style={[
             styles.bubble,
             isCurrentUser ? styles.selfBubble : styles.otherBubble,
@@ -84,6 +100,15 @@ export function MessageBubble({
           </View>
         </View>
       </TouchableWithoutFeedback>
+
+      <OptionsMenu
+        visible={showOptionsMenu}
+        onClose={() => setShowOptionsMenu(false)}
+        onEdit={() => onEditMessage?.(message.id, message.text)}
+        onDelete={() => onDeleteMessage?.(message.id)}
+        onAddEmoji={() => setShowEmojiSelector(true)}
+        position={{ top: bubblePosition.y, left: bubblePosition.x, width: bubblePosition.width }} // Pass position as a prop
+      />
 
       <Modal
         visible={showEmojiSelector}

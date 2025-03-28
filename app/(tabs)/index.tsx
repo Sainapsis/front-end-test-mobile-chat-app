@@ -65,8 +65,6 @@ export default function ChatsScreen() {
           : "Start chatting with your friends by tapping the + button above"
         }
         color="#007AFF"
-        showClearButton={true}
-        onClear={handleClearChats}
       />
     );
   };
