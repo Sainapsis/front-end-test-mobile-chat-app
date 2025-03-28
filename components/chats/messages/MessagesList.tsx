@@ -56,7 +56,6 @@ const MessageGroup = memo(({ item, index, messagesList, currentUser, onSwapMessa
             <MessageBubble
                 message={item}
                 isCurrentUser={item.senderId === currentUser?.id}
-                isReaded={item.readed}
                 onSwapMessage={onSwapMessage}
             />
         </View>

@@ -9,16 +9,15 @@ import { Colors } from '@/components/ui/themes/Colors';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import { useAppContext } from '@/hooks/AppContext';
+import { BubbleResponse } from './BubbleResponse';
 
 interface MessageBubbleProps {
   message: Message;
   isCurrentUser: boolean;
-  isReaded: boolean;
   onSwapMessage: (message: Message) => void;
 }
 
-export function MessageBubble({ message, isCurrentUser, isReaded, onSwapMessage }: MessageBubbleProps) {
-  const { currentUser } = useAppContext()
+export function MessageBubble({ message, isCurrentUser, onSwapMessage }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
   const translateX = useRef(new Animated.Value(0)).current;
   const isDark = colorScheme === 'dark';
@@ -86,17 +85,7 @@ export function MessageBubble({ message, isCurrentUser, isReaded, onSwapMessage 
                   : [{ backgroundColor: isDark ? Colors.dark.chatBubble.backgroundOther : Colors.light.chatBubble.backgroundOther }]
               ]}>
                 {message.responseId &&
-                  <View style={[styles.response, { backgroundColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(61,99,201,0.1)', borderColor: isDark ? '#FFF' : Colors.light.chatBubble.responseBorder }]}>
-                    <ThemedText style={[
-                      styles.messageText,
-                      styles.responseTitle
-                    ]}>{currentUser?.name === message.responseTo ? 'You' : message.responseTo}</ThemedText>
-                    <ThemedText style={[
-                      styles.messageText,
-                      isCurrentUser && !isDark && styles.selfMessageText
-                    ]}
-                    >{message.responseText}</ThemedText>
-                  </View>
+                  <BubbleResponse message={message} isCurrentUser={isCurrentUser}></BubbleResponse>
                 }
                 <ThemedText style={[
                   styles.messageText,

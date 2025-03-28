@@ -8,6 +8,7 @@ import { UserListItem } from '@/components/users/UserListItem';
 import { IconSymbol } from '@/components/ui/icons/IconSymbol';
 import { ThemedInput } from '@/components/ui/inputs/ThemedInput';
 import { Chat } from '@/hooks/chats/useChats';
+import { ChatList } from '@/components/chats/list/ChatList';
 
 // Enable experimental layout animations on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -99,6 +100,17 @@ export default function ChatsScreen() {
     </>
   );
 
+  const renderNotFoundComponent = () => (
+    <>
+      {!loading &&
+        <ThemedView style={styles.emptyContainer}>
+          <ThemedText style={styles.emptyTextTitle}>No items found</ThemedText>
+          <ThemedText style={styles.emptyTextSubtitle}>Try using different keywords or check your search.</ThemedText>
+        </ThemedView>
+      }
+    </>
+  );
+
   return (
     <ThemedView style={styles.container}>
       {/* Animated header that collapses when search is active */}
@@ -123,36 +135,23 @@ export default function ChatsScreen() {
         />
       </Animated.View>
 
+      {filteredChats.length > 0 && <ThemedText style={styles.searchTitle}>Chats</ThemedText>}
       {/* Show full chat list if searchText is empty, otherwise show filtered chats */}
-      {searchText.length === 0 ? (
-        <FlatList
-          data={chats}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ChatListItem
-              chat={item}
-              currentUserId={currentUser?.id || ''}
-              users={users}
-            />
-          )}
-          ListEmptyComponent={renderEmptyComponent}
-          contentContainerStyle={styles.listContainer}
-        />
-      ) : (
-        <FlatList
-          data={filteredChats}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ChatListItem
-              chat={item}
-              currentUserId={currentUser?.id || ''}
-              users={users}
-            />
-          )}
-          ListEmptyComponent={searchText.length > 0 ? renderEmptyComponent : <></>}
-          contentContainerStyle={styles.listContainer}
-        />
-      )}
+      {searchText.length === 0 ?
+        <ChatList
+          chats={chats}
+          users={users}
+          currentUser={currentUser || undefined}
+          renderEmptyComponent={renderEmptyComponent}>
+        </ChatList>
+        :
+        <ChatList
+          chats={filteredChats}
+          users={users}
+          currentUser={currentUser || undefined}
+          renderEmptyComponent={renderNotFoundComponent}>
+        </ChatList>
+      }
 
       {/* Modal for creating a new chat */}
       <Modal
@@ -216,6 +215,12 @@ export default function ChatsScreen() {
 }
 
 const styles = StyleSheet.create({
+  searchTitle:{
+    paddingHorizontal: 15,
+    paddingTop: 20,
+    fontWeight: 600,
+    fontSize: 25,
+  },
   container: {
     flex: 1,
     paddingTop: 60,
@@ -234,9 +239,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 122, 255, 0.1)',
-  },
-  listContainer: {
-    flexGrow: 1,
   },
   emptyContainer: {
     flex: 1,
