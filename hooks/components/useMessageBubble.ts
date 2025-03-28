@@ -8,6 +8,7 @@ interface UseMessageBubbleProps {
   message: Message;
   isCurrentUser: boolean;
   onDeleteMessage?: (messageId: string) => void;
+  onEditMessage?: (messageId: string, currentText: string) => void; // Add onEditMessage prop
   onAddReaction?: (messageId: string, emoji: string) => void;
   onRemoveReaction?: (reactionId: string, messageId: string) => void;
   userId?: string; // Agregamos userId como prop
@@ -19,6 +20,7 @@ export function useMessageBubble({
   userId, // Recibimos userId
   onDeleteMessage,
   onAddReaction,
+  onEditMessage, 
   onRemoveReaction 
 }: UseMessageBubbleProps) {
   const [showEmojiSelector, setShowEmojiSelector] = useState(false);
@@ -27,7 +29,7 @@ export function useMessageBubble({
   const bubbleColors = getBubbleColors(isDark, isCurrentUser);
 
   const handleLongPress = () => {
-    if (isCurrentUser && onDeleteMessage) {
+    if (isCurrentUser) {
       Alert.alert(
         'Message Options',
         'What would you like to do?',
@@ -37,8 +39,12 @@ export function useMessageBubble({
             onPress: () => setShowEmojiSelector(true) 
           },
           { 
+            text: 'Edit', 
+            onPress: () => onEditMessage?.(message.id, message.text), // Add edit option
+          },
+          { 
             text: 'Delete', 
-            onPress: () => onDeleteMessage(message.id),
+            onPress: () => onDeleteMessage?.(message.id),
             style: 'destructive' 
           },
           { 

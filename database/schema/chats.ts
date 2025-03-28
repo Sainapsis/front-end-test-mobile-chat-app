@@ -16,6 +16,7 @@ export const messages = sqliteTable("messages", {
   senderId: text("sender_id").notNull(),
   text: text("text").notNull(),
   timestamp: integer("timestamp").notNull(),
+  editedAt: integer("edited_at"),
 });
 
 export const chatParticipantsHistory = sqliteTable("chat_participants_history", {

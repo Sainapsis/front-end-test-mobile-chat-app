@@ -407,6 +407,35 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, [currentUserId]);
 
+  const editMessage = useCallback(async (messageId: string, newText: string) => {
+    if (!currentUserId || !newText.trim()) return false;
+
+    try {
+      const editedAt = Date.now();
+
+      await db.update(messages)
+        .set({ text: newText, editedAt })
+        .where(eq(messages.id, messageId));
+
+      setUserChats(prevChats =>
+        prevChats.map(chat => ({
+          ...chat,
+          messages: chat.messages.map(msg =>
+            msg.id === messageId
+              ? { ...msg, text: newText, editedAt }
+              : msg
+          ),
+        }))
+      );
+
+      console.log('Message edited successfully!');
+      return true;
+    } catch (error) {
+      console.error('Error editing message:', error);
+      return false;
+    }
+  }, [currentUserId]);
+
   return {
     chats: userChats,
     createChat,
@@ -416,6 +445,7 @@ export function useChatsDb(currentUserId: string | null) {
     deleteMessage,
     addReaction,
     removeReaction,
+    editMessage,  // Return editMessage function
     loading,
   };
 }

@@ -13,15 +13,17 @@ interface MessageBubbleProps {
   onDeleteMessage?: (messageId: string) => void;
   onAddReaction?: (messageId: string, emoji: string) => void;
   onRemoveReaction?: (reactionId: string, messageId: string) => void;
+  onEditMessage?: (messageId: string, currentText: string) => void; // Add onEditMessage prop
 }
 
 export function MessageBubble({ 
   message, 
   isCurrentUser,
-  userId, // Recibimos userId
+  userId,
   onDeleteMessage,
   onAddReaction,
-  onRemoveReaction 
+  onRemoveReaction,
+  onEditMessage // Include onEditMessage
 }: MessageBubbleProps) {
   const { 
     isDark,
@@ -37,6 +39,7 @@ export function MessageBubble({
     userId,
     onDeleteMessage,
     onAddReaction,
+    onEditMessage,
     onRemoveReaction 
   });
 

@@ -19,8 +19,9 @@ import { IconSymbol } from '@/design_system/ui/vendors';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, users, chats, sendMessage, deleteMessage, addReaction, removeReaction } = useAppContext();
+  const { currentUser, users, chats, sendMessage, deleteMessage, addReaction, removeReaction, editMessage } = useAppContext(); // Include editMessage
   const [messageText, setMessageText] = useState('');
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null); // State to track editing
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
 
@@ -37,9 +38,21 @@ export default function ChatRoomScreen() {
 
   const handleSendMessage = () => {
     if (messageText.trim() && currentUser && chat) {
-      sendMessage(chat.id, messageText.trim(), currentUser.id);
+      if (editingMessageId) {
+        // If editing, update the message
+        editMessage?.(editingMessageId, messageText.trim());
+        setEditingMessageId(null);
+      } else {
+        // Otherwise, send a new message
+        sendMessage(chat.id, messageText.trim(), currentUser.id);
+      }
       setMessageText('');
     }
+  };
+
+  const handleEditMessage = (messageId: string, currentText: string) => {
+    setEditingMessageId(messageId);
+    setMessageText(currentText);
   };
 
   const handleDeleteMessage = async (messageId: string) => {
@@ -119,7 +132,8 @@ export default function ChatRoomScreen() {
             isCurrentUser={item.senderId === currentUser.id}
             onDeleteMessage={handleDeleteMessage}
             onAddReaction={handleAddReaction}
-            onRemoveReaction={handleRemoveReaction} 
+            onRemoveReaction={handleRemoveReaction}
+            onEditMessage={handleEditMessage} // Add edit handler
             userId={currentUser.id} 
           />
         )}
@@ -144,7 +158,7 @@ export default function ChatRoomScreen() {
           onPress={handleSendMessage}
           disabled={!messageText.trim()}
         >
-          <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />
+          <IconSymbol name={editingMessageId ? "pencil.circle.fill" : "arrow.up.circle.fill"} size={32} color="#007AFF" />
         </Pressable>
       </ThemedView>
     </KeyboardAvoidingView>

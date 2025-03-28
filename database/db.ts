@@ -55,6 +55,7 @@ export async function initializeDatabase() {
         sender_id TEXT NOT NULL,
         text TEXT NOT NULL,
         timestamp INTEGER NOT NULL,
+        edited_at INTEGER,
         FOREIGN KEY (chat_id) REFERENCES chats (id)
       );
     `);
@@ -147,6 +148,45 @@ export async function searchMessages(searchTerm: string, userId: string) {
     return results;
   } catch (error) {
     console.error('Error searching messages:', error);
+    throw error;
+  }
+}
+
+export async function editMessage(messageId: string, newText: string) {
+  try {
+    console.log('Editing message:', { messageId, newText });
+
+    const query = `
+      UPDATE messages
+      SET text = ?, edited_at = ?
+      WHERE id = ?
+    `;
+
+    const stmt = await sqlite.prepareAsync(query);
+    const params = [newText, Date.now(), messageId];
+    await stmt.executeAsync(params);
+    await stmt.finalizeAsync();
+
+    console.log('Message edited successfully!');
+  } catch (error) {
+    console.error('Error editing message:', error);
+    throw error;
+  }
+}
+
+export async function dropTables() {
+  try {
+    console.log('Dropping existing tables...');
+    await sqlite.execAsync(`DROP TABLE IF EXISTS message_reactions;`);
+    await sqlite.execAsync(`DROP TABLE IF EXISTS deleted_messages;`);
+    await sqlite.execAsync(`DROP TABLE IF EXISTS chat_participants_history;`);
+    await sqlite.execAsync(`DROP TABLE IF EXISTS messages;`);
+    await sqlite.execAsync(`DROP TABLE IF EXISTS chat_participants;`);
+    await sqlite.execAsync(`DROP TABLE IF EXISTS chats;`);
+    await sqlite.execAsync(`DROP TABLE IF EXISTS users;`);
+    console.log('All tables dropped successfully!');
+  } catch (error) {
+    console.error('Error dropping tables:', error);
     throw error;
   }
 }

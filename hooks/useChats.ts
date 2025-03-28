@@ -13,6 +13,7 @@ export function useChats(userId: string | null) {
     deleteMessage,
     addReaction,
     removeReaction,
+    editMessage,  // Add editMessage function
   } = useChatsDb(userId);
 
   return {
@@ -25,5 +26,6 @@ export function useChats(userId: string | null) {
     deleteMessage,
     addReaction,
     removeReaction,
+    editMessage,  // Return editMessage function
   };
 }

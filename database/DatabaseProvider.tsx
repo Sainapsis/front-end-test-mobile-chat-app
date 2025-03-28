@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
-import { initializeDatabase } from './db';
+import { dropTables, initializeDatabase } from './db';
 import { seedDatabase } from './seed';
 
 interface DatabaseContextType {
@@ -31,6 +31,8 @@ export function DatabaseProvider({ children }: DatabaseProviderProps) {
       try {
         console.log('Initializing database...');
         // Initialize the database schema
+        //await dropTables();
+
         await initializeDatabase();
         console.log('Database initialized');
         
