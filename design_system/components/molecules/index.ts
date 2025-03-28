@@ -5,4 +5,5 @@ export { HelloWave } from './HelloWave';
 export { MessageBubble } from './MessageBubble';
 export { ParallaxScrollView } from './ParallaxScrollView';
 export { SkeletonLoader } from './SkeletonLoader';
+export { OptionButton } from './OptionButton';
 
