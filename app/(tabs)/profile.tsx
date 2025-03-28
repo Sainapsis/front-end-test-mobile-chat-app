@@ -1,145 +1,20 @@
 import React from 'react';
-import { StyleSheet, Pressable, SafeAreaView, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useAppContext } from '@/context/AppContext';
-import { ThemedText, ThemedView } from '@/design_system/components/atoms';
-import { SkeletonLoader, EmptyState } from '@/design_system/components/molecules';
-import { Avatar } from '@/design_system/components/organisms';
-import { IconSymbol } from '@/design_system/ui/vendors';
+import { ProfileTemplate } from '@/design_system/components/templates';
 
 export default function ProfileScreen() {
   const { currentUser, logout, loading } = useAppContext();
-  const router = useRouter();
 
   const handleLogout = () => {
     logout();
   };
 
-  if (loading) {
-    return (
-      <ThemedView style={styles.loadingContainer}>
-        <SkeletonLoader width={100} height={100} style={styles.skeletonAvatar} />
-        <SkeletonLoader width="60%" height={20} style={styles.skeletonText} />
-        <SkeletonLoader width="40%" height={20} style={styles.skeletonText} />
-      </ThemedView>
-    );
-  }
-
-  if (!currentUser) {
-    return (
-      <EmptyState
-        icon="person.crop.circle.badge.exclamationmark"
-        title="No Profile Found"
-        message="We couldn't load your profile. Please try again later."
-        color="#FF3B30"
-      />
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.profileHeader}>
-          <Avatar user={currentUser} size={100} />
-          <ThemedView style={styles.profileInfo}>
-            <ThemedText type="title">{currentUser.name}</ThemedText>
-            <ThemedText style={styles.statusText}>
-              {currentUser.status.charAt(0).toUpperCase() + currentUser.status.slice(1)}
-            </ThemedText>
-          </ThemedView>
-        </ThemedView>
-
-        <ThemedView style={styles.section}>
-          <ThemedText type="subtitle">Account Information</ThemedText>
-
-          <ThemedView style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>ID:</ThemedText>
-            <ThemedText>{currentUser.id}</ThemedText>
-          </ThemedView>
-
-          <ThemedView style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Full Name:</ThemedText>
-            <ThemedText>{currentUser.name}</ThemedText>
-          </ThemedView>
-        </ThemedView>
-
-        <ThemedView style={styles.buttonContainer}>
-          <Pressable style={styles.logoutButton} onPress={handleLogout}>
-            <IconSymbol name="arrow.right.square" size={20} color="#FFFFFF" />
-            <ThemedText style={styles.logoutText}>Log Out</ThemedText>
-          </Pressable>
-        </ThemedView>
-      </ThemedView>
-    </SafeAreaView>
+    <ProfileTemplate
+      loading={loading}
+      user={currentUser || undefined}
+      onLogout={handleLogout}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-    paddingTop: 60,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  skeletonAvatar: {
-    marginBottom: 16,
-    borderRadius: 50,
-  },
-  skeletonText: {
-    marginBottom: 8,
-    borderRadius: 4,
-  },
-  profileHeader: {
-    alignItems: 'center',
-    padding: 20,
-  },
-  profileInfo: {
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  statusText: {
-    fontSize: 16,
-    color: '#8F8F8F',
-    marginTop: 4,
-  },
-  section: {
-    padding: 20,
-    marginTop: 20,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    marginTop: 12,
-  },
-  infoLabel: {
-    fontWeight: 'bold',
-    marginRight: 10,
-    width: 100,
-  },
-  buttonContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    marginBottom: 80,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    backgroundColor: '#FF3B30',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 20,
-  },
-  logoutText: {
-    color: 'white',
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
-});
 

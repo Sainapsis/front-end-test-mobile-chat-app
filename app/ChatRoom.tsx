@@ -1,32 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  FlatList,
-  TextInput,
-  Pressable,
-  KeyboardAvoidingView,
-  Platform
-} from 'react-native';
-import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
+import { FlatList } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAppContext } from '@/context/AppContext';
 import { ThemedText, ThemedView } from '@/design_system/components/atoms';
 import { MessageBubble } from '@/design_system/components/organisms';
-import { Avatar } from '@/design_system/components/organisms';
-import { IconSymbol } from '@/design_system/ui/vendors';
-
+import { ChatRoomTemplate } from '@/design_system/components/templates';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, users, chats, sendMessage, deleteMessage, addReaction, removeReaction, editMessage } = useAppContext(); // Include editMessage
+  const { currentUser, users, chats, sendMessage, deleteMessage, addReaction, removeReaction, editMessage } = useAppContext();
   const [messageText, setMessageText] = useState('');
-  const [editingMessageId, setEditingMessageId] = useState<string | null>(null); // State to track editing
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
 
   const chat = chats.find(c => c.id === chatId);
-
   const chatParticipants = chat?.participants
     .filter(id => id !== currentUser?.id)
     .map(id => users.find(user => user.id === id))
@@ -83,7 +72,7 @@ export default function ChatRoomScreen() {
 
   if (!chat || !currentUser) {
     return (
-      <ThemedView style={styles.centerContainer}>
+      <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ThemedText>Chat not found</ThemedText>
       </ThemedView>
     );
@@ -92,124 +81,33 @@ export default function ChatRoomScreen() {
   const sortedMessages = chat?.messages.sort((a, b) => a.timestamp - b.timestamp) || [];
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
+    <>
       <StatusBar style="auto" />
-      <Stack.Screen
-        options={{
-          headerTitle: () => (
-            <View style={styles.headerContainer}>
-              <Avatar
-                user={chatParticipants[0]}
-                size={32}
-                showStatus={false}
-              />
-              <ThemedText type="defaultSemiBold" numberOfLines={1}>
-                {chatName}
-              </ThemedText>
-            </View>
-          ),
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()}>
-              <IconSymbol name="chevron.left" size={24} color="#007AFF" />
-            </Pressable>
-          ),
+      <ChatRoomTemplate
+        chatName={chatName || 'Chat'}
+        participantAvatar={{
+          user: chatParticipants[0],
+          size: 32
         }}
-      />
-
-
-
-      <FlatList
-        ref={flatListRef}
-        data={sortedMessages}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
+        messages={sortedMessages}
+        messageText={messageText}
+        isEditing={!!editingMessageId}
+        onBack={() => router.back()}
+        onMessageChange={setMessageText}
+        onSendMessage={handleSendMessage}
+        renderMessage={(item) => (
           <MessageBubble
             message={item}
             isCurrentUser={item.senderId === currentUser.id}
             onDeleteMessage={handleDeleteMessage}
             onAddReaction={handleAddReaction}
             onRemoveReaction={handleRemoveReaction}
-            onEditMessage={handleEditMessage} // Add edit handler
-            userId={currentUser.id} 
+            onEditMessage={handleEditMessage}
+            userId={currentUser.id}
           />
         )}
-        contentContainerStyle={styles.messagesContainer}
-        ListEmptyComponent={() => (
-          <ThemedView style={styles.emptyContainer}>
-            <ThemedText>No messages yet. Say hello!</ThemedText>
-          </ThemedView>
-        )}
+        flatListRef={flatListRef}
       />
-
-      <ThemedView style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          value={messageText}
-          onChangeText={setMessageText}
-          placeholder="Type a message..."
-          multiline
-        />
-        <Pressable
-          style={[styles.sendButton, !messageText.trim() && styles.disabledButton]}
-          onPress={handleSendMessage}
-          disabled={!messageText.trim()}
-        >
-          <IconSymbol name={editingMessageId ? "pencil.circle.fill" : "arrow.up.circle.fill"} size={32} color="#007AFF" />
-        </Pressable>
-      </ThemedView>
-    </KeyboardAvoidingView>
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  messagesContainer: {
-    padding: 10,
-    flexGrow: 1,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 10,
-    alignItems: 'flex-end',
-    borderTopWidth: 1,
-    borderTopColor: '#E1E1E1',
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#E1E1E1',
-    borderRadius: 20,
-    padding: 10,
-    maxHeight: 100,
-    backgroundColor: '#F9F9F9',
-  },
-  sendButton: {
-    marginLeft: 10,
-    marginBottom: 5,
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-});

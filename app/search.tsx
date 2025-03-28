@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TextInput, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAppContext } from '@/context/AppContext';
 import { ThemedText, ThemedView } from '@/design_system/components/atoms';
 import { MessageBubble } from '@/design_system/components/organisms';
+import { SearchTemplate } from '@/design_system/components/templates';
 import { IconSymbol } from '@/design_system/ui/vendors';
 import { useMessageSearch } from '@/hooks/useMessageSearch';
 import { spacing, colors } from '@/design_system/ui/tokens';
@@ -23,8 +24,12 @@ export default function SearchScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <StatusBar style="auto" />
+    <SearchTemplate
+      onSearch={handleSearchInput}
+      placeholder="Search messages..."
+      isLoading={isSearching}
+      value={searchTerm}
+    >
       <Stack.Screen
         options={{
           headerTitle: 'Search Messages',
@@ -35,22 +40,6 @@ export default function SearchScreen() {
           ),
         }}
       />
-
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          value={searchTerm}
-          onChangeText={handleSearchInput}
-          placeholder="Search messages..."
-          placeholderTextColor={colors.neutral[400]}
-        />
-      </View>
-
-      {isSearching && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator color={colors.primary[500]} />
-        </View>
-      )}
 
       {error && (
         <View style={styles.errorContainer}>
@@ -103,33 +92,13 @@ export default function SearchScreen() {
           </ThemedView>
         )}
       />
-    </ThemedView>
+    </SearchTemplate>
   );
 }
 
-// Agregar estos nuevos estilos
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   iconButton: {
-    padding: spacing.sm, // Espaciado para hacer más fácil el clic
-  },
-  searchContainer: {
-    padding: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  searchInput: {
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.neutral[100],
-    paddingHorizontal: spacing.md,
-    fontSize: 16,
-  },
-  loadingContainer: {
-    padding: spacing.md,
-    alignItems: 'center',
+    padding: spacing.sm,
   },
   errorContainer: {
     padding: spacing.md,

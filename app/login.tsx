@@ -1,10 +1,9 @@
 import React from 'react';
-import { StyleSheet, FlatList, SafeAreaView } from 'react-native';
+import { StyleSheet, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { useAppContext } from '@/context/AppContext';
-import { ThemedText, ThemedView } from '@/design_system/components/atoms';
 import { UserListItem } from '@/design_system/components/organisms';
+import { LoginTemplate } from '@/design_system/components/templates';
 
 export default function LoginScreen() {
   const { users, login } = useAppContext();
@@ -17,51 +16,27 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="auto" />
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.header}>
-          <ThemedText type="title">Welcome to Chat App</ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Select a user to continue
-          </ThemedText>
-        </ThemedView>
-        
-        <FlatList
-          data={users}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <UserListItem
-              user={item}
-              onSelect={() => handleUserSelect(item.id)}
-            />
-          )}
-          contentContainerStyle={styles.listContainer}
-        />
-      </ThemedView>
-    </SafeAreaView>
+    <LoginTemplate
+      title="Welcome to Chat App"
+      subtitle="Select a user to continue"
+    >
+      <FlatList
+        data={users}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <UserListItem
+            user={item}
+            onSelect={() => handleUserSelect(item.id)}
+          />
+        )}
+        contentContainerStyle={styles.listContainer}
+      />
+    </LoginTemplate>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-    paddingTop: 20,
-  },
-  header: {
-    alignItems: 'center',
-    padding: 20,
-    marginBottom: 20,
-  },
-  subtitle: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#8F8F8F',
-  },
   listContainer: {
     paddingBottom: 20,
   },
-}); 
+});
