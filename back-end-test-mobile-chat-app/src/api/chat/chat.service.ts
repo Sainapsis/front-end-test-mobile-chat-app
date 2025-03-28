@@ -118,7 +118,14 @@ export class ChatService {
       },
       { $addToSet: { readBy: userId } }
     );
-
+    let chats = await this.chatModel.find({_id: chatId})
+    for(let chat of chats){
+      for(let member of chat.members){
+        if(member.toString()!== userId.toString()){
+          this.chatGateway.notifyNewMessage(chatId, null, member.toString());
+        }
+      }
+    }
     return { "readBy": userId };
   }
 

@@ -30,19 +30,23 @@ export default function ChatRoomScreen() {
 
   const handleSendMessage = async () => {
     if (messageText.trim() && currentUser && chat) {
-      const messageDataToSend: any = {content: messageText.trim()}
-      if(responseTo){
+      const messageDataToSend: any = { content: messageText.trim() }
+      if (responseTo) {
         messageDataToSend.responseTo = responseTo
         messageDataToSend.responseId = responseId
         messageDataToSend.response = response
       }
       await sendMessage(chat.id, messageDataToSend);
       setMessageText('');
-      setShowResponsePreview(false)
-      setResponse(undefined)
-      setResponseTo(undefined)
-      setResponseId(undefined)
+      wipeResponse()
     }
+  }
+
+  const wipeResponse = () => {
+    setShowResponsePreview(false)
+    setResponse(undefined)
+    setResponseTo(undefined)
+    setResponseId(undefined)
   }
 
   const onSwapMessage = (message: Message) => {
@@ -114,7 +118,7 @@ export default function ChatRoomScreen() {
       )}
       <MessagesList chat={chat} setHeaderDate={setHeaderDate} onSwapMessage={onSwapMessage}></MessagesList>
       {showResponsePreview &&
-        <ResponseToContainer response={response || ''} responseTo={responseTo || ''}></ResponseToContainer>
+        <ResponseToContainer response={response || ''} responseTo={responseTo || ''} onClosePress={wipeResponse}></ResponseToContainer>
       }
       <ThemedInput
         shouldShowButton={true}

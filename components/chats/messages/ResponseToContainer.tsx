@@ -3,25 +3,28 @@ import { ThemedView } from "@/components/ui/layout/ThemedView";
 import { ThemedText } from "@/components/ui/text/ThemedText";
 import { Colors } from "@/components/ui/themes/Colors";
 import { useAppContext } from "@/hooks/AppContext";
-import { StyleSheet, useColorScheme, View } from 'react-native'
+import { Pressable, StyleSheet, useColorScheme, View } from 'react-native'
 
 interface ResponseToContainerProps {
     response: string;
     responseTo: string;
+    onClosePress: () => void;
 }
 
-export function ResponseToContainer({response, responseTo}: ResponseToContainerProps) {
-    const {currentUser} = useAppContext();
+export function ResponseToContainer({ response, responseTo, onClosePress }: ResponseToContainerProps) {
+    const { currentUser } = useAppContext();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     return (
         <ThemedView style={[styles.responseContainer, { borderColor: isDark ? '#FFF' : Colors.light.chatBubble.responseBorder }]}>
             <View>
-                <ThemedText style={[styles.responseText, styles.responseTitle]}>{currentUser?.name === responseTo? 'You': responseTo}</ThemedText>
+                <ThemedText style={[styles.responseText, styles.responseTitle]}>{currentUser?.name === responseTo ? 'You' : responseTo}</ThemedText>
                 <ThemedText style={styles.responseText}>{response}</ThemedText>
             </View>
             <View style={styles.cancelButton}>
-                <IconSymbol name="xmark" size={20} color="#007AFF" />
+                <Pressable onPress={onClosePress}>
+                    <IconSymbol name="xmark" size={20} color="#007AFF" />
+                </Pressable>
             </View>
         </ThemedView>
     )
@@ -52,7 +55,7 @@ const styles = StyleSheet.create({
         fontWeight: 600,
         marginBottom: 5,
     },
-    cancelButton:{
+    cancelButton: {
         marginRight: 10,
     }
 });
