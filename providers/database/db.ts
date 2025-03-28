@@ -30,7 +30,9 @@ export async function initializeDatabase() {
         chat_name TEXT NOT NULL,
         last_message_time INTEGER,
         unread_messages INTEGER,
-        last_message_sender TEXT
+        last_message_sender TEXT,
+        last_message_sender_id TEXT,
+        chat_status TEXT
       );
     `);
     
@@ -51,22 +53,25 @@ export async function initializeDatabase() {
         id TEXT PRIMARY KEY,
         chat_id TEXT NOT NULL,
         sender_id TEXT NOT NULL,
-        text TEXT NOT NULL,
+        sender_name TEXT NOT NULL,
+        text TEXT,
         timestamp INTEGER NOT NULL,
-        FOREIGN KEY (chat_id) REFERENCES chats (id)
-      );
-    `);
-
-    console.log('Creating messages read by table...');
-    await sqlite.execAsync(`
-      CREATE TABLE IF NOT EXISTS messages_read_by (
-        id TEXT PRIMARY KEY,
-        message_id TEXT NOT NULL,
-        user_id TEXT NOT NULL, 
-        chat_id TEXT NOT NULL,
+        response_text TEXT,
+        media_uri TEXT,
         readed INTEGER NOT NULL
       );
     `);
+
+    // console.log('Creating messages read by table...');
+    // await sqlite.execAsync(`
+    //   CREATE TABLE IF NOT EXISTS messages_read_by (
+    //     id TEXT PRIMARY KEY,
+    //     message_id TEXT NOT NULL,
+    //     user_id TEXT NOT NULL, 
+    //     chat_id TEXT NOT NULL,
+    //     readed INTEGER NOT NULL
+    //   );
+    // `);
     
     console.log('All tables created successfully!');
   } catch (error) {

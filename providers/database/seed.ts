@@ -1,5 +1,5 @@
 import { db } from '@/providers/database/db';
-import { users, chats, chatParticipants, messages, messagesReadBy } from '@/providers/database/schema';
+import { users, chats, chatParticipants, messages } from '@/providers/database/schema';
 
 // Mock user data from the original useUser hook
 const mockUsers = [
@@ -109,26 +109,26 @@ export async function seedDatabase() {
       
       // Insert messages
       console.log(`Adding messages for chat ${chat.id}...`);
-      for (const message of chat.messages) {
-        await db.insert(messages).values({
-          id: message.id,
-          chatId: chat.id,
-          senderId: message.senderId,
-          text: message.text,
-          timestamp: message.timestamp,
-        }).onConflictDoNothing();
-        // TO REFACTOR
-        for (const userId of chat.participants) {
-          await db.insert(messagesReadBy).values({
-            id: messageReadById.toString(),
-            messageId: message.id,
-            userId,
-            chatId: chat.id,
-            readed: true,
-          }).onConflictDoNothing();
-          messageReadById++;
-        }
-      }
+      // for (const message of chat.messages) {
+      //   await db.insert(messages).values({
+      //     id: message.id,
+      //     chatId: chat.id,
+      //     senderId: message.senderId,
+      //     text: message.text,
+      //     timestamp: message.timestamp,
+      //   }).onConflictDoNothing();
+      //   // TO REFACTOR
+      //   for (const userId of chat.participants) {
+      //     await db.insert(messagesReadBy).values({
+      //       id: messageReadById.toString(),
+      //       messageId: message.id,
+      //       userId,
+      //       chatId: chat.id,
+      //       readed: true,
+      //     }).onConflictDoNothing();
+      //     messageReadById++;
+      //   }
+      // }
     }
     
     console.log('Database seeded successfully');

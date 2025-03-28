@@ -33,7 +33,7 @@ export default function ProfileScreen() {
       <ThemedView style={styles.container}>
         {/* Profile header with avatar and user info */}
         <ThemedView style={styles.profileHeader}>
-          <Avatar user={currentUser} size={100} />
+          <Avatar userName={currentUser.name} size={100} status={currentUser.status} />
           <ThemedView style={styles.profileInfo}>
             {/* Display the user's name */}
             <ThemedText type="title">{currentUser.name}</ThemedText>
@@ -49,8 +49,8 @@ export default function ProfileScreen() {
           <ThemedText type="subtitle">Account Information</ThemedText>
 
           <ThemedView style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>ID:</ThemedText>
-            <ThemedText>{currentUser.id}</ThemedText>
+            <ThemedText style={styles.infoLabel}>Username:</ThemedText>
+            <ThemedText>{currentUser.username}</ThemedText>
           </ThemedView>
 
           <ThemedView style={styles.infoRow}>
@@ -116,7 +116,6 @@ const styles = StyleSheet.create({
   // Additional styles for logout button if needed (currently ThemedButton handles its own styles)
   logoutButton: {
     flexDirection: 'row',
-    backgroundColor: '#FF3B30',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',

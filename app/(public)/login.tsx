@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, SafeAreaView, Pressable, Keyboard, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, SafeAreaView, Pressable, Keyboard, Image, useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import LoginForm from '@/components/login/LoginForm';
 import { ThemedView } from '@/components/ui/layout/ThemedView';
@@ -10,14 +10,40 @@ import { Avatar } from '@/components/ui/user/Avatar';
 import { ThemedText } from '@/components/ui/text/ThemedText';
 
 export default function LoginScreen() {
+  const [currentView, setCurrentView] = useState("form")
   const { users } = useAppContext();
+  const colorScheme = useColorScheme();
+  useEffect(() => {
+    switch (users.length) {
+      case 0:
+        setCurrentView("form");
+        break;
+      case 1:
+        setCurrentView("profile");
+        break;
+      default:
+        setCurrentView("list");
+        break;
+    }
+  }, [])
+  const handleSwitchAccountPress = () => {
+    if (currentView === "profile") {
+      if(users.length === 1){
+        setCurrentView("form");
+      }else{
+        setCurrentView("list");
+      }
+    }else if(currentView === "list"){
+      setCurrentView("form");
+    }
+  }
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[{ backgroundColor: colorScheme === 'dark' ? '#121212' : '#FFF' }]}>
       <StatusBar style="auto" />
       <Pressable onPress={Keyboard.dismiss}>
         <ThemedView style={styles.loginContainer}>
           <ThemedView style={styles.header}>
-            {users.length !== 1 ?
+            {currentView !== 'profile' ?
               <Image
                 source={require('@/assets/images/logo.png')}
                 style={styles.image}
@@ -29,17 +55,17 @@ export default function LoginScreen() {
                   {/* Display the user's name */}
                   <ThemedText type="title">{users[0].name}</ThemedText>
                 </ThemedView>
-                <Avatar user={users[0]} size={100} showStatus={false} />
+                <Avatar userName={users[0].name} size={100} showStatus={false} />
               </ThemedView>
             }
 
           </ThemedView>
           {
-            users.length === 0 ?
+            currentView === 'form' ?
               <LoginForm></LoginForm> :
-              users.length === 1 ?
-                <LoginProfile></LoginProfile> :
-                <LoginList></LoginList>
+              currentView === "profile" ?
+                <LoginProfile handleSwitchProfile={handleSwitchAccountPress}></LoginProfile> :
+                <LoginList handleSwitchProfile={handleSwitchAccountPress}></LoginList>
           }
 
           {/* */}

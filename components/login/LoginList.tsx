@@ -1,12 +1,18 @@
 import React from 'react';
 import { ThemedView } from '@/components/ui/layout/ThemedView';
 import { ThemedText } from '@/components/ui/text/ThemedText';
-import { FlatList, StyleSheet } from 'react-native';
+import { Dimensions, FlatList, StyleSheet } from 'react-native';
 import { UserListItem } from '@/components/users/UserListItem';
 import { useAppContext } from '@/hooks/AppContext';
 import { useRouter } from 'expo-router';
+import { ThemedButton } from '../ui/buttons/ThemedButton';
 
-export default function LoginList() {
+interface LoginProps {
+    handleSwitchProfile: () => void;
+}
+
+const windowWidth = Dimensions.get('window').width;
+export default function LoginList({ handleSwitchProfile }: LoginProps) {
     const { users, login } = useAppContext();
     const router = useRouter();
     const handleUserSelect = async (userId: string) => {
@@ -27,11 +33,13 @@ export default function LoginList() {
                         <UserListItem
                             user={item}
                             onSelect={() => handleUserSelect(item.id)}
+                            showStatus={false}
                         />
                     )}
                     contentContainerStyle={styles.listContainer}
                 />
             </ThemedView>
+            <ThemedButton onPress={handleSwitchProfile} buttonText='Use another account' style={styles.switchAccountButton} type="secondary"></ThemedButton>
         </>
     )
 }
@@ -47,5 +55,12 @@ const styles = StyleSheet.create({
     },
     listContainer: {
         paddingBottom: 20,
+    },
+    switchAccountButton: {
+        marginTop: 10,
+        marginHorizontal: 30,
+        position: 'absolute',
+        bottom: 10,
+        width: windowWidth - 60,
     },
 })

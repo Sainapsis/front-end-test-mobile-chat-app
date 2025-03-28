@@ -6,7 +6,9 @@ export const chats = sqliteTable("chats", {
   chatName: text("chat_name").notNull(),
   lastMessageTime: integer("last_message_time"),
   unreadedMessages: integer("unread_messages"),
-  lastMessageSender: text("last_message_sender")
+  lastMessageSender: text("last_message_sender"),
+  lastMessageSenderId: text("last_message_sender_id"),
+  chatStatus: text("chat_status"),
 });
 
 export const chatParticipants = sqliteTable("chat_participants", {
@@ -20,14 +22,18 @@ export const messages = sqliteTable("messages", {
   id: text("id").primaryKey(),
   chatId: text("chat_id").notNull().references(() => chats.id),
   senderId: text("sender_id").notNull(),
-  text: text("text").notNull(),
+  senderName: text("sender_name").notNull(),
+  text: text("text"),
   timestamp: integer("timestamp").notNull(),
+  responseText: text("response_text"),
+  mediaUri: text("media_uri"),
+  readed: integer("readed")
 });
 
-export const messagesReadBy = sqliteTable("messages_read_by", {
-  id: text("id").primaryKey(),
-  messageId: text("message_id").notNull().references(() => messages.id),
-  userId: text("user_id").notNull(),
-  chatId: text("chat_id").notNull(),
-  readed: integer("readed", { mode: "boolean" }).default(false)
-})
+// export const messagesReadBy = sqliteTable("messages_read_by", {
+//   id: text("id").primaryKey(),
+//   messageId: text("message_id").notNull().references(() => messages.id),
+//   userId: text("user_id").notNull(),
+//   chatId: text("chat_id").notNull(),
+//   readed: integer("readed", { mode: "boolean" }).default(false)
+// })

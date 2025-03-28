@@ -1,6 +1,8 @@
-import { Pressable, StyleSheet, ViewStyle } from "react-native";
+import { Pressable, StyleSheet, useColorScheme, ViewStyle } from "react-native";
 import { IconSymbol } from "../icons/IconSymbol";
 import { ThemedText } from "../text/ThemedText";
+import { opacity } from "react-native-reanimated/lib/typescript/Colors";
+import { Colors } from "../themes/Colors";
 
 interface ButtonProps {
     onPress: () => void;
@@ -8,13 +10,15 @@ interface ButtonProps {
     iconName?: any;
     style?: ViewStyle;
     disabled?: boolean;
+    type?: string;
 }
-export function ThemedButton({ onPress, buttonText, iconName, style, disabled = false }: ButtonProps) {
+export function ThemedButton({ onPress, buttonText, iconName, style, disabled = false, type = "primary" }: ButtonProps) {
+    const colorScheme = useColorScheme();
     {
         return (
-            <Pressable style={[styles.md, {...style}]} onPress={onPress} disabled={disabled}>
-                <ThemedText style={styles.boldText} type="subtitle">{buttonText}</ThemedText>
-                {iconName ? <IconSymbol name={iconName} size={20} color="#FFFFFF" /> : <></>}
+            <Pressable style={[styles.md, { ...style }, disabled && styles.disabled, type === "primary" && styles.primary, type === "secondary" && styles.secondary]} onPress={onPress} disabled={disabled}>
+                <ThemedText style={[styles.boldText, { color: type === "primary" ? Colors[colorScheme || 'light'].button.textPrimary : Colors.button.textSecondary }]} type="subtitle">{buttonText}</ThemedText>
+                {iconName ? <IconSymbol name={iconName} size={20} color={type === "primary" ? Colors[colorScheme || 'light'].button.textPrimary : Colors.button.textSecondary} /> : <></>}
             </Pressable>
         )
     }
@@ -23,7 +27,6 @@ export function ThemedButton({ onPress, buttonText, iconName, style, disabled = 
 const styles = StyleSheet.create({
     md: {
         flexDirection: 'row',
-        backgroundColor: '#3d63c9',
         padding: 10,
         borderRadius: 10,
         alignItems: 'center',
@@ -33,7 +36,17 @@ const styles = StyleSheet.create({
     },
     boldText: {
         marginLeft: 10,
-        color: "#FFF",
         fontSize: 16
+    },
+    disabled: {
+        opacity: 0.5
+    },
+    primary: {
+        backgroundColor: Colors.button.background,
+    },
+    secondary: {
+        backgroundColor: 'transparent',
+        borderColor: Colors.button.border,
+        borderWidth: 2,
     }
 })

@@ -21,13 +21,13 @@ export function ThemedInput({ textValue, setTextValue, handleSendMessage, should
     const [isFocused, setIsFocused] = useState(false);
     const colorScheme = useColorScheme();
     return (
-        <ThemedView style={styles.labeledContainer}>
+        <ThemedView style={[styles.labeledContainer, {...style}]}>
             {label ?
                 <ThemedText style={styles.label}>{label}</ThemedText> : <></>
             }
             <ThemedView style={[styles.inputContainer, style]}>
                 <TextInput
-                    style={[styles.input, { color: colorScheme === 'dark' ? '#FFF' : '#000' }, isFocused && styles.focusedInput]}
+                    style={[styles.input, { color: colorScheme === 'dark' ? '#FFF' : '#000', padding: shouldShowButton? 10:15}, isFocused && styles.focusedInput]}
                     value={textValue}
                     onChangeText={setTextValue}
                     placeholder={placeholder}
@@ -44,7 +44,7 @@ export function ThemedInput({ textValue, setTextValue, handleSendMessage, should
                         onPress={handleSendMessage}
                         disabled={!textValue.trim()}
                     >
-                        <IconSymbol name="arrow.up.circle" size={32} color="#007AFF" />
+                        <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />
                     </Pressable>
                     : <></>
                 }
@@ -70,7 +70,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#808080',
         borderRadius: 10,
-        padding: 15,
         maxHeight: 100,
     },
     focusedInput: {

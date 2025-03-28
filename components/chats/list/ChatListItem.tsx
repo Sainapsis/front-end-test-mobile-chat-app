@@ -6,6 +6,8 @@ import { Avatar } from '@/components/ui/user/Avatar';
 import { ThemedText } from '../../ui/text/ThemedText';
 import { User } from '@/hooks/user/useUser';
 import { useAppContext } from '@/hooks/AppContext';
+import { users } from '@/providers/database/schema';
+import { ThemedBadge } from '@/components/ui/badges/ThemedBadge';
 
 interface ChatListItemProps {
   chat: Chat;
@@ -17,23 +19,6 @@ export function ChatListItem({ chat, currentUserId }: ChatListItemProps) {
   const navigation = useNavigation();
   const { updateReadStatus } = useAppContext()
 
-  const otherParticipants = useMemo(() => {
-    return chat.participants
-      .filter(id => id !== currentUserId)
-      .map(id => chat.participantsData?.find(user => user.id === id))
-      .filter(Boolean) as User[];
-  }, [chat.participants, currentUserId, chat.participantsData]);
-
-  const chatName = useMemo(() => {
-    if (otherParticipants.length === 0) {
-      return 'No participants';
-    } else if (otherParticipants.length === 1) {
-      return otherParticipants[0].name;
-    } else {
-      return `${otherParticipants[0].name} & ${otherParticipants.length - 1} other${otherParticipants.length > 2 ? 's' : ''}`;
-    }
-  }, [otherParticipants]);
-
   const handlePress = () => {
     updateReadStatus(currentUserId, chat.id)
     navigation.navigate('chat-room' as never, { chatId: chat.id } as never);
@@ -42,10 +27,10 @@ export function ChatListItem({ chat, currentUserId }: ChatListItemProps) {
   const timeString = useMemo(() => {
     if (!chat.lastMessage) return '';
 
-    const date = new Date(chat.lastMessage.timestamp);
+    const date = new Date(chat.lastMessageTime);
     const now = new Date();
     const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-
+    console.log(diffInDays)
     if (diffInDays === 0) {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } else if (diffInDays === 1) {
@@ -57,18 +42,20 @@ export function ChatListItem({ chat, currentUserId }: ChatListItemProps) {
     }
   }, [chat.lastMessage]);
 
-  const isCurrentUserLastSender = chat.lastMessage?.senderId === currentUserId;
+  const isCurrentUserLastSender = currentUserId === chat.lastMessageSenderId;
+  console.log(isCurrentUserLastSender, currentUserId, chat.lastMessageSenderId )
 
   return (
     <Pressable style={styles.container} onPress={handlePress}>
       <Avatar
-        user={otherParticipants[0]}
+        userName={chat.chatName}
         size={50}
+        status={chat.chatStatus as "online" | "offline" | "away"}
       />
       <View style={styles.contentContainer}>
         <View style={styles.topRow}>
           <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.name}>
-            {chatName}
+            {chat.chatName}
           </ThemedText>
           {timeString && (
             <ThemedText style={styles.time}>{timeString}</ThemedText>
@@ -83,11 +70,11 @@ export function ChatListItem({ chat, currentUserId }: ChatListItemProps) {
                 isCurrentUserLastSender && styles.currentUserMessage
               ]}
             >
-              {isCurrentUserLastSender && 'You: '}{chat.lastMessage.text}
+              {isCurrentUserLastSender && 'You: '}{chat.lastMessage}
             </ThemedText>
           )}
-          {chat.unreadedMessagesCount > 0?  <ThemedText style={styles.time}>{chat.unreadedMessagesCount}</ThemedText>: <></>}
-         
+          {chat.unreadedMessages > 0 ? <ThemedBadge text={chat.unreadedMessages.toString()} type="primary" style={styles.unreadedBadgeContainer} textStyle={styles.unreadedBadgeText}></ThemedBadge> : <></>}
+
         </View>
       </View>
     </Pressable>
@@ -99,6 +86,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 15,
     alignItems: 'center',
+  },
+  unreadedBadgeContainer:{
+    height: 18,
+  },
+  unreadedBadgeText:{
+    fontSize: 10,
+    lineHeight: 20
   },
   contentContainer: {
     flex: 1,
