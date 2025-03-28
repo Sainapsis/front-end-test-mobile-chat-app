@@ -1,30 +1,33 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Chat } from '@/hooks/chats/useChats';
-import { Avatar } from '@/components/ui/user/Avatar';
+import { Message } from '@/hooks/chats/useChats';
 import { ThemedText } from '../../ui/text/ThemedText';
 import { useAppContext } from '@/hooks/AppContext';
-import { ThemedBadge } from '@/components/ui/badges/ThemedBadge';
+import { IconSymbol } from '@/components/ui/icons/IconSymbol';
+import { useColorScheme } from '@/hooks/themes/useColorScheme.web';
+import { Colors } from '@/components/ui/themes/Colors';
 
 interface ChatListItemProps {
-  chat: Chat;
+  message: Message;
   currentUserId: string;
 }
 
-export function ChatListItem({ chat, currentUserId }: ChatListItemProps) {
+export function FilteredMessageListItem({ message, currentUserId }: ChatListItemProps) {
   const navigation = useNavigation();
-  const { updateReadStatus } = useAppContext()
-
+  const { updateReadStatus, setMessageId } = useAppContext()
+  const colorScheme = useColorScheme()
+  const isDark = colorScheme === 'dark'
   const handlePress = () => {
-    updateReadStatus(currentUserId, chat.id)
-    navigation.navigate('chat-room' as never, { chatId: chat.id } as never);
+    updateReadStatus(currentUserId, message.chatId)
+    setMessageId(message.id)
+    navigation.navigate('chat-room' as never, { chatId: message.chatId } as never);
   };
 
   const timeString = useMemo(() => {
-    if (!chat.lastMessage) return '';
+    if (!message.timestamp) return '';
 
-    const date = new Date(chat.lastMessageTime);
+    const date = new Date(message.timestamp);
     const now = new Date();
     const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
     if (diffInDays === 0) {
@@ -36,40 +39,34 @@ export function ChatListItem({ chat, currentUserId }: ChatListItemProps) {
     } else {
       return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
     }
-  }, [chat.lastMessage]);
+  }, [message.timestamp]);
 
-  const isCurrentUserLastSender = currentUserId === chat.lastMessageSenderId;
+  const isCurrentUserSender = currentUserId === message.senderId;
 
   return (
     <Pressable style={styles.container} onPress={handlePress}>
-      <Avatar
-        userName={chat.chatName}
-        size={50}
-        status={chat.chatStatus as "online" | "offline" | "away"}
-      />
       <View style={styles.contentContainer}>
         <View style={styles.topRow}>
           <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.name}>
-            {chat.chatName}
+            {message.senderName}
           </ThemedText>
           {timeString && (
             <ThemedText style={styles.time}>{timeString}</ThemedText>
           )}
         </View>
         <View style={styles.bottomRow}>
-          {chat.lastMessage && (
+          {message.timestamp && (
             <ThemedText
               numberOfLines={1}
               style={[
                 styles.lastMessage,
-                isCurrentUserLastSender && styles.currentUserMessage
+                isCurrentUserSender && styles.currentUserMessage
               ]}
             >
-              {isCurrentUserLastSender && 'You: '}{chat.lastMessage}
+              {isCurrentUserSender ? 'You: ' : `${message.senderName}: `}{message.text}
             </ThemedText>
           )}
-          {chat.unreadedMessages > 0 ? <ThemedBadge text={chat.unreadedMessages.toString()} type="primary" style={styles.unreadedBadgeContainer} textStyle={styles.unreadedBadgeText}></ThemedBadge> : <></>}
-
+          <IconSymbol name='chevron.right' size={8} color={isDark ? Colors.light.badges.secondary : Colors.badges.primary}></IconSymbol>
         </View>
       </View>
     </Pressable>
@@ -82,16 +79,15 @@ const styles = StyleSheet.create({
     padding: 15,
     alignItems: 'center',
   },
-  unreadedBadgeContainer:{
+  unreadedBadgeContainer: {
     height: 18,
   },
-  unreadedBadgeText:{
+  unreadedBadgeText: {
     fontSize: 10,
     lineHeight: 20
   },
   contentContainer: {
     flex: 1,
-    marginLeft: 12,
     justifyContent: 'center',
   },
   topRow: {
@@ -111,11 +107,13 @@ const styles = StyleSheet.create({
   time: {
     fontSize: 12,
     color: '#8F8F8F',
+    marginRight: 15,
   },
   lastMessage: {
     fontSize: 14,
     color: '#8F8F8F',
     flex: 1,
+    paddingRight: 5
   },
   currentUserMessage: {
   },

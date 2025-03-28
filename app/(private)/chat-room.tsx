@@ -13,10 +13,11 @@ import { Message } from '@/hooks/db';
 import { DateBadge } from '@/components/chats/messages/DateBadge';
 import { MessagesList } from '@/components/chats/messages/MessagesList';
 import { ResponseToContainer } from '@/components/chats/messages/ResponseToContainer';
+import { ThemedBadge } from '@/components/ui/badges/ThemedBadge';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, chats, sendMessage, updateReadStatus, socket } = useAppContext();
+  const { currentUser, chats, sendMessage, updateReadStatus, socket, offline } = useAppContext();
   const [messageText, setMessageText] = useState<string>('');
   const [headerDate, setHeaderDate] = useState<number>(0);
   const [response, setResponse] = useState<string>();
@@ -120,14 +121,18 @@ export default function ChatRoomScreen() {
       {showResponsePreview &&
         <ResponseToContainer response={response || ''} responseTo={responseTo || ''} onClosePress={wipeResponse}></ResponseToContainer>
       }
-      <ThemedInput
-        shouldShowButton={true}
-        textValue={messageText}
-        setTextValue={setMessageText}
-        handleSendMessage={handleSendMessage}
-        placeholder="Write a message"
-        style={styles.messageInput}
-      />
+      {offline ? 
+      <ThemedView style={styles.offlineHeader}>
+        <ThemedBadge text='Offline mode' type='primary'></ThemedBadge>
+      </ThemedView> :
+        <ThemedInput
+          shouldShowButton={true}
+          textValue={messageText}
+          setTextValue={setMessageText}
+          handleSendMessage={handleSendMessage}
+          placeholder="Write a message"
+          style={styles.messageInput}
+        />}
     </KeyboardAvoidingView>
   );
 }
@@ -154,4 +159,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  offlineHeader: {
+    zIndex: 999,
+    marginBottom: 25,
+    marginTop: 10,
+    alignSelf: 'center',
+  }
 });

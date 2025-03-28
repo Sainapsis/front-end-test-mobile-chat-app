@@ -36,7 +36,10 @@ export interface Chat {
 
 export function useChatsDb(currentUserId: string | null) {
   const [userChats, setUserChats] = useState<Chat[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [userMessages, setUserMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [offline, setOffline] = useState<boolean>(false);
+  const [messageIdToScroll, setMessageIdToScroll] = useState<string>()
   const { post, get } = useApi();
   const socketRef = useRef<Socket | null>(null);
 
@@ -106,7 +109,7 @@ export function useChatsDb(currentUserId: string | null) {
     }
 
     const remoteMessagesIds = remoteMessagesData.map((message: any) => message._id);
-    const localMessages = await db.select().from(messages).where(eq(messages.chatId,chat._id));
+    const localMessages = await db.select().from(messages).where(eq(messages.chatId, chat._id));
     const idsToDelete = localMessages
       .map((message: any) => message.id)
       .filter((localId: string) => !remoteMessagesIds.includes(localId));
@@ -148,10 +151,12 @@ export function useChatsDb(currentUserId: string | null) {
     } catch (err) {
       if (axios.isAxiosError(err)) {
         if (!err.response) {
+          setOffline(true)
           console.log("Offline mode", Date.now());
           const retryInterval = setInterval(async () => {
             try {
               const chatsData = await get('/chat/getChats');
+              setOffline(false)
               clearInterval(retryInterval);
               const chatPromises = chatsData.map((chat: any) => processChat(chat, currentUserId || ''));
               await Promise.all(chatPromises);
@@ -171,11 +176,13 @@ export function useChatsDb(currentUserId: string | null) {
   const setChatStatesFromDB = async () => {
     try {
       const chatData = await db.select().from(chats);
+      let allMessages: any = [];
       const chatPromises = chatData.map(async (chat: any): Promise<Chat> => {
         const chatMessages = await db
           .select()
           .from(messages)
           .where(eq(messages.chatId, chat.id));
+        allMessages = allMessages.concat(chatMessages)
         const orderedMessages = await orderByTimeStamp(chatMessages, 'timestamp', true)
         return {
           ...chat,
@@ -184,7 +191,9 @@ export function useChatsDb(currentUserId: string | null) {
       })
       const disorderedChats = await Promise.all(chatPromises);
       const orderedChats = await orderByTimeStamp(disorderedChats, "lastMessageTime");
+      const orderedMessages = await orderByTimeStamp(allMessages, "timestamp");
       setUserChats(orderedChats);
+      setUserMessages(orderedMessages);
     } catch (err) {
       console.error('Error setting chat states from DB:', err);
     }
@@ -233,6 +242,7 @@ export function useChatsDb(currentUserId: string | null) {
     });
 
     return () => {
+      console.log('Socket disconnected')
       socket.disconnect();
     };
   }, [currentUserId]);
@@ -243,7 +253,6 @@ export function useChatsDb(currentUserId: string | null) {
 
   const sendMessage = useCallback(async (chatId: string, message: any) => {
     if (!message.content.trim()) return false;
-    console.log(message, 'message before sending')
     try {
       setLoading(true);
       let response = await post("/chat/sendMessage", { chatId, ...message })
@@ -268,6 +277,9 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, [loadChats]);
 
+  const setMessageId = useCallback((messageId: string | undefined) => {
+    setMessageIdToScroll(messageId)
+  }, [messageIdToScroll])
   return {
     chats: userChats,
     createChat,
@@ -275,5 +287,9 @@ export function useChatsDb(currentUserId: string | null) {
     loading,
     updateReadStatus,
     socket: socketRef.current,
+    offline,
+    userMessages,
+    setMessageId,
+    messageIdToScroll
   };
 }

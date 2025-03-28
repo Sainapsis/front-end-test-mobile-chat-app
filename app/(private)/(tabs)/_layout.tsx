@@ -1,19 +1,25 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 import { HapticTab } from '@/components/ui/interactions/HapticTab';
 import { IconSymbol } from '@/components/ui/icons/IconSymbol';
 import TabBarBackground from '@/components/tabs/TabBarBackground';
 import { Colors } from '@/components/ui/themes/Colors';
 import { useColorScheme } from '@/hooks/themes/useColorScheme';
+import { ThemedView } from '@/components/ui/layout/ThemedView';
+import { ThemedText } from '@/components/ui/text/ThemedText';
+import { useAppContext } from '@/hooks/AppContext';
+import { ThemedBadge } from '@/components/ui/badges/ThemedBadge';
 
 export default function TabLayout() {
   // Retrieve the current color scheme (e.g., 'light' or 'dark')
   const colorScheme = useColorScheme();
-
-  return (
-    // Define the tab navigation layout using Tabs from expo-router
+  const { offline } = useAppContext();
+  return (<>
+    {offline && <ThemedView style={styles.offlineHeader}>
+      <ThemedBadge text='Offline mode' type='primary'></ThemedBadge>
+    </ThemedView>}
     <Tabs
       screenOptions={{
         // Set the active tint color based on the current color scheme
@@ -50,5 +56,16 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+  </>
   );
 }
+
+
+const styles = StyleSheet.create({
+  offlineHeader: {
+    position: 'absolute',
+    zIndex: 999,
+    top: 50,
+    alignSelf: 'center'
+  }
+})

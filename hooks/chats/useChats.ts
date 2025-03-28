@@ -9,7 +9,11 @@ export function useChats(currentUserId: string | null) {
     sendMessage, 
     loading,
     updateReadStatus,
-    socket
+    socket,
+    offline,
+    userMessages,
+    setMessageId,
+    messageIdToScroll 
   } = useChatsDb(currentUserId);
 
   return {
@@ -18,6 +22,10 @@ export function useChats(currentUserId: string | null) {
     sendMessage,
     loading,
     updateReadStatus,
-    socket
+    socket,
+    offline,
+    userMessages,
+    setMessageId,
+    messageIdToScroll 
   };
 } 

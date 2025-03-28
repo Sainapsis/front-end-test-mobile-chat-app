@@ -1,14 +1,15 @@
-import { FlatList, StyleSheet } from "react-native";
+import { FlatList, StyleSheet, ViewStyle } from "react-native";
 import { ChatListItem } from "./ChatListItem";
 import { Chat, User } from "@/hooks/db";
 
 interface ChatListProps {
     chats: Chat[];
     currentUser?: User;
-    users: User[];
-    renderEmptyComponent: () => React.ReactNode;
+    renderEmptyComponent?: () => React.ReactNode;
+    style?: ViewStyle;
+    scrollEnabled?: boolean; 
 }
-export function ChatList({ chats, currentUser, users, renderEmptyComponent }: ChatListProps) {
+export function ChatList({ chats, currentUser, renderEmptyComponent, style, scrollEnabled = true}: ChatListProps) {
     return (
         <FlatList
             data={chats}
@@ -17,11 +18,11 @@ export function ChatList({ chats, currentUser, users, renderEmptyComponent }: Ch
                 <ChatListItem
                     chat={item}
                     currentUserId={currentUser?.id || ''}
-                    users={users}
                 />
             )}
             ListEmptyComponent={renderEmptyComponent}
-            contentContainerStyle={styles.listContainer}
+            contentContainerStyle={[styles.listContainer, style]}
+            scrollEnabled={scrollEnabled}
         />
     )
 }

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, memo, useMemo, useCallback } from "react";
+import React, { useRef, useEffect, memo, useMemo, useCallback } from "react";
 import { ThemedView } from "@/components/ui/layout/ThemedView";
 import { ThemedText } from "@/components/ui/text/ThemedText";
 import { Chat, Message } from "@/hooks/db";
@@ -8,7 +8,6 @@ import { DateBadge } from "./DateBadge";
 import { MessageBubble } from "./MessageBubble";
 import { useAppContext } from "@/hooks/AppContext";
 import { formatDateLabel } from "./utils/DateFormatter";
-import { NativeGesture, PanGestureHandler, State } from "react-native-gesture-handler";
 
 // Define the props for the MessagesList component.
 // - chat: The chat object that contains messages and other chat details.
@@ -64,11 +63,12 @@ const MessageGroup = memo(({ item, index, messagesList, currentUser, onSwapMessa
 
 // MessagesList component renders the entire list of messages with date badges.
 export function MessagesList({ chat, setHeaderDate, onSwapMessage }: MessagesListProps) {
-    const { currentUser } = useAppContext();
+    const { currentUser, messageIdToScroll, setMessageId } = useAppContext();
     const flatListRef = useRef<FlatList>(null);
     const messagesList = useMemo(() => chat.messages || [], [chat.messages]);
 
     const scrollToEnd = useCallback((animated = true) => {
+        if(!messageIdToScroll)
         requestAnimationFrame(() => {
             flatListRef.current?.scrollToEnd({ animated });
         });
@@ -99,7 +99,24 @@ export function MessagesList({ chat, setHeaderDate, onSwapMessage }: MessagesLis
         }
     ).current;
 
-    // Configuration for determining when items are considered "viewable".
+    useEffect(() => {        
+        if (messageIdToScroll && chat.messages) {
+          const targetIndex = chat.messages.findIndex(msg => msg.id === messageIdToScroll);
+          
+          if (targetIndex !== -1) {
+            setTimeout(() => {
+              flatListRef.current?.scrollToIndex({
+                index: targetIndex,
+                viewPosition: 0.5, 
+                animated: true
+              });
+            }, 300);
+          }
+          
+          setMessageId(undefined);
+        }
+      }, [messageIdToScroll, chat.messages]); 
+
     const viewabilityConfig = { itemVisiblePercentThreshold: 20 };
 
     return (
@@ -127,6 +144,15 @@ export function MessagesList({ chat, setHeaderDate, onSwapMessage }: MessagesLis
             onContentSizeChange={handleContentSizeChange}
             onViewableItemsChanged={onViewableItemsChanged}
             viewabilityConfig={viewabilityConfig}
+            keyboardDismissMode="interactive"
+            keyboardShouldPersistTaps="handled"
+            onScrollToIndexFailed={({ index, averageItemLength }) => {
+                const offset = index * averageItemLength;
+                flatListRef.current?.scrollToOffset({ offset, animated: false });
+                setTimeout(() => {
+                  flatListRef.current?.scrollToIndex({ index });
+                }, 100);
+              }}
         />
     );
 }
