@@ -8,10 +8,6 @@ import {
   UseGuards,
   Get,
   Param,
-  Query,
-  DefaultValuePipe,
-  ParseIntPipe,
-
 } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '../auth/utils/authGuard';
@@ -83,10 +79,8 @@ export class ChatController {
   @Get(':chatId/messages')
   async getMessagesPaginated(
     @Param('chatId') chatId: string,
-    @Query('page', new DefaultValuePipe(0), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ): Promise<Message[]> {
     // Si page es 0, se usará la última página por defecto
-    return this.chatService.getMessagesPaginated(chatId, page, limit);
+    return this.chatService.getMessages(chatId);
   }
 }

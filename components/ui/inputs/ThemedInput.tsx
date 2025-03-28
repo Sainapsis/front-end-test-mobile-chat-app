@@ -44,7 +44,7 @@ export function ThemedInput({ textValue, setTextValue, handleSendMessage, should
                         onPress={handleSendMessage}
                         disabled={!textValue.trim()}
                     >
-                        <IconSymbol name="arrow.up.circle" size={32} color="#007AFF" />
+                        <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />
                     </Pressable>
                     : <></>
                 }

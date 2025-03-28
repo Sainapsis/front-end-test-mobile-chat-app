@@ -6,6 +6,7 @@ import { useColorScheme } from '@/hooks/themes/useColorScheme';
 import { Avatar } from '@/components/ui/user/Avatar';
 import { User } from '@/hooks/user/useUser';
 import { IconSymbol } from '@/components/ui/icons/IconSymbol';
+import { Colors } from '@/components/ui/themes/Colors';
 
 interface MessageBubbleProps {
   message: Message;
@@ -30,7 +31,7 @@ export function MessageBubble({ message, isCurrentUser, isReaded }: MessageBubbl
           : [styles.otherContainer, styles.otherText]]}>
           {isCurrentUser ? '' : message.senderName + ' '}{formatTime(message.timestamp)}
           {message.readed ?
-            <IconSymbol name="checkmark" color="#808080" size={16}></IconSymbol> : <></>
+            <IconSymbol name="checkmark" color="#808080" size={12}></IconSymbol> : <></>
           }
         </ThemedText>
       </View>
@@ -45,8 +46,8 @@ export function MessageBubble({ message, isCurrentUser, isReaded }: MessageBubbl
           <View style={[
             styles.bubble,
             isCurrentUser
-              ? [styles.selfBubble, { backgroundColor: isDark ? '#1E1E1E' : '#EEF6FF' }]
-              : [styles.otherBubble, { backgroundColor: isDark ? '#2A2A2A' : '#FFFFFF' }]
+              ? [styles.selfBubble, { backgroundColor: isDark ? Colors.dark.chatBubble.backgroundSelf : Colors.light.chatBubble.backgroundSelf }]
+              : [styles.otherBubble, { backgroundColor: isDark ? Colors.dark.chatBubble.backgroundOther : Colors.light.chatBubble.backgroundOther }]
           ]}>
             <ThemedText style={[
               styles.messageText,

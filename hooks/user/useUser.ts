@@ -9,7 +9,7 @@ export function useUser() {
     login, 
     logout, 
     isLoggedIn,
-    loading 
+    loading
   } = useUserDb();
 
   return {

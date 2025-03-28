@@ -99,13 +99,7 @@ export class ChatService {
     return newMessage;
   }
 
-  async getMessagesPaginated(chatId: string, page: number, limit: number = 10): Promise<Message[]> {
-
-  const totalMessages = await this.messageModel.countDocuments({ chatId });
-
-  const lastPage = Math.max(Math.ceil(totalMessages / limit), 1);
-
-  const currentPage = page && page > 0 ? page : lastPage;
+  async getMessages(chatId: string): Promise<Message[]> {
 
     return this.messageModel
       .find({ chatId })

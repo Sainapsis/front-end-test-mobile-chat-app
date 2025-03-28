@@ -40,7 +40,9 @@ export function Avatar({ userName, status, size = 40, showStatus = true }: Avata
       >
         <ThemedText style={[
           styles.initials,
-          { fontSize: size * 0.4 }
+          { fontSize: size * 0.4,
+            lineHeight: size * 0.5
+           }
         ]}>
           {initials}
         </ThemedText>
@@ -78,7 +80,6 @@ const styles = StyleSheet.create({
   initials: {
     color: '#9542B9',
     fontWeight: 500,
-    lineHeight: 0
   },
   statusIndicator: {
     position: 'absolute',

@@ -7,6 +7,7 @@ import { ThemedText } from '../../ui/text/ThemedText';
 import { User } from '@/hooks/user/useUser';
 import { useAppContext } from '@/hooks/AppContext';
 import { users } from '@/providers/database/schema';
+import { ThemedBadge } from '@/components/ui/badges/ThemedBadge';
 
 interface ChatListItemProps {
   chat: Chat;
@@ -29,7 +30,7 @@ export function ChatListItem({ chat, currentUserId }: ChatListItemProps) {
     const date = new Date(chat.lastMessageTime);
     const now = new Date();
     const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-
+    console.log(diffInDays)
     if (diffInDays === 0) {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } else if (diffInDays === 1) {
@@ -42,6 +43,7 @@ export function ChatListItem({ chat, currentUserId }: ChatListItemProps) {
   }, [chat.lastMessage]);
 
   const isCurrentUserLastSender = currentUserId === chat.lastMessageSenderId;
+  console.log(isCurrentUserLastSender, currentUserId, chat.lastMessageSenderId )
 
   return (
     <Pressable style={styles.container} onPress={handlePress}>
@@ -71,7 +73,7 @@ export function ChatListItem({ chat, currentUserId }: ChatListItemProps) {
               {isCurrentUserLastSender && 'You: '}{chat.lastMessage}
             </ThemedText>
           )}
-          {chat.unreadedMessages > 0 ? <ThemedText style={styles.time}>{chat.unreadedMessages}</ThemedText> : <></>}
+          {chat.unreadedMessages > 0 ? <ThemedBadge text={chat.unreadedMessages.toString()} type="primary" style={styles.unreadedBadgeContainer} textStyle={styles.unreadedBadgeText}></ThemedBadge> : <></>}
 
         </View>
       </View>
@@ -84,6 +86,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 15,
     alignItems: 'center',
+  },
+  unreadedBadgeContainer:{
+    height: 18,
+  },
+  unreadedBadgeText:{
+    fontSize: 10,
+    lineHeight: 20
   },
   contentContainer: {
     flex: 1,
