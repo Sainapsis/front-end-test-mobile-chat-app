@@ -9,7 +9,10 @@ export function useUser() {
     login, 
     logout, 
     isLoggedIn,
-    loading
+    loading,
+    registerUser,
+    getPublicProfileData,
+    profiles
   } = useUserDb();
 
   return {
@@ -19,5 +22,8 @@ export function useUser() {
     logout,
     isLoggedIn,
     loading,
+    registerUser,
+    getPublicProfileData,
+    profiles
   };
 } 

@@ -20,6 +20,7 @@ export function useUserDb() {
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const { post, get } = useApi();
+  const [publicProfiles, setPublicProfiles] = useState<User[]>([]);
 
   // Check if there is a current session
   useEffect(() => {
@@ -125,6 +126,26 @@ export function useUserDb() {
 
   }, []);
 
+  const registerUser = useCallback(async (userData: any) => {
+    await post('/user/create', userData)
+  }, [])
+
+  const getPublicProfileData = useCallback(async () => {
+    console.log("here")
+    const publicProfiles = await get('/user/publicProfiles')
+    console.log(publicProfiles.length)
+    const profileUsers = publicProfiles.map((profile: any) => {
+      return {
+        username: profile.username,
+        id: profile._id,
+        name: `${profile.firstName} ${profile.lastName}`,
+        avatar: profile.avatar || undefined,
+        status: profile.status,
+      }
+    })
+    console.log(profileUsers)
+    setPublicProfiles(profileUsers)
+  }, [])
   return {
     users: allUsers,
     currentUser,
@@ -132,5 +153,8 @@ export function useUserDb() {
     logout,
     isLoggedIn,
     loading,
+    registerUser,
+    getPublicProfileData,
+    profiles: publicProfiles
   };
 } 

@@ -9,7 +9,7 @@ type AppContextType = {
   users: User[];
   currentUser: User | null;
   isLoggedIn: boolean;
-  login: (username:string, password: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   chats: Chat[];
   createChat: (participantIds: string[]) => Promise<void>;
@@ -22,6 +22,9 @@ type AppContextType = {
   userMessages: Message[];
   messageIdToScroll: string | undefined;
   setMessageId: (messageId: string | undefined) => void;
+  registerUser: (userdata: any) => void;
+  getPublicProfileData: () => void;
+  profiles: User[]
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -30,7 +33,7 @@ function AppContent({ children }: { children: ReactNode }) {
   const { isInitialized } = useDatabase();
   const userContext = useUser();
   const chatContext = useChats(userContext.currentUser?.id || null);
-  
+
   const loading = !isInitialized || userContext.loading || chatContext.loading;
 
   const value = {

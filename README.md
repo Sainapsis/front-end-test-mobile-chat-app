@@ -23,6 +23,11 @@ Why? Because we wanted to allow possible **errors that result from improper AI u
 2. Install dependencies with `npm install`
 3. Start the development server with `npm start`
 4. Use the Expo Go app on your device or an emulator to run the application
+7. Download and install mongodb
+8. Set your MongoDB database to localhost:27017
+9. In `providers/api/apiProviders.ts` replace the URL API_BASE_URL to `http://&lt;Your Local Ip Address&gt;:3000`
+10. Go to `/back-end-test-mobile-chat-app` and install dependencies with `npm install`
+11. Start the bakcend server with `npm start`
 
 ## Your Challenge
 
