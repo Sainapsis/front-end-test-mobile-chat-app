@@ -119,7 +119,6 @@ export function useUserDb() {
       setIsLoggedIn(false)
       const usersData = await db.select().from(users)
       setAllUsers(usersData as User[])
-      console.log(usersData)
     } catch (error) {
       console.error('Error during logout:', error);
     }

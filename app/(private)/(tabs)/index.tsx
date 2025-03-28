@@ -8,6 +8,7 @@ import { UserListItem } from '@/components/users/UserListItem';
 import { IconSymbol } from '@/components/ui/icons/IconSymbol';
 import { ThemedInput } from '@/components/ui/inputs/ThemedInput';
 import { Chat } from '@/hooks/chats/useChats';
+import { ChatList } from '@/components/chats/list/ChatList';
 
 // Enable experimental layout animations on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -15,22 +16,13 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 export default function ChatsScreen() {
-  // Retrieve current user, users list, chats and functions from global context
   const { currentUser, users, chats, createChat, loading } = useAppContext();
-
-  // Local state to control modal visibility and selection of users for a new chat
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-
-  // State for search functionality and filtered chats list
   const [searchText, setSearchText] = useState('');
   const [filteredChats, setFilteredChats] = useState<Chat[]>([]);
-
-  // Animated value to control the header's height and opacity when searching
   const headerAnim = useRef(new Animated.Value(1)).current;
-  // Ref to store the previous search text, used to detect transitions between empty and non-empty search
   const prevTextRef = useRef<string>('');
-  // Ref to hold the debounce timeout for search
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Effect to animate the header when the search text changes from empty to non-empty and vice versa
@@ -108,6 +100,17 @@ export default function ChatsScreen() {
     </>
   );
 
+  const renderNotFoundComponent = () => (
+    <>
+      {!loading &&
+        <ThemedView style={styles.emptyContainer}>
+          <ThemedText style={styles.emptyTextTitle}>No items found</ThemedText>
+          <ThemedText style={styles.emptyTextSubtitle}>Try using different keywords or check your search.</ThemedText>
+        </ThemedView>
+      }
+    </>
+  );
+
   return (
     <ThemedView style={styles.container}>
       {/* Animated header that collapses when search is active */}
@@ -132,36 +135,23 @@ export default function ChatsScreen() {
         />
       </Animated.View>
 
+      {filteredChats.length > 0 && <ThemedText style={styles.searchTitle}>Chats</ThemedText>}
       {/* Show full chat list if searchText is empty, otherwise show filtered chats */}
-      {searchText.length === 0 ? (
-        <FlatList
-          data={chats}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ChatListItem
-              chat={item}
-              currentUserId={currentUser?.id || ''}
-              users={users}
-            />
-          )}
-          ListEmptyComponent={renderEmptyComponent}
-          contentContainerStyle={styles.listContainer}
-        />
-      ) : (
-        <FlatList
-          data={filteredChats}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ChatListItem
-              chat={item}
-              currentUserId={currentUser?.id || ''}
-              users={users}
-            />
-          )}
-          ListEmptyComponent={searchText.length > 0 ? renderEmptyComponent : <></>}
-          contentContainerStyle={styles.listContainer}
-        />
-      )}
+      {searchText.length === 0 ?
+        <ChatList
+          chats={chats}
+          users={users}
+          currentUser={currentUser || undefined}
+          renderEmptyComponent={renderEmptyComponent}>
+        </ChatList>
+        :
+        <ChatList
+          chats={filteredChats}
+          users={users}
+          currentUser={currentUser || undefined}
+          renderEmptyComponent={renderNotFoundComponent}>
+        </ChatList>
+      }
 
       {/* Modal for creating a new chat */}
       <Modal
@@ -225,6 +215,12 @@ export default function ChatsScreen() {
 }
 
 const styles = StyleSheet.create({
+  searchTitle:{
+    paddingHorizontal: 15,
+    paddingTop: 20,
+    fontWeight: 600,
+    fontSize: 25,
+  },
   container: {
     flex: 1,
     paddingTop: 60,
@@ -243,9 +239,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 122, 255, 0.1)',
-  },
-  listContainer: {
-    flexGrow: 1,
   },
   emptyContainer: {
     flex: 1,

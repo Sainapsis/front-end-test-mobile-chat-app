@@ -8,6 +8,7 @@
 - If and user have already logged in into the aplication, its profile is saved, and it could be switched easily
 - Chat logic managed by web sockets for real time communication
 - Badges for dates in chat rooms
+- Added chat responses
 
 ## Bug Fixes
 - Fixed a bug where after login the login view may appear before the chat rooms are shown

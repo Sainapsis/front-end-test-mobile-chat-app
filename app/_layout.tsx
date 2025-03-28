@@ -6,19 +6,18 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { StyleSheet, ActivityIndicator } from 'react-native';
-
 import { useColorScheme } from '@/hooks/themes/useColorScheme';
 import { AppProvider, useAppContext } from '@/hooks/AppContext';
 import { DrizzleStudioDevTool } from '@/providers/database/DrizzleStudio';
 import { ThemedView } from '@/components/ui/layout/ThemedView';
-import { ThemedText } from '@/components/ui/text/ThemedText';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   const { isLoggedIn, loading } = useAppContext();
   return (
-    <>
+    <GestureHandlerRootView>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(public)" options={{ headerShown: false }} />
         <Stack.Screen name="(private)" options={{ headerShown: false }} />
@@ -30,7 +29,7 @@ function RootLayoutNav() {
         </ThemedView>
       )}
       {__DEV__ && <DrizzleStudioDevTool />}
-    </>
+    </GestureHandlerRootView>
   );
 }
 

@@ -3,6 +3,7 @@ import { ThemedView } from "../layout/ThemedView";
 import { IconSymbol } from "../icons/IconSymbol";
 import { ThemedText } from "../text/ThemedText";
 import { useState } from "react";
+import * as Haptics from 'expo-haptics';
 
 interface ThemedInputProps {
     textValue: string;
@@ -42,6 +43,13 @@ export function ThemedInput({ textValue, setTextValue, handleSendMessage, should
                     <Pressable
                         style={[styles.sendButton, !textValue.trim() && styles.disabledButton]}
                         onPress={handleSendMessage}
+                        onPressOut={async () => {
+                            try {
+                              await Haptics.selectionAsync();
+                            } catch (error) {
+                              console.warn("Haptic feedback falló:", error);
+                            }
+                          }}
                         disabled={!textValue.trim()}
                     >
                         <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />

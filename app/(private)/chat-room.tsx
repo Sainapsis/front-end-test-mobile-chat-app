@@ -1,83 +1,67 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  FlatList,
-  Pressable,
-  KeyboardAvoidingView,
-  Platform,
-  Keyboard,
-  ViewToken
-} from 'react-native';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { View, StyleSheet, Pressable, KeyboardAvoidingView, Platform, } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ui/text/ThemedText';
 import { ThemedView } from '@/components/ui/layout/ThemedView';
-import { MessageBubble } from '@/components/chats/messages/MessageBubble';
 import { Avatar } from '@/components/ui/user/Avatar';
 import { IconSymbol } from '@/components/ui/icons/IconSymbol';
 import { ThemedInput } from '@/components/ui/inputs/ThemedInput';
-import { ThemedBadge } from '@/components/ui/badges/ThemedBadge';
 import { useIsFocused } from '@react-navigation/native';
 import { Message } from '@/hooks/db';
-
-// Función auxiliar para formatear fechas
-const formatDateLabel = (timestamp: number | string): string => {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (diffInDays === 0) return 'Today';
-  if (diffInDays === 1) return 'Yesterday';
-  if (diffInDays < 7) return date.toLocaleDateString([], { weekday: 'long' });
-  return date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
-};
+import { DateBadge } from '@/components/chats/messages/DateBadge';
+import { MessagesList } from '@/components/chats/messages/MessagesList';
+import { ResponseToContainer } from '@/components/chats/messages/ResponseToContainer';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const { currentUser, chats, sendMessage, updateReadStatus, socket } = useAppContext();
-  const [messageText, setMessageText] = useState('');
-  const [headerDate, setHeaderDate] = useState<string>('');
-  const flatListRef = useRef<FlatList>(null);
+  const [messageText, setMessageText] = useState<string>('');
+  const [headerDate, setHeaderDate] = useState<number>(0);
+  const [response, setResponse] = useState<string>();
+  const [responseId, setResponseId] = useState<string>();
+  const [responseTo, setResponseTo] = useState<string>();
+  const [showResponsePreview, setShowResponsePreview] = useState<boolean>(false)
   const router = useRouter();
   const isFocused = useIsFocused();
 
   const chat = chats.find(c => c.id === chatId);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (messageText.trim() && currentUser && chat) {
-      sendMessage(chat.id, messageText.trim(), currentUser.id);
+      const messageDataToSend: any = { content: messageText.trim() }
+      if (responseTo) {
+        messageDataToSend.responseTo = responseTo
+        messageDataToSend.responseId = responseId
+        messageDataToSend.response = response
+      }
+      await sendMessage(chat.id, messageDataToSend);
       setMessageText('');
+      wipeResponse()
     }
-  };
+  }
 
-  useEffect(() => {
-    if (chat?.messages?.length && flatListRef.current) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: false });
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 200);
-      }, 100);
-    }
-  }, [chat?.messages?.length]);
+  const wipeResponse = () => {
+    setShowResponsePreview(false)
+    setResponse(undefined)
+    setResponseTo(undefined)
+    setResponseId(undefined)
+  }
 
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
-      flatListRef.current?.scrollToEnd({ animated: false });
-    });
-    return () => {
-      keyboardDidShowListener.remove();
-    };
-  }, []);
+  const onSwapMessage = (message: Message) => {
+    setShowResponsePreview(true)
+    setResponse(message.text);
+    setResponseId(message.id);
+    setResponseTo(message.senderName)
+  }
 
   useFocusEffect(
     React.useCallback(() => {
       updateReadStatus(currentUser?.id || '', chatId);
     }, [currentUser, chatId])
   );
-  
+
   useEffect(() => {
     if (!socket) return;
 
@@ -93,23 +77,6 @@ export default function ChatRoomScreen() {
     };
   }, [isFocused, chatId, socket, currentUser, updateReadStatus]);
 
-  const onViewableItemsChanged = useRef(
-    ({ viewableItems, changed }: { viewableItems: ViewToken[]; changed: ViewToken[]; }) => {
-      if (viewableItems.length > 0) {
-        const firstItem = viewableItems[0].item;
-        setHeaderDate(formatDateLabel(firstItem.timestamp));
-      }
-    }
-  ).current;
-
-  const viewabilityConfig = { itemVisiblePercentThreshold: 20 };
-
-  const renderDateBadge = (dateLabel: string) => (
-    <View style={styles.badgeContainer}>
-      <ThemedBadge text={dateLabel} type='secondary' />
-    </View>
-  );
-
   if (!chat || !currentUser) {
     return (
       <ThemedView style={styles.centerContainer}>
@@ -117,33 +84,6 @@ export default function ChatRoomScreen() {
       </ThemedView>
     );
   }
-
-  const messagesList = chat.messages || [];
-
-  const renderItem = ({ item, index }: { item: any; index: number }) => {
-    const currentMessageLabel = formatDateLabel(item.timestamp);
-    let showBadge = false;
-    if (index === 0) {
-      showBadge = true;
-    } else {
-      const previousMessage = messagesList[index - 1];
-      const previousMessageLabel = formatDateLabel(previousMessage.timestamp);
-      if (currentMessageLabel !== previousMessageLabel) {
-        showBadge = true;
-      }
-    }
-
-    return (
-      <View>
-        {showBadge && renderDateBadge(currentMessageLabel)}
-        <MessageBubble
-          message={item}
-          isCurrentUser={item.senderId === currentUser.id}
-          isReaded={item.readed}
-        />
-      </View>
-    );
-  };
 
   return (
     <KeyboardAvoidingView
@@ -173,26 +113,13 @@ export default function ChatRoomScreen() {
           ),
         }}
       />
-      {headerDate !== '' && (
-        <View style={[styles.badgeContainer, styles.badgeHeader]}>
-          <ThemedBadge text={headerDate} type='secondary' />
-        </View>
+      {headerDate !== 0 && (
+        <DateBadge timestamp={headerDate} style={styles.badgeHeader}></DateBadge>
       )}
-      <FlatList
-        ref={flatListRef}
-        data={chat.messages}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.messagesContainer}
-        ListEmptyComponent={() => (
-          <ThemedView style={styles.emptyContainer}>
-            <ThemedText>No messages yet. Say hello! {chat.chatStatus}</ThemedText>
-          </ThemedView>
-        )}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-      />
+      <MessagesList chat={chat} setHeaderDate={setHeaderDate} onSwapMessage={onSwapMessage}></MessagesList>
+      {showResponsePreview &&
+        <ResponseToContainer response={response || ''} responseTo={responseTo || ''} onClosePress={wipeResponse}></ResponseToContainer>
+      }
       <ThemedInput
         shouldShowButton={true}
         textValue={messageText}
@@ -208,9 +135,6 @@ export default function ChatRoomScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  badgeContainer: {
-    alignSelf: 'center',
   },
   badgeHeader: {
     zIndex: 999,
@@ -229,14 +153,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-  },
-  messagesContainer: {
-    padding: 10,
-    flexGrow: 1,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });

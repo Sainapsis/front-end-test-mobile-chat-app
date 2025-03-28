@@ -57,6 +57,8 @@ export class ChatService {
       content:createdMessage.content,
       media: createdMessage.media,
       response: createdMessage.response,
+      responseTo: createdMessage.responseTo,
+      responseId: createdMessage.responseId,
       timestamp: new Date(),
       sender: new mongoose.Types.ObjectId(userId),
       chatId: new mongoose.Types.ObjectId(createdMessage.chatId),
@@ -86,7 +88,6 @@ export class ChatService {
     for (const member of chatData.members) {
       if (member.toString() !== userId.toString()) {
         chatData.unreadCounts[member.toString()] = (chatData.unreadCounts[member.toString()] || 0) + 1;
-        console.log(chatData.unreadCounts[member.toString()])
       }
     }
     chatData.markModified('unreadCounts');
@@ -117,7 +118,14 @@ export class ChatService {
       },
       { $addToSet: { readBy: userId } }
     );
-
+    let chats = await this.chatModel.find({_id: chatId})
+    for(let chat of chats){
+      for(let member of chat.members){
+        if(member.toString()!== userId.toString()){
+          this.chatGateway.notifyNewMessage(chatId, null, member.toString());
+        }
+      }
+    }
     return { "readBy": userId };
   }
 
