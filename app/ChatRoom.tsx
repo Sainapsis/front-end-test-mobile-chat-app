@@ -76,6 +76,8 @@ export default function ChatRoomScreen() {
     );
   }
 
+  const sortedMessages = chat?.messages.sort((a, b) => a.timestamp - b.timestamp) || [];
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -109,7 +111,7 @@ export default function ChatRoomScreen() {
 
       <FlatList
         ref={flatListRef}
-        data={chat.messages}
+        data={sortedMessages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <MessageBubble
