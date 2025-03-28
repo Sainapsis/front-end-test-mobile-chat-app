@@ -1,5 +1,4 @@
 import React from 'react';
-import { Pressable } from 'react-native';
 import { ThemedText } from '@/design_system/components/atoms/ThemedText';
 import { ThemedView } from '@/design_system/components/atoms/ThemedView';
 import { IconSymbol } from '@/design_system/ui/vendors';

@@ -5,7 +5,7 @@ import { styles } from './MessageBubble.styles';
 import { useMessageBubble } from '@/hooks/components/useMessageBubble';
 import { Message } from '@/hooks/useChats';
 import EmojiSelector, { Categories } from 'react-native-emoji-selector';
-import { OptionsMenu } from '@/design_system/components/templates';
+import { OptionsMenu } from '@/design_system/components/organisms';
 
 interface MessageBubbleProps {
   message: Message;

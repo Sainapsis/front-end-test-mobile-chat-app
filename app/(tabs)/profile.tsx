@@ -2,8 +2,8 @@ import React from 'react';
 import { StyleSheet, Pressable, SafeAreaView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppContext } from '@/context/AppContext';
-import { ThemedText, ThemedView, EmptyState } from '@/design_system/components/atoms';
-import { SkeletonLoader } from '@/design_system/components/molecules';
+import { ThemedText, ThemedView } from '@/design_system/components/atoms';
+import { SkeletonLoader, EmptyState } from '@/design_system/components/molecules';
 import { Avatar } from '@/design_system/components/organisms';
 import { IconSymbol } from '@/design_system/ui/vendors';
 

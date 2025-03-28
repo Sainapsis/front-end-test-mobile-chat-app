@@ -4,4 +4,4 @@ export { Badge } from './Badge';
 export { Divider } from './Divider';
 export { ThemedText } from './ThemedText';
 export { ThemedView } from './ThemedView';
-export { EmptyState } from './EmptyState';
+export { HelloWave } from './HelloWave';

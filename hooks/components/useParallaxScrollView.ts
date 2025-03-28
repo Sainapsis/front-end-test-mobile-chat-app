@@ -4,7 +4,7 @@ import Animated, {
     useScrollViewOffset,
   } from 'react-native-reanimated';import { useBottomTabOverflow } from '@/design_system/ui/vendors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { parallaxAnimation } from '@/design_system/components/molecules/ParallaxScrollView/ParallaxScrollView.styles';
+import { parallaxAnimation } from '@/design_system/components/organisms/ParallaxScrollView/ParallaxScrollView.styles';
 
 export function useParallaxScrollView() {
   const colorScheme = useColorScheme() ?? 'light';

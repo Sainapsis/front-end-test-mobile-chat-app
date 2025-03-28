@@ -4,7 +4,7 @@ import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAppContext } from '@/context/AppContext';
 import { ThemedText, ThemedView } from '@/design_system/components/atoms';
-import { MessageBubble } from '@/design_system/components/molecules';
+import { MessageBubble } from '@/design_system/components/organisms';
 import { IconSymbol } from '@/design_system/ui/vendors';
 import { useMessageSearch } from '@/hooks/useMessageSearch';
 import { spacing, colors } from '@/design_system/ui/tokens';
