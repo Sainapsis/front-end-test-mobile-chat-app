@@ -1,6 +1,5 @@
 import React from 'react';
-import { StyleSheet, SafeAreaView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { StyleSheet, SafeAreaView, useColorScheme } from 'react-native';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ui/text/ThemedText';
 import { ThemedView } from '@/components/ui/layout/ThemedView';
@@ -9,9 +8,9 @@ import { ThemedButton } from '@/components/ui/buttons/ThemedButton';
 
 export default function ProfileScreen() {
   // Get current user data and logout function from global context
-  const { currentUser, logout } = useAppContext();
+  const { currentUser, logout, offline } = useAppContext();
   // Get router to perform navigation actions
-  const router = useRouter();
+  const colorScheme = useColorScheme();
 
   // Handler for logging out
   const handleLogout = () => {
@@ -29,7 +28,7 @@ export default function ProfileScreen() {
 
   return (
     // SafeAreaView to ensure content does not overlap system UI elements
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colorScheme === 'dark' ? '#121212' : '#FFF' }]}>
       <ThemedView style={styles.container}>
         {/* Profile header with avatar and user info */}
         <ThemedView style={styles.profileHeader}>
@@ -61,7 +60,7 @@ export default function ProfileScreen() {
 
         {/* Logout button placed at the bottom of the screen */}
         <ThemedView style={styles.buttonContainer}>
-          <ThemedButton onPress={handleLogout} buttonText="Logout" iconName="chevron.right" />
+          <ThemedButton onPress={handleLogout} buttonText="Logout" iconName="chevron.right" disabled={offline} />
         </ThemedView>
       </ThemedView>
     </SafeAreaView>
@@ -74,7 +73,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingTop: 60,
+    justifyContent: 'center'
   },
   loadingContainer: {
     flex: 1,
@@ -109,9 +108,8 @@ const styles = StyleSheet.create({
     width: 100,
   },
   buttonContainer: {
-    flex: 1,
     justifyContent: 'flex-end',
-    marginBottom: 80, // Ensures the button is visible above the tab bar
+    height: 80,
   },
   // Additional styles for logout button if needed (currently ThemedButton handles its own styles)
   logoutButton: {

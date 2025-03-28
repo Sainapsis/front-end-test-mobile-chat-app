@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FlatList, StyleSheet, Pressable, Modal, Platform, UIManager, LayoutAnimation, Animated } from 'react-native';
+import { FlatList, StyleSheet, Pressable, Modal, Platform, UIManager, LayoutAnimation, Animated, KeyboardAvoidingView } from 'react-native';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ui/text/ThemedText';
 import { ThemedView } from '@/components/ui/layout/ThemedView';
@@ -7,8 +7,12 @@ import { ChatListItem } from '@/components/chats/list/ChatListItem';
 import { UserListItem } from '@/components/users/UserListItem';
 import { IconSymbol } from '@/components/ui/icons/IconSymbol';
 import { ThemedInput } from '@/components/ui/inputs/ThemedInput';
-import { Chat } from '@/hooks/chats/useChats';
+import { Chat, Message } from '@/hooks/chats/useChats';
 import { ChatList } from '@/components/chats/list/ChatList';
+import { FilteredMessageList } from '@/components/chats/list/FilteredMessageList';
+import { ScrollView } from 'react-native-gesture-handler';
+import { useColorScheme } from '@/hooks/themes/useColorScheme.web';
+import { Colors } from '@/components/ui/themes/Colors';
 
 // Enable experimental layout animations on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -16,15 +20,17 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 export default function ChatsScreen() {
-  const { currentUser, users, chats, createChat, loading } = useAppContext();
+  const { currentUser, users, chats, createChat, loading, offline, userMessages } = useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [searchText, setSearchText] = useState('');
   const [filteredChats, setFilteredChats] = useState<Chat[]>([]);
+  const [filteredMessages, setFilteredMessages] = useState<Message[]>([]);
   const headerAnim = useRef(new Animated.Value(1)).current;
   const prevTextRef = useRef<string>('');
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
-
+  const  colorScheme  = useColorScheme()
+  const isDark = colorScheme === 'dark'
   // Effect to animate the header when the search text changes from empty to non-empty and vice versa
   useEffect(() => {
     const wasEmpty = prevTextRef.current.length === 0;
@@ -82,8 +88,14 @@ export default function ChatsScreen() {
             chat.chatName?.toLocaleLowerCase().indexOf(text.toLocaleLowerCase()) !== -1
           )
         )));
+        setFilteredMessages(JSON.parse(JSON.stringify(
+          userMessages.filter(message =>
+            message.text?.toLocaleLowerCase().indexOf(text.toLocaleLowerCase()) !== -1
+          )
+        )));
       } else {
         setFilteredChats([]);
+        setFilteredMessages([]);
       }
     }, 300);
   };
@@ -112,110 +124,135 @@ export default function ChatsScreen() {
   );
 
   return (
-    <ThemedView style={styles.container}>
-      {/* Animated header that collapses when search is active */}
-      <Animated.View style={[styles.header, { height: headerHeight, opacity: headerOpacity }]}>
-        <ThemedText type="title">Chats</ThemedText>
-        <Pressable
-          style={styles.newChatButton}
-          onPress={() => setModalVisible(true)}
+    <KeyboardAvoidingView
+      style={[styles.searchContainer, {backgroundColor: isDark? Colors.dark.background : Colors.light.background}]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
+      <ThemedView style={styles.container}>
+        {/* Animated header that collapses when search is active */}
+        <Animated.View style={[styles.header, { height: headerHeight, opacity: headerOpacity }]}>
+          <ThemedText type="title">Chats</ThemedText>
+          {!offline &&
+            <Pressable
+              style={styles.newChatButton}
+              onPress={() => setModalVisible(true)}
+            >
+              <IconSymbol name="plus" size={24} color="#007AFF" />
+            </Pressable>
+          }
+        </Animated.View>
+
+        {/* Search input field */}
+        <Animated.View>
+          <ThemedInput
+            style={styles.searchBarContainer}
+            textValue={searchText}
+            setTextValue={handleChangeSearchText}
+            placeholder="Search"
+            textArea={false}
+          />
+        </Animated.View>
+        {/* Show full chat list if searchText is empty, otherwise show filtered chats */}
+        {searchText.length === 0 ?
+          <ChatList
+            chats={chats}
+            currentUser={currentUser || undefined}
+            renderEmptyComponent={renderEmptyComponent}>
+          </ChatList>
+
+          :
+          <ScrollView
+            keyboardDismissMode="interactive"
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 100 }}
+          >
+            {filteredChats.length > 0 &&
+              <>
+                <ThemedText style={styles.searchTitle}>Chats</ThemedText>
+                <ChatList
+                  chats={filteredChats}
+                  currentUser={currentUser || undefined}
+                  style={styles.chatSearchStyles}
+                  scrollEnabled={false}>
+                </ChatList>
+              </>
+            }
+            {filteredMessages.length > 0 && <><ThemedText style={styles.searchTitle}>Messages</ThemedText>
+              <FilteredMessageList
+                messages={filteredMessages}
+                currentUser={currentUser || undefined}
+                scrollEnabled={false}>
+              </FilteredMessageList>
+            </>
+            }
+
+          </ScrollView>
+        }
+
+        {/* Modal for creating a new chat */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => {
+            setModalVisible(false);
+            setSelectedUsers([]);
+          }}
         >
-          <IconSymbol name="plus" size={24} color="#007AFF" />
-        </Pressable>
-      </Animated.View>
+          <ThemedView style={styles.modalContainer}>
+            <ThemedView style={styles.modalContent}>
+              {/* Modal header with title and close button */}
+              <ThemedView style={styles.modalHeader}>
+                <ThemedText type="subtitle">New Chat</ThemedText>
+                <Pressable onPress={() => {
+                  setModalVisible(false);
+                  setSelectedUsers([]);
+                }}>
+                  <IconSymbol name="xmark" size={24} color="#007AFF" />
+                </Pressable>
+              </ThemedView>
 
-      {/* Search input field */}
-      <Animated.View>
-        <ThemedInput
-          style={styles.searchBarContainer}
-          textValue={searchText}
-          setTextValue={handleChangeSearchText}
-          placeholder="Search"
-          textArea={false}
-        />
-      </Animated.View>
+              <ThemedText style={styles.modalSubtitle}>
+                Select users to chat with
+              </ThemedText>
 
-      {filteredChats.length > 0 && <ThemedText style={styles.searchTitle}>Chats</ThemedText>}
-      {/* Show full chat list if searchText is empty, otherwise show filtered chats */}
-      {searchText.length === 0 ?
-        <ChatList
-          chats={chats}
-          users={users}
-          currentUser={currentUser || undefined}
-          renderEmptyComponent={renderEmptyComponent}>
-        </ChatList>
-        :
-        <ChatList
-          chats={filteredChats}
-          users={users}
-          currentUser={currentUser || undefined}
-          renderEmptyComponent={renderNotFoundComponent}>
-        </ChatList>
-      }
+              {/* List of users to select from for new chat */}
+              <FlatList
+                data={users.filter(user => user.id !== currentUser?.id)}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <UserListItem
+                    user={item}
+                    onSelect={() => toggleUserSelection(item.id)}
+                    isSelected={selectedUsers.includes(item.id)}
+                  />
+                )}
+                style={styles.userList}
+              />
 
-      {/* Modal for creating a new chat */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => {
-          setModalVisible(false);
-          setSelectedUsers([]);
-        }}
-      >
-        <ThemedView style={styles.modalContainer}>
-          <ThemedView style={styles.modalContent}>
-            {/* Modal header with title and close button */}
-            <ThemedView style={styles.modalHeader}>
-              <ThemedText type="subtitle">New Chat</ThemedText>
-              <Pressable onPress={() => {
-                setModalVisible(false);
-                setSelectedUsers([]);
-              }}>
-                <IconSymbol name="xmark" size={24} color="#007AFF" />
+              {/* Button to create chat, disabled if no user is selected */}
+              <Pressable
+                style={[
+                  styles.createButton,
+                  selectedUsers.length === 0 && styles.disabledButton
+                ]}
+                onPress={handleCreateChat}
+                disabled={selectedUsers.length === 0}
+              >
+                <ThemedText style={styles.createButtonText}>
+                  Create Chat
+                </ThemedText>
               </Pressable>
             </ThemedView>
-
-            <ThemedText style={styles.modalSubtitle}>
-              Select users to chat with
-            </ThemedText>
-
-            {/* List of users to select from for new chat */}
-            <FlatList
-              data={users.filter(user => user.id !== currentUser?.id)}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <UserListItem
-                  user={item}
-                  onSelect={() => toggleUserSelection(item.id)}
-                  isSelected={selectedUsers.includes(item.id)}
-                />
-              )}
-              style={styles.userList}
-            />
-
-            {/* Button to create chat, disabled if no user is selected */}
-            <Pressable
-              style={[
-                styles.createButton,
-                selectedUsers.length === 0 && styles.disabledButton
-              ]}
-              onPress={handleCreateChat}
-              disabled={selectedUsers.length === 0}
-            >
-              <ThemedText style={styles.createButtonText}>
-                Create Chat
-              </ThemedText>
-            </Pressable>
           </ThemedView>
-        </ThemedView>
-      </Modal>
-    </ThemedView>
+        </Modal>
+      </ThemedView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  searchTitle:{
+  searchTitle: {
     paddingHorizontal: 15,
     paddingTop: 20,
     fontWeight: 600,
@@ -300,4 +337,9 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     paddingTop: 0,
   },
+  chatSearchStyles: {
+  },
+  searchContainer: {
+    flex: 1
+  }
 });

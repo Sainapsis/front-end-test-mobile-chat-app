@@ -1,6 +1,6 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useUser, User } from '@/hooks/user/useUser';
-import { useChats, Chat } from '@/hooks/chats/useChats';
+import { useChats, Chat, Message } from '@/hooks/chats/useChats';
 import { DatabaseProvider } from '@/providers/database/DatabaseProvider';
 import { useDatabase } from '@/hooks//db/useDatabase';
 import { Socket } from 'socket.io-client';
@@ -18,6 +18,10 @@ type AppContextType = {
   loading: boolean;
   dbInitialized: boolean;
   socket: Socket | null;
+  offline: boolean;
+  userMessages: Message[];
+  messageIdToScroll: string | undefined;
+  setMessageId: (messageId: string | undefined) => void;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
