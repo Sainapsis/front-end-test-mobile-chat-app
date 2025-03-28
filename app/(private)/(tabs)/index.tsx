@@ -20,7 +20,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 export default function ChatsScreen() {
-  const { currentUser, users, chats, createChat, loading, offline, userMessages } = useAppContext();
+  const { currentUser, users, chats, createChat, loading, offline, userMessages, getPublicProfileData, profiles } = useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [searchText, setSearchText] = useState('');
@@ -100,6 +100,11 @@ export default function ChatsScreen() {
     }, 300);
   };
 
+  const handleModalVisibility = async () => {
+    setModalVisible(true)
+    await getPublicProfileData()
+    console.log('Modal visibility')
+  }
   // Render component to show when there are no chats
   const renderEmptyComponent = () => (
     <>
@@ -135,7 +140,7 @@ export default function ChatsScreen() {
           {!offline &&
             <Pressable
               style={styles.newChatButton}
-              onPress={() => setModalVisible(true)}
+              onPress={async () => await handleModalVisibility()}
             >
               <IconSymbol name="plus" size={24} color="#007AFF" />
             </Pressable>
@@ -218,7 +223,7 @@ export default function ChatsScreen() {
 
               {/* List of users to select from for new chat */}
               <FlatList
-                data={users.filter(user => user.id !== currentUser?.id)}
+                data={profiles.filter(user => user.id !== currentUser?.id)}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                   <UserListItem

@@ -43,54 +43,42 @@ export function useChatsDb(currentUserId: string | null) {
   const { post, get } = useApi();
   const socketRef = useRef<Socket | null>(null);
 
-  // Sort the data by timestamp in descending order
   const orderByTimeStamp = async (data: any[], timestamp: string, desc: boolean = false): Promise<any[]> => {
     return data.sort((a: any, b: any) => desc ? a[timestamp] - b[timestamp] : b[timestamp] - a[timestamp]);
   };
 
-  // Function to transform an API message into the Message state format
   const transformMessageToDbFormat = (chat: any, message: any): Message => ({
-    id: message._id,
-    chatId: chat._id,
-    senderId: message.sender._id,
-    senderName: `${message.sender.firstName} ${message.sender.lastName}`,
-    text: message.content,
-    timestamp: Date.parse(message.timestamp),
-    responseText: message.response ?? undefined,
-    mediaUri: message.mediaUri ?? undefined,
-    readed: message.readBy.length === chat.members.length ? 1 : 0,
-    responseTo: message.responseTo ?? undefined,
-    responseId: message.responseId ?? undefined,
+    id: message._id || '',
+    chatId: chat._id || '',
+    senderId: message.sender?._id || '',
+    senderName: `${message.sender?.firstName || ''} ${message.sender?.lastName || ''}`,
+    text: message.content || '',
+    timestamp: Date.parse(message.timestamp) || Date.now(),
+    responseText: message.response || '',
+    mediaUri: message.mediaUri || '',
+    readed: message.readBy?.length === chat.members?.length ? 1 : 0,
+    responseTo: message.responseTo || '',
+    responseId: message.responseId || '',
   });
 
-  const transformChatToDbFormat = (chat: any, otherUser: any, myUser: any): Chat => ({
-    id: chat._id,
-    lastMessage: chat.lastMessage?.content ?? "",
-    chatName: `${otherUser.firstName} ${otherUser.lastName}`,
-    lastMessageTime: chat.lastMessage ? Date.parse(chat.lastMessage.timestamp) : 0,
-    unreadedMessages: chat.unreadCounts[myUser._id] ?? 0,
-    lastMessageSender: chat.lastMessage
-      ? `${chat.lastMessage.sender.firstName} ${chat.lastMessage.sender.lastName}`
-      : "",
-    lastMessageSenderId: chat.lastMessage
-      ? chat.lastMessage.sender._id
-      : "",
-    chatStatus: otherUser.status || 'offline',
-  })
-
-  // Function to process a chat received from the API.
-  // Receives the chat and the currentUserId as parameters.
   const processChat = async (chat: any, currentUserId: string): Promise<Chat> => {
-    const otherUser = chat.members.find((user: any) => user._id !== currentUserId);
-    const myUser = chat.members.find((user: any) => user._id === currentUserId);
-    // Get chat messages from the API
-    const remoteMessagesData = await get(`/chat/${chat._id}/messages`);
-    if (remoteMessagesData.length > 0) {
-      const messagesToStore: Message[] = remoteMessagesData.map((message: any) =>
-        transformMessageToDbFormat(chat, message)
-      );
+    const validMembers = Array.isArray(chat.members) ? chat.members : [];
+    const otherUser = validMembers.find((user: any) => user._id !== currentUserId) || {};
+    const myUser = validMembers.find((user: any) => user._id === currentUserId) || {};
 
-      // Insert messages into the DB
+    let remoteMessagesData = [];
+    try {
+      const response = await get(`/chat/${chat._id}/messages`);
+      remoteMessagesData = Array.isArray(response) ? response : [];
+    } catch (error) {
+      remoteMessagesData = [];
+    }
+
+    const messagesToStore: Message[] = remoteMessagesData
+      .filter(msg => msg?._id && msg?.sender?._id)
+      .map((message: any) => transformMessageToDbFormat(chat, message));
+
+    if (messagesToStore.length > 0) {
       await db.insert(messages).values(messagesToStore).onConflictDoUpdate({
         target: messages.id,
         set: {
@@ -108,17 +96,18 @@ export function useChatsDb(currentUserId: string | null) {
       });
     }
 
-    const remoteMessagesIds = remoteMessagesData.map((message: any) => message._id);
-    const localMessages = await db.select().from(messages).where(eq(messages.chatId, chat._id));
-    const idsToDelete = localMessages
-      .map((message: any) => message.id)
-      .filter((localId: string) => !remoteMessagesIds.includes(localId));
-
-    for (const id of idsToDelete) {
-      await db.delete(messages).where(eq(messages.id, id));
-    }
-
-    const chatToStore: Chat = transformChatToDbFormat(chat, otherUser, myUser)
+    const chatToStore: Chat = {
+      id: chat._id || '',
+      lastMessage: chat.lastMessage?.content || "",
+      chatName: `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim(),
+      lastMessageTime: chat.lastMessage ? Date.parse(chat.lastMessage.timestamp) : Date.now(),
+      unreadedMessages: chat.unreadCounts?.[myUser._id] ?? 0,
+      lastMessageSender: chat.lastMessage?.sender
+        ? `${chat.lastMessage.sender.firstName || ''} ${chat.lastMessage.sender.lastName || ''}`
+        : "",
+      lastMessageSenderId: chat.lastMessage?.sender?._id || "",
+      chatStatus: otherUser.status || 'offline',
+    };
 
     await db.insert(chats).values(chatToStore).onConflictDoUpdate({
       target: chats.id,
@@ -134,45 +123,38 @@ export function useChatsDb(currentUserId: string | null) {
     });
     return chatToStore;
   };
+
   const syncChatsData = async () => {
     try {
-      const remoteChatsData = await get('/chat/getChats');
-      const chatPromises = remoteChatsData.map((chat: any) => processChat(chat, currentUserId || ''));
+      const remoteChatsData = await get('/chat/getChats') || [];
+      const validChats = Array.isArray(remoteChatsData)
+        ? remoteChatsData.filter(chat => chat?._id && Array.isArray(chat?.members))
+        : [];
+
+      const chatPromises = validChats.map((chat: any) => processChat(chat, currentUserId || ''));
       await Promise.all(chatPromises);
-      const remoteChatIds = remoteChatsData.map((chat: any) => chat._id);
-      const localChats = await db.select().from(chats);
-      const idsToDelete = localChats
-        .map((chat: any) => chat.id)
-        .filter((localId: string) => !remoteChatIds.includes(localId));
-      for (const id of idsToDelete) {
-        await db.delete(chats).where(eq(chats.id, id));
-        await db.delete(messages).where(eq(messages.chatId, id));
-      }
     } catch (err) {
       if (axios.isAxiosError(err)) {
         if (!err.response) {
-          setOffline(true)
-          console.log("Offline mode", Date.now());
+          setOffline(true);
           const retryInterval = setInterval(async () => {
             try {
-              const chatsData = await get('/chat/getChats');
-              setOffline(false)
-              clearInterval(retryInterval);
-              const chatPromises = chatsData.map((chat: any) => processChat(chat, currentUserId || ''));
-              await Promise.all(chatPromises);
+              const chatsData = await get('/chat/getChats') || [];
+              if (Array.isArray(chatsData)) {
+                setOffline(false);
+                clearInterval(retryInterval);
+                const chatPromises = chatsData.map((chat: any) => processChat(chat, currentUserId || ''));
+                await Promise.all(chatPromises);
+              }
             } catch (err) {
               console.log("Offline mode", Date.now());
             }
           }, 60000)
-        } else {
-          console.log("Error connecting to server", err.message)
         }
-      } else {
-        console.log("Unexpected error syncing to server", err)
       }
     }
-  }
-
+  };
+  
   const setChatStatesFromDB = async () => {
     try {
       const chatData = await db.select().from(chats);
@@ -248,7 +230,10 @@ export function useChatsDb(currentUserId: string | null) {
   }, [currentUserId]);
 
   const createChat = useCallback(async (participantIds: string[]) => {
-    // TODO
+    const chatMembers = { members: participantIds }
+    console.log(chatMembers)
+    post('/chat/createChat', chatMembers);
+    loadChats();
   }, [currentUserId]);
 
   const sendMessage = useCallback(async (chatId: string, message: any) => {
