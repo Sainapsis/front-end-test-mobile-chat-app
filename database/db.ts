@@ -14,6 +14,10 @@ const sqlite = SQLite.openDatabaseSync('chat-app.db');
 export const db = drizzle(sqlite, { schema });
 
 // Función para inicializar la base de datos
+/**
+ * Initializes the database by creating all necessary tables
+ * @throws Error if database initialization fails
+ */
 export async function initializeDatabase() {
   try {
     if (!sqlite) {
@@ -104,6 +108,13 @@ export async function initializeDatabase() {
   }
 }
 
+/**
+ * Searches messages in the database based on search term and user ID
+ * @param searchTerm - Text to search for in messages
+ * @param userId - ID of the user performing the search
+ * @returns Array of matching messages
+ * @throws Error if search fails
+ */
 export async function searchMessages(searchTerm: string, userId: string) {
   try {
     console.log('Search params:', { searchTerm, userId });
@@ -152,6 +163,12 @@ export async function searchMessages(searchTerm: string, userId: string) {
   }
 }
 
+/**
+ * Edits an existing message in the database
+ * @param messageId - ID of the message to edit
+ * @param newText - New text content for the message
+ * @throws Error if message editing fails
+ */
 export async function editMessage(messageId: string, newText: string) {
   try {
     console.log('Editing message:', { messageId, newText });
@@ -174,6 +191,10 @@ export async function editMessage(messageId: string, newText: string) {
   }
 }
 
+/**
+ * Drops all tables in the database (for development/testing purposes)
+ * @throws Error if table dropping fails
+ */
 export async function dropTables() {
   try {
     console.log('Dropping existing tables...');

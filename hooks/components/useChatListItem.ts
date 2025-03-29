@@ -17,11 +17,21 @@ interface UseChatListItemProps {
   users: User[];
 }
 
+/**
+ * Custom hook for handling chat list item interactions and data
+ * @param chat - Chat object containing participants and messages
+ * @param currentUserId - ID of the current user
+ * @param users - List of all users
+ * @returns Object containing animation values, handlers, and derived chat data
+ */
 export function useChatListItem({ chat, currentUserId, users }: UseChatListItemProps) {
   const navigation = useNavigation<NavigationProps>();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(1)).current;
 
+  /**
+   * Handles press in event with animations
+   */
   const handlePressIn = () => {
     Animated.parallel([
       Animated.spring(scaleAnim, {
@@ -36,6 +46,9 @@ export function useChatListItem({ chat, currentUserId, users }: UseChatListItemP
     ]).start();
   };
 
+  /**
+   * Handles press out event with animations
+   */
   const handlePressOut = () => {
     Animated.parallel([
       Animated.spring(scaleAnim, {
@@ -50,6 +63,9 @@ export function useChatListItem({ chat, currentUserId, users }: UseChatListItemP
     ]).start();
   };
 
+  /**
+   * Filters and returns other participants in the chat
+   */
   const otherParticipants = useMemo(() => {
     return chat.participants
       .filter(id => id !== currentUserId)
@@ -57,16 +73,25 @@ export function useChatListItem({ chat, currentUserId, users }: UseChatListItemP
       .filter(Boolean) as User[];
   }, [chat.participants, currentUserId, users]);
 
+  /**
+   * Generates a display name for the chat based on participants
+   */
   const chatName = useMemo(() => {
     if (otherParticipants.length === 0) return 'No participants';
     if (otherParticipants.length === 1) return otherParticipants[0].name;
     return `${otherParticipants[0].name} & ${otherParticipants.length - 1} other${otherParticipants.length > 2 ? 's' : ''}`;
   }, [otherParticipants]);
 
+  /**
+   * Handles navigation to the chat room
+   */
   const handlePress = () => {
     navigation.navigate('ChatRoom', { chatId: chat.id });
   };
 
+  /**
+   * Formats the last message timestamp for display
+   */
   const timeString = useMemo(() => {
     if (!chat.lastMessage) return '';
     const date = new Date(chat.lastMessage.timestamp);

@@ -5,10 +5,16 @@ import { styles } from './ParallaxScrollView.styles';
 import { useParallaxScrollView } from '@/hooks/components/useParallaxScrollView';
 
 type Props = PropsWithChildren<{
+  /** Header image element to be displayed with parallax effect */
   headerImage: ReactElement;
+  /** Background color for the header, with dark and light theme variants */
   headerBackgroundColor: { dark: string; light: string };
 }>;
 
+/**
+ * ParallaxScrollView component creates a scrollable view with a parallax header effect.
+ * The header image moves at a different speed than the content when scrolling.
+ */
 export function ParallaxScrollView({
   children,
   headerImage,

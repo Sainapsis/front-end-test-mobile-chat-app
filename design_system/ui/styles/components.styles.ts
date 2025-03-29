@@ -1,7 +1,12 @@
 import { Platform, StyleSheet } from 'react-native';
 import { colors, spacing } from '@/design_system/ui/tokens';
 
+/**
+ * componentStyles object provides reusable style definitions for common UI components.
+ * Includes styles for cards, inputs, buttons, avatars, and badges.
+ */
 export const componentStyles = StyleSheet.create({
+  /** Style for card components with platform-specific shadows */
   card: {
     backgroundColor: colors.neutral[400],
     borderRadius: spacing.sm,
@@ -19,6 +24,7 @@ export const componentStyles = StyleSheet.create({
       },
     }),
   },
+  /** Style for input fields */
   input: {
     height: 48,
     borderWidth: 1,
@@ -27,6 +33,7 @@ export const componentStyles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     backgroundColor: colors.neutral[400],
   },
+  /** Style for buttons */
   button: {
     height: 48,
     borderRadius: spacing.sm,
@@ -34,12 +41,14 @@ export const componentStyles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
   },
+  /** Style for avatar components */
   avatar: {
     borderRadius: 999,
     backgroundColor: colors.neutral[200],
     justifyContent: 'center',
     alignItems: 'center',
   },
+  /** Style for badge components */
   badge: {
     position: 'absolute',
     borderRadius: 999,

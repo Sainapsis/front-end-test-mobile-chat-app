@@ -4,13 +4,22 @@ import { styles } from './BaseTemplate.styles';
 import { ThemedView } from '@/design_system/components/atoms';
 
 interface BaseTemplateProps {
+  /** Main content of the template */
   children: React.ReactNode;
+  /** Optional header component */
   header?: React.ReactNode;
+  /** Optional footer component */
   footer?: React.ReactNode;
-  style?: StyleProp<ViewStyle>;  // Definimos el tipo de style
-  testID?: string;  // Definimos testID como un string opcional
+  /** Custom styles to be applied to the template */
+  style?: StyleProp<ViewStyle>;
+  /** Test ID for testing purposes */
+  testID?: string;
 }
 
+/**
+ * BaseTemplate component provides a basic layout structure for screens.
+ * It includes optional header and footer sections, and supports custom styling.
+ */
 export const BaseTemplate: React.FC<BaseTemplateProps> = ({
   children,
   header,

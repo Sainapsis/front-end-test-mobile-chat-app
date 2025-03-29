@@ -1,28 +1,33 @@
 import { useState } from 'react';
 import { searchMessages } from '@/database/db';
 
+/**
+ * Custom hook for handling message search functionality
+ * @returns Object containing search results, loading state, error, and search handler
+ */
 export function useMessageSearch() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Handles message search operation
+   * @param searchTerm - Text to search for
+   * @param userId - ID of the user performing the search
+   */
   const handleSearch = async (searchTerm: string, userId: string) => {
     if (!searchTerm.trim() || !userId) {
-      console.log('Search cancelled: Empty search term or missing userId');
       setSearchResults([]);
       return;
     }
 
     try {
-      console.log('Starting search with:', { searchTerm, userId });
       setIsSearching(true);
       setError(null);
 
       const results = await searchMessages(searchTerm, userId);
-      console.log('Search results:', results);
       
       const formattedResults = Array.isArray(results) ? results : [];
-      console.log('Formatted results:', formattedResults);
       
       setSearchResults(formattedResults);
     } catch (err) {

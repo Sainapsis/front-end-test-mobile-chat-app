@@ -9,15 +9,26 @@ import { useTheme } from '@/context/ThemeContext';
 import { Message } from '@/types/Chat';
 
 interface MessageBubbleProps {
+  /** Message data to be displayed */
   message: Message;
+  /** Whether the message is from the current user */
   isCurrentUser: boolean;
+  /** Current user's ID */
   userId: string;
+  /** Function to be called when deleting a message */
   onDeleteMessage?: (messageId: string) => void;
+  /** Function to be called when adding a reaction */
   onAddReaction?: (messageId: string, emoji: string) => void;
+  /** Function to be called when removing a reaction */
   onRemoveReaction?: (reactionId: string, messageId: string) => void;
+  /** Function to be called when editing a message */
   onEditMessage?: (messageId: string, currentText: string) => void;
 }
 
+/**
+ * MessageBubble component displays a chat message with support for reactions, editing, and deletion.
+ * It includes options for long-press actions and an emoji selector for reactions.
+ */
 export function MessageBubble({
   message,
   isCurrentUser,

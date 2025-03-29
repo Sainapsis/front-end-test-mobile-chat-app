@@ -9,16 +9,24 @@ import { styles } from './ProfileTemplate.styles';
 import { themes as Colors } from '@/design_system/ui/tokens/colors';
 
 interface ProfileTemplateProps {
+    /** Whether the profile is loading */
     loading?: boolean;
+    /** User profile data */
     user?: {
         id: string;
         name: string;
         avatar: string;
         status: 'online' | 'offline' | 'away';
     };
+    /** Function to be called when logging out */
     onLogout: () => void;
 }
 
+/**
+ * ProfileTemplate component provides a layout for user profile screens.
+ * It displays user information, preferences, and account details.
+ * Supports loading states and empty states when no profile is found.
+ */
 export const ProfileTemplate: React.FC<ProfileTemplateProps> = ({
     loading,
     user,

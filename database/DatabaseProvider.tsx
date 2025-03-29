@@ -3,22 +3,39 @@ import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
 import { dropTables, initializeDatabase } from './db';
 import { seedDatabase } from './seed';
 
+/**
+ * Interface representing the database context state
+ */
 interface DatabaseContextType {
   isInitialized: boolean;
   error: Error | null;
 }
 
+/**
+ * Context for managing database initialization state
+ */
 const DatabaseContext = createContext<DatabaseContextType>({
   isInitialized: false,
   error: null,
 });
 
+/**
+ * Hook for accessing database status
+ * @returns Database context containing initialization state and error
+ */
 export const useDatabaseStatus = () => useContext(DatabaseContext);
 
+/**
+ * Props for DatabaseProvider component
+ */
 interface DatabaseProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Provider component that handles database initialization and provides context
+ * @param children - Child components to be wrapped by the provider
+ */
 export function DatabaseProvider({ children }: DatabaseProviderProps) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -107,4 +124,4 @@ const styles = StyleSheet.create({
     color: 'red',
     textAlign: 'center',
   },
-}); 
+});

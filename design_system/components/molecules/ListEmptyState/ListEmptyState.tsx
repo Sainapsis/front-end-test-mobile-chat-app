@@ -7,11 +7,18 @@ import { colors } from '@/design_system/ui/tokens';
 import { SFSymbols6_0 } from 'sf-symbols-typescript'; 
 
 interface ListEmptyStateProps {
+  /** Optional icon to be displayed */
   icon?: SFSymbols6_0; 
+  /** Main message to be displayed */
   message: string;
+  /** Optional description text */
   description?: string;
 }
 
+/**
+ * ListEmptyState component is used to display a placeholder when a list is empty.
+ * It can include an icon, a main message, and an optional description.
+ */
 export const ListEmptyState: React.FC<ListEmptyStateProps> = ({
   icon,
   message,

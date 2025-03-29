@@ -7,6 +7,12 @@ interface Position {
   width: number;
 }
 
+/**
+ * Custom hook for managing options menu animations and positioning
+ * @param visible - Boolean indicating if the menu is visible
+ * @param position - Optional position object for menu placement
+ * @returns Object containing animation value and position calculator
+ */
 export const useOptionsMenu = (visible: boolean, position?: Position) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -26,6 +32,10 @@ export const useOptionsMenu = (visible: boolean, position?: Position) => {
     }
   }, [visible]);
 
+  /**
+   * Calculates adjusted position for the menu based on screen dimensions
+   * @returns Object containing adjusted position and opacity
+   */
   const getAdjustedPosition = () => {
     if (!position) return null;
 

@@ -10,13 +10,22 @@ import { themes } from '@/design_system/ui/tokens';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 interface SearchResultsProps {
+  /** Array of search results to display */
   results: any[];
+  /** Error message to display if search fails */
   error?: string;
+  /** Current search term */
   searchTerm: string;
+  /** Current user data */
   currentUser: any;
+  /** Function to be called when a result is pressed */
   onResultPress: (chatId: string) => void;
 }
 
+/**
+ * SearchResults component displays a list of search results with a custom header.
+ * It handles empty states and error messages, and supports theme-based styling.
+ */
 export function SearchResults({
   results,
   error,

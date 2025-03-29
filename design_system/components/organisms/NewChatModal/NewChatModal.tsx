@@ -9,15 +9,26 @@ import { useTheme } from '@/context/ThemeContext';
 import { colors } from '@/design_system/ui/tokens';
 
 interface NewChatModalProps {
+  /** Whether the modal is visible */
   visible: boolean;
+  /** List of users available for chat */
   users: any[];
+  /** Current user's ID */
   currentUserId: string;
+  /** Array of selected user IDs */
   selectedUsers: string[];
+  /** Function to be called when closing the modal */
   onClose: () => void;
+  /** Function to be called when toggling user selection */
   onToggleUser: (userId: string) => void;
+  /** Function to be called when creating a new chat */
   onCreateChat: () => void;
 }
 
+/**
+ * NewChatModal component provides a modal interface for creating new chats.
+ * It allows users to select from a list of available users and create a chat with them.
+ */
 export function NewChatModal({
   visible,
   users,

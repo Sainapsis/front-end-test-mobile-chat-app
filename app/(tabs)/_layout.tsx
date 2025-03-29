@@ -4,6 +4,10 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { useLoadingState } from '@/hooks/useLoadingState';
 import { TabIcon, getTabScreenOptions } from '@/design_system/components/molecules';
 
+/**
+ * Tab layout component that sets up the bottom tab navigation
+ * and handles tab screen configuration
+ */
 export default function TabLayout() {
   const colorScheme = useColorScheme() ?? 'light';
   const { isLoading } = useLoadingState();

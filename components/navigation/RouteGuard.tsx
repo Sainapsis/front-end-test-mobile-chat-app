@@ -1,11 +1,18 @@
 import { useEffect, useRef } from 'react';
 import { useSegments, useRouter } from 'expo-router';
 
+/**
+ * Props for RouteGuard component
+ */
 interface RouteGuardProps {
   isLoggedIn: boolean;
   loading: boolean;
 }
 
+/**
+ * Component that guards routes based on authentication state
+ * Redirects users to appropriate routes depending on their login status
+ */
 export const RouteGuard: React.FC<RouteGuardProps> = ({ isLoggedIn, loading }) => {
   const segments = useSegments();
   const router = useRouter();

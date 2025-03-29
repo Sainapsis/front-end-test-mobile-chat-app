@@ -8,11 +8,18 @@ import { useTheme } from '@/context/ThemeContext';
 import { User } from '@/types/User';
 
 interface UserListItemProps {
+  /** User data to be displayed */
   user: User;
+  /** Function to be called when the item is selected */
   onSelect?: (user: User) => void;
+  /** Whether the item is currently selected */
   isSelected?: boolean;
 }
 
+/**
+ * UserListItem component displays a user in a list format.
+ * It includes an avatar, name, and status, and supports selection states.
+ */
 export function UserListItem({ user, onSelect, isSelected }: UserListItemProps) {
   const { handlePress } = useUserListItem({ user, onSelect }); 
   const { theme } = useTheme();

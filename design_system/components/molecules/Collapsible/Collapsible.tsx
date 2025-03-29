@@ -1,13 +1,21 @@
 import { PropsWithChildren, useState } from 'react';
 import { TouchableOpacity } from 'react-native';
-
 import { ThemedText, ThemedView } from '@/design_system/components/atoms';
 import { IconSymbol } from '@/design_system/ui/vendors';
 import { themes as Colors } from '@/design_system/ui/tokens/colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { styles } from './Collapsible.styles';
 
-export function Collapsible({ children, title }: PropsWithChildren & { title: string }) {
+interface CollapsibleProps {
+  /** Title of the collapsible section */
+  title: string;
+}
+
+/**
+ * Collapsible component provides a toggleable section that can be expanded or collapsed.
+ * It includes a title and an icon that indicates the current state (open or closed).
+ */
+export function Collapsible({ children, title }: PropsWithChildren<CollapsibleProps>) {
   const [isOpen, setIsOpen] = useState(false);
   const theme = useColorScheme() ?? 'light';
 

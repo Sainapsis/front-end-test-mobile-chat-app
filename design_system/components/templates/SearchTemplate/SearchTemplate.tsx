@@ -7,14 +7,24 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { ThemedText, ThemedView } from '@/design_system/components/atoms';
 
 interface SearchTemplateProps {
+  /** Main content of the template */
   children: React.ReactNode;
+  /** Function to be called when searching */
   onSearch: (term: string) => void;
+  /** Placeholder text for the search input */
   placeholder?: string;
+  /** Whether the search is loading */
   isLoading?: boolean;
+  /** Current value of the search input */
   value?: string;
+  /** Optional header component */
   headerComponent?: React.ReactNode;
 }
 
+/**
+ * SearchTemplate component provides a layout for search screens.
+ * It includes a search input, loading indicator, and content area.
+ */
 export const SearchTemplate: React.FC<SearchTemplateProps> = ({
   children,
   onSearch,

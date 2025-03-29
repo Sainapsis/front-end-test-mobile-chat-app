@@ -6,13 +6,22 @@ import { styles } from './ChatsHeader.styles';
 import { colors } from '@/design_system/ui/tokens';
 
 interface ChatsHeaderProps {
+  /** Whether to show the "Clear All" button */
   showClearAll: boolean;
+  /** Whether the component is in a loading state */
   isLoading: boolean;
+  /** Function to be called when "Clear All" is confirmed */
   onClearAll: () => void;
+  /** Function to be called when the search icon is pressed */
   onSearch: () => void;
+  /** Function to be called when the new chat icon is pressed */
   onNewChat: () => void;
 }
 
+/**
+ * ChatsHeader component provides a header for the chats screen.
+ * It includes options for clearing all chats, searching, and starting a new chat.
+ */
 export const ChatsHeader: React.FC<ChatsHeaderProps> = ({
   showClearAll,
   isLoading,

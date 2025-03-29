@@ -5,11 +5,18 @@ import { ThemedText, ThemedView } from '@/design_system/components/atoms';
 import { styles } from './LoginTemplate.styles';
 
 interface LoginTemplateProps {
+  /** Title to display in the header */
   title: string;
+  /** Subtitle to display in the header */
   subtitle: string;
+  /** Main content of the template */
   children: React.ReactNode;
 }
 
+/**
+ * LoginTemplate component provides a layout for login screens.
+ * It includes a header with title and subtitle, and supports keyboard avoidance.
+ */
 export const LoginTemplate: React.FC<LoginTemplateProps> = ({
   title,
   subtitle,

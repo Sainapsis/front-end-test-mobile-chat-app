@@ -6,6 +6,13 @@
 import { themes } from '@/design_system/ui/tokens/colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
+/**
+ * Custom hook for retrieving theme-specific colors
+ * @param colors - Optional object with light and dark color overrides
+ * @param colorName - Name of the color to retrieve from the theme
+ * @param variant - Optional variant for colors that have multiple values
+ * @returns The appropriate color value based on the current theme
+ */
 export function useThemeColor(
   colors: { light?: string; dark?: string },
   colorName: keyof typeof themes.light & keyof typeof themes.dark,

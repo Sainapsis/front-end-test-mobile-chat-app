@@ -6,6 +6,10 @@ import { DrizzleStudioDevTool } from '@/database/DrizzleStudio';
 import { View } from 'react-native';
 import { commonStyles } from '@/design_system/ui/styles';
 
+/**
+ * Root navigation component that sets up the main navigation stack
+ * and handles route guarding based on authentication state
+ */
 export const RootNavigation = () => {
   const { isLoggedIn, loading } = useAppContext();
 

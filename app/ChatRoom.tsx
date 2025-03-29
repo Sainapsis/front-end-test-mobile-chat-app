@@ -6,6 +6,9 @@ import { ThemedText, ThemedView } from '@/design_system/components/atoms';
 import { MessageBubble } from '@/design_system/components/organisms';
 import { ChatRoomTemplate } from '@/design_system/components/templates';
 
+/**
+ * Chat room screen component that handles messaging functionality
+ */
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const { currentUser, users, chats, sendMessage, deleteMessage, addReaction, removeReaction, editMessage } = useAppContext();
@@ -24,6 +27,9 @@ export default function ChatRoomScreen() {
     ? chatParticipants[0]?.name
     : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
 
+  /**
+   * Handles sending or editing a message
+   */
   const handleSendMessage = () => {
     if (messageText.trim() && currentUser && chat) {
       if (editingMessageId) {
@@ -38,23 +44,42 @@ export default function ChatRoomScreen() {
     }
   };
 
+  /**
+   * Initiates message editing mode
+   * @param messageId - ID of the message to edit
+   * @param currentText - Current text of the message
+   */
   const handleEditMessage = (messageId: string, currentText: string) => {
     setEditingMessageId(messageId);
     setMessageText(currentText);
   };
 
+  /**
+   * Handles message deletion
+   * @param messageId - ID of the message to delete
+   */
   const handleDeleteMessage = async (messageId: string) => {
     if (chat && currentUser) {
       await deleteMessage?.(messageId, chat.id);
     }
   };
 
+  /**
+   * Handles adding a reaction to a message
+   * @param messageId - ID of the message to react to
+   * @param emoji - Emoji to add as a reaction
+   */
   const handleAddReaction = async (messageId: string, emoji: string) => {
     if (chat && currentUser) {
       await addReaction?.(messageId, emoji);
     }
   };
 
+  /**
+   * Handles removing a reaction from a message
+   * @param reactionId - ID of the reaction to remove
+   * @param messageId - ID of the message the reaction belongs to
+   */
   const handleRemoveReaction = async (reactionId: string, messageId: string) => {
     if (chat && currentUser) {
       await removeReaction?.(reactionId, messageId);

@@ -7,14 +7,24 @@ import { useTheme } from '@/context/ThemeContext';
 import { colors } from '@/design_system/ui/tokens';
 
 interface OptionsMenuProps {
+  /** Whether the menu is visible */
   visible: boolean;
+  /** Function to be called when closing the menu */
   onClose: () => void;
+  /** Function to be called when editing */
   onEdit: () => void;
+  /** Function to be called when deleting */
   onDelete: () => void;
+  /** Function to be called when adding an emoji */
   onAddEmoji: () => void;
+  /** Position of the menu */
   position?: { top: number; left: number; width: number };
 }
 
+/**
+ * OptionsMenu component provides a contextual menu with actions like edit, delete, and add emoji.
+ * It appears at a specified position and supports theme-based styling.
+ */
 export const OptionsMenu: React.FC<OptionsMenuProps> = ({ visible, onClose, onEdit, onDelete, onAddEmoji, position }) => {
   const { theme } = useTheme();
   const styles = createStyles(theme);

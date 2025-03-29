@@ -10,18 +10,32 @@ type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
 type ButtonSize = 'small' | 'medium' | 'large';
 
 interface ButtonProps {
+  /** Function to be called when the button is pressed */
   onPress?: () => void;
+  /** Determines the style of the button */
   variant?: ButtonVariant;
+  /** Determines the size of the button */
   size?: ButtonSize;
+  /** If true, the button is disabled */
   disabled?: boolean;
+  /** If true, an activity indicator is shown instead of the button content */
   loading?: boolean;
+  /** If true, the button spans the full width of its container */
   fullWidth?: boolean;
+  /** Icon to be displayed on the left side of the button content */
   leftIcon?: React.ReactNode;
+  /** Icon to be displayed on the right side of the button content */
   rightIcon?: React.ReactNode;
+  /** Content to be displayed inside the button */
   children: React.ReactNode;
+  /** Custom styles to be applied to the button */
   style?: StyleProp<ViewStyle>;
 }
 
+/**
+ * Button component used to trigger actions in the application.
+ * Supports various styles, sizes, and states to fit different use cases.
+ */
 export function Button({
   onPress,
   variant = 'primary',

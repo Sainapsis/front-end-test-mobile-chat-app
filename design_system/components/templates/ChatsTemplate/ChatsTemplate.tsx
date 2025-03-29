@@ -6,21 +6,38 @@ import { styles as createStyles } from './ChatsTemplate.styles';
 import { useTheme } from '@/context/ThemeContext';
 
 interface ChatsTemplateProps {
+  /** Whether the chats are loading */
   loading: boolean;
+  /** Array of chat objects */
   chats: any[];
+  /** Array of user objects */
   users: any[];
+  /** Current user's ID */
   currentUserId: string;
+  /** Array of selected user IDs */
   selectedUsers: string[];
+  /** Whether the new chat modal is visible */
   modalVisible: boolean;
+  /** Function to be called when searching */
   onSearch: () => void;
+  /** Function to be called when creating a new chat */
   onCreateChat: () => void;
+  /** Function to be called when clearing all chats */
   onClearChats: () => void;
+  /** Function to be called when deleting a chat */
   onDeleteChat: (chatId: string) => void;
+  /** Function to be called when toggling user selection */
   onToggleUserSelection: (userId: string) => void;
+  /** Function to be called when closing the modal */
   onCloseModal: () => void;
+  /** Function to be called when opening the modal */
   onOpenModal: () => void;
 }
 
+/**
+ * ChatsTemplate component provides the main layout for the chats screen.
+ * It includes a header, list of chats, and a modal for creating new chats.
+ */
 export function ChatsTemplate({
   loading,
   chats,
@@ -35,7 +52,7 @@ export function ChatsTemplate({
   onToggleUserSelection,
   onCloseModal,
   onOpenModal,
-}:ChatsTemplateProps){
+}: ChatsTemplateProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   return (

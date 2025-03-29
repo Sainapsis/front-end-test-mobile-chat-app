@@ -11,6 +11,10 @@ import { RootNavigation } from '@/components/navigation/RootNavigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View } from 'react-native';
 
+/**
+ * Root layout component that wraps the entire application with necessary providers
+ * and sets up the navigation theme and status bar
+ */
 export default function RootLayout() {
   const { theme } = useTheme();
 
@@ -29,6 +33,5 @@ export default function RootLayout() {
         </GestureHandlerRootView>
       </View>
     </ThemeProvider>
-
   );
 }

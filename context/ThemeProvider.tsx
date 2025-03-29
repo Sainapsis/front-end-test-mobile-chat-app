@@ -1,24 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ThemeContext from './ThemeContext';
 import { Theme } from '@/types/tColores';
-
-/**
- * Interface representing the theme context state
- */
-interface ThemeContextType {
-  theme: Theme;
-  toggleTheme: () => void;
-}
-
-/**
- * Context for managing theme state
- */
-const ThemeContext = createContext<ThemeContextType>({
-  theme: 'light',
-  toggleTheme: () => {},
-});
-
-export default ThemeContext;
 
 /**
  * Provider component that handles theme state and persistence
@@ -58,9 +41,3 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     </ThemeContext.Provider>
   );
 };
-
-/**
- * Hook for accessing theme context
- * @returns Theme context containing current theme and toggle function
- */
-export const useTheme = () => useContext(ThemeContext);

@@ -8,11 +8,18 @@ import { themes as Colors } from '@/design_system/ui/tokens';
 import { User } from '@/types/User';
 
 interface AvatarProps {
+  /** User data for the avatar */
   user?: User;
+  /** Size of the avatar in pixels */
   size?: number;
+  /** Whether to show the status indicator */
   showStatus?: boolean;
 }
 
+/**
+ * Avatar component displays a user's initials and optional status indicator.
+ * It dynamically adjusts based on the provided size and theme.
+ */
 export function Avatar({ user, size = 40, showStatus = true }: AvatarProps) {
   const { initials, dynamicStyles } = useAvatar(user, size);
   const theme = useColorScheme() ?? 'light';

@@ -6,12 +6,16 @@ import { useDatabase } from '@/hooks/useDatabase';
 import { User } from '@/types/User';
 import { Chat } from '@/types/Chat';
 
+/**
+ * Interface representing the application context state
+ */
 type AppContextType = {
   users: User[];
   currentUser: User | null;
   isLoggedIn: boolean;
   login: (userId: string) => Promise<boolean>;
   logout: () => void;
+  /** List of chats for the current user */
   chats: Chat[];
   createChat: (participantIds: string[]) => Promise<Chat | null>;
   sendMessage: (chatId: string, text: string, senderId: string) => Promise<boolean>;
@@ -25,8 +29,15 @@ type AppContextType = {
   editMessage?: (messageId: string, newText: string) => Promise<boolean>;
 };
 
+/**
+ * Context for managing application-wide state
+ */
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+/**
+ * Internal component that wraps the application content with context
+ * @param children - Child components to be wrapped by the context
+ */
 function AppContent({ children }: { children: ReactNode }) {
   const { isInitialized } = useDatabase();
   const userContext = useUser();
@@ -53,12 +64,21 @@ function AppContent({ children }: { children: ReactNode }) {
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
+/**
+ * Provider component that wraps the application with necessary contexts
+ * @param children - Child components to be wrapped by the provider
+ */
 export const AppProvider = ({ children }: { children: React.ReactNode }) => (
   <DatabaseProvider>
     <AppContent>{children}</AppContent>
   </DatabaseProvider>
 );
 
+/**
+ * Hook for accessing application context
+ * @returns Application context containing user, chat, and database states
+ * @throws Error if used outside of AppProvider
+ */
 export function useAppContext() {
   const context = useContext(AppContext);
   if (!context) {

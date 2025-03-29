@@ -8,12 +8,20 @@ import { styles } from './SearchResultItem.styles';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 interface SearchResultItemProps {
+  /** Search result item data */
   item: any;
+  /** Current user's name */
   currentUserName?: string;
+  /** Current user's ID */
   currentUserId: string;
+  /** Function to be called when the item is pressed */
   onPress: () => void;
 }
 
+/**
+ * SearchResultItem component displays a single search result in a list.
+ * It shows the chat name, timestamp, and a preview of the message.
+ */
 export function SearchResultItem ({
   item,
   currentUserName,

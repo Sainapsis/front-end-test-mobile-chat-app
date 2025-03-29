@@ -10,13 +10,22 @@ import { styles } from './ChatsList.styles';
 import { colors } from '@/design_system/ui/tokens';
 
 interface ChatsListProps {
+  /** Whether the list is in a loading state */
   loading: boolean;
+  /** Array of chat objects to display */
   chats: any[];
+  /** Array of user objects associated with the chats */
   users: any[];
+  /** Current user's ID */
   currentUserId: string;
+  /** Function to be called when a chat is deleted */
   onDeleteChat: (chatId: string) => void;
 }
 
+/**
+ * ChatsList component displays a list of chats with swipe-to-delete functionality.
+ * It handles loading states and empty states with appropriate visual feedback.
+ */
 export const ChatsList: React.FC<ChatsListProps> = ({
   loading,
   chats,

@@ -9,12 +9,21 @@ import { User } from '@/types/User';
 import { Chat } from '@/types/Chat';
 
 interface ChatListItemProps {
+  /** Chat data to be displayed */
   chat: Chat;
+  /** Current user's ID */
   currentUserId: string;
+  /** List of users in the chat */
   users: User[];
+  /** Function to be called on long press */
   onLongPress?: () => void;
 }
 
+/**
+ * ChatListItem component displays a chat in a list format.
+ * It includes an avatar, chat name, last message, and timestamp.
+ * Supports press animations and differentiates messages from the current user.
+ */
 export function ChatListItem({ chat, currentUserId, users, onLongPress }: ChatListItemProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);

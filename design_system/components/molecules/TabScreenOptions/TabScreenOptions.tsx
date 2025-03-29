@@ -5,10 +5,16 @@ import { themes } from '@/design_system/ui/tokens';
 import { Theme } from '@/types/tColores';
 
 interface TabScreenOptionsProps {
+  /** Current color scheme (light/dark) */
   colorScheme: Theme;
+  /** Whether the tab bar is in a loading state */
   isLoading: boolean;
 }
 
+/**
+ * getTabScreenOptions function returns configuration options for tab screens.
+ * It handles styling, haptic feedback, and loading states for the tab bar.
+ */
 export const getTabScreenOptions = ({ colorScheme, isLoading }: TabScreenOptionsProps) => ({
   tabBarActiveTintColor: themes[colorScheme].tint,
   headerShown: false,

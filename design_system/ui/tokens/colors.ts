@@ -1,6 +1,13 @@
+/**
+ * Color tokens for the design system.
+ * Includes a color palette and theme definitions for light and dark modes.
+ */
 const tintLight = "#5BE099FF";
 const tintDark = "#FFFFFF";
 
+/**
+ * Base color palette with primary, neutral, and semantic colors
+ */
 export const palette = {
   primary: {
     lighter: "#E3F2FD",
@@ -44,6 +51,9 @@ export const palette = {
   },
 };
 
+/**
+ * Theme definitions for light and dark modes
+ */
 export const themes = {
   light: {
     ...palette,

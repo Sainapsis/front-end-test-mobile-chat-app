@@ -4,6 +4,10 @@ import { users } from '@/database/schema';
 import { eq } from 'drizzle-orm';
 import { User } from '@/types/User';
 
+/**
+ * Custom hook for managing user-related database operations
+ * @returns Object containing user data and authentication methods
+ */
 export function useUserDb() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -36,6 +40,11 @@ export function useUserDb() {
     loadUsers();
   }, []);
 
+  /**
+   * Logs in a user by their ID
+   * @param userId - ID of the user to log in
+   * @returns Boolean indicating success
+   */
   const login = useCallback(async (userId: string) => {
     try {
       if (!db) {
@@ -65,6 +74,9 @@ export function useUserDb() {
     }
   }, []);
 
+  /**
+   * Logs out the current user
+   */
   const logout = useCallback(() => {
     setCurrentUser(null);
   }, []);

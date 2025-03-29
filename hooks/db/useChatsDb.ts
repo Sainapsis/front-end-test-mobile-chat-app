@@ -4,6 +4,11 @@ import { chats, chatParticipants, messages, chatParticipantsHistory, deletedMess
 import { eq, and, or } from 'drizzle-orm';
 import { MessageReaction, Message, Chat } from '@/types/Chat';
 
+/**
+ * Custom hook for managing chat-related database operations
+ * @param currentUserId - ID of the current user
+ * @returns Object containing chat data and CRUD operations
+ */
 export function useChatsDb(currentUserId: string | null) {
   const [userChats, setUserChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,6 +129,11 @@ export function useChatsDb(currentUserId: string | null) {
     loadChats();
   }, [currentUserId]);
 
+  /**
+   * Creates a new chat with specified participants
+   * @param participantIds - Array of user IDs to include in the chat
+   * @returns Newly created chat object or null if creation fails
+   */
   const createChat = useCallback(async (participantIds: string[]) => {
     if (!currentUserId || !participantIds.includes(currentUserId)) {
       return null;
@@ -156,6 +166,13 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, [currentUserId]);
 
+  /**
+   * Sends a message in a chat
+   * @param chatId - ID of the chat
+   * @param text - Message text
+   * @param senderId - ID of the sender
+   * @returns Boolean indicating success
+   */
   const sendMessage = useCallback(async (chatId: string, text: string, senderId: string) => {
     if (!text.trim()) return false;
 
@@ -198,6 +215,11 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  /**
+   * Deletes a chat for a specific user
+   * @param chatId - ID of the chat to delete
+   * @param userId - ID of the user deleting the chat
+   */
   const deleteChat = useCallback(async (chatId: string, userId: string) => {
     try {
       // Guardar registro histórico antes de eliminar
@@ -235,6 +257,10 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  /**
+   * Clears all chats for a user
+   * @param userId - ID of the user
+   */
   const clearChats = useCallback(async (userId: string) => {
     try {
       const participantRows = await db
@@ -279,7 +305,12 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
-  // Add new deleteMessage function
+  /**
+   * Deletes a specific message for the current user
+   * @param messageId - ID of the message to delete
+   * @param chatId - ID of the chat containing the message
+   * @returns Boolean indicating success
+   */
   const deleteMessage = useCallback(async (messageId: string, chatId: string) => {
     if (!currentUserId) return false;
 
@@ -315,6 +346,12 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, [currentUserId]);
 
+  /**
+   * Adds a reaction to a message
+   * @param messageId - ID of the message
+   * @param emoji - Emoji string for the reaction
+   * @returns Boolean indicating success
+   */
   const addReaction = useCallback(async (messageId: string, emoji: string) => {
     if (!currentUserId) return false;
 
@@ -357,6 +394,12 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, [currentUserId]);
 
+  /**
+   * Removes a reaction from a message
+   * @param reactionId - ID of the reaction to remove
+   * @param messageId - ID of the message
+   * @returns Boolean indicating success
+   */
   const removeReaction = useCallback(async (reactionId: string, messageId: string) => {
     if (!currentUserId) return false;
 
@@ -386,6 +429,12 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, [currentUserId]);
 
+  /**
+   * Edits an existing message
+   * @param messageId - ID of the message to edit
+   * @param newText - New text for the message
+   * @returns Boolean indicating success
+   */
   const editMessage = useCallback(async (messageId: string, newText: string) => {
     if (!currentUserId || !newText.trim()) return false;
 
@@ -424,7 +473,7 @@ export function useChatsDb(currentUserId: string | null) {
     deleteMessage,
     addReaction,
     removeReaction,
-    editMessage,  // Return editMessage function
+    editMessage,
     loading,
   };
 }

@@ -1,7 +1,12 @@
 import { interpolate } from 'react-native-reanimated';
 
+/** Height of the header for parallax effect */
 export const HEADER_HEIGHT = 250;
 
+/**
+ * parallaxAnimation object provides animations for parallax scrolling effects.
+ * It includes transformations for header elements during scroll.
+ */
 export const parallaxAnimation = {
   header: (scrollOffset: { value: number }) => ({
     transform: [

@@ -17,21 +17,36 @@ import { useTheme } from '@/context/ThemeContext';
 import { colors, themes } from '@/design_system/ui/tokens';
 
 interface ChatRoomTemplateProps {
+    /** Name of the chat room */
     chatName: string;
+    /** Avatar of the chat participant */
     participantAvatar?: {
         user: any;
         size: number;
     };
+    /** Array of messages in the chat */
     messages: any[];
+    /** Current message text in the input field */
     messageText: string;
+    /** Whether the user is editing a message */
     isEditing: boolean;
+    /** Function to be called when navigating back */
     onBack: () => void;
+    /** Function to be called when the message text changes */
     onMessageChange: (text: string) => void;
+    /** Function to be called when sending a message */
     onSendMessage: () => void;
+    /** Function to render each message */
     renderMessage: (item: any) => React.ReactNode;
+    /** Reference to the FlatList component */
     flatListRef: React.RefObject<FlatList>;
 }
 
+/**
+ * ChatRoomTemplate component provides a complete layout for a chat room interface.
+ * It includes a header with participant info, a message list, and an input area.
+ * Supports keyboard avoidance and theme-based styling.
+ */
 export const ChatRoomTemplate: React.FC<ChatRoomTemplateProps> = ({
     chatName,
     participantAvatar,
