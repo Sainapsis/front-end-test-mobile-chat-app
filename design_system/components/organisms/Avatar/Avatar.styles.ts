@@ -10,14 +10,14 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   initials: {
-    color: colors.background.default,
+    color: colors.text.inverse,
     fontWeight: '700',
     fontFamily: typography.families.primary,
   },
   statusIndicator: {
     position: 'absolute',
     borderWidth: 1.5,
-    borderColor: colors.background.default,
+    borderColor: colors.border.default,
   },
 });
 

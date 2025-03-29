@@ -8,6 +8,7 @@ export const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: spacing.xxxl,
+    paddingBottom: spacing.xxxl,
   },
   loadingContainer: {
     flex: 1,
@@ -67,5 +68,9 @@ export const styles = StyleSheet.create({
     color: colors.text.inverse,
     fontWeight: 'bold',
     marginLeft: spacing.sm,
+  },
+  themeButton: {
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
   },
 });

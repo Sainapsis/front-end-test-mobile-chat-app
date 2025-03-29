@@ -2,9 +2,7 @@ import React from 'react';
 import { ViewStyle, TextStyle, ActivityIndicator, View, StyleProp } from 'react-native';
 import { ThemedText } from '@/design_system/components/atoms/ThemedText';
 import { AnimatedPressable } from '@/design_system/components/atoms/Pressable';
-
 import { colors } from '@/design_system/ui/tokens';
-
 import { styles } from './Button.styles';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
@@ -19,7 +17,7 @@ interface ButtonProps {
   fullWidth?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
-  children: string;
+  children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -51,6 +49,13 @@ export function Button({
     disabled && styles.disabledText,
   ].filter(Boolean);
 
+  const renderContent = () => {
+    if (typeof children === 'string') {
+      return <ThemedText style={textStyles}>{children}</ThemedText>;
+    }
+    return children;
+  };
+
   return (
     <AnimatedPressable
       onPress={onPress}
@@ -64,7 +69,7 @@ export function Button({
       ) : (
         <View style={styles.contentContainer}>
           {Boolean(leftIcon) && <View style={styles.icon}>{leftIcon}</View>}
-          <ThemedText style={textStyles}>{children}</ThemedText>
+          {renderContent()}
           {Boolean(rightIcon) && <View style={styles.icon}>{rightIcon}</View>}
         </View>
       )}

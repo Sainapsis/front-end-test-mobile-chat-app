@@ -4,6 +4,7 @@ import { colors, spacing } from '@/design_system/ui/tokens';
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background.default,
   },
   searchContainer: {
     padding: spacing.md,

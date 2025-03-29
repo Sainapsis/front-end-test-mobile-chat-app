@@ -49,7 +49,7 @@ export const colors = {
     black: '#000000',
   },
   background: {
-    default: '#FFFFFF',
+    default: '#000000',
     paper: '#F5F5F5',
     elevated: '#FFFFFF',
     black: '#000000',

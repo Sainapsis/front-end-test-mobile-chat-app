@@ -1,9 +1,10 @@
 import React from 'react';
-import { Pressable, SafeAreaView } from 'react-native';
-import { ThemedText, ThemedView } from '@/design_system/components/atoms';
+import { SafeAreaView } from 'react-native';
+import { Button, ThemedText, ThemedView } from '@/design_system/components/atoms';
 import { SkeletonLoader, EmptyState } from '@/design_system/components/molecules';
 import { Avatar } from '@/design_system/components/organisms';
 import { IconSymbol } from '@/design_system/ui/vendors';
+import { useTheme } from '@/context/ThemeContext';
 import { styles } from './ProfileTemplate.styles';
 
 interface ProfileTemplateProps {
@@ -22,6 +23,8 @@ export const ProfileTemplate: React.FC<ProfileTemplateProps> = ({
   user,
   onLogout,
 }) => {
+  const { theme, toggleTheme } = useTheme();
+
   if (loading) {
     return (
       <ThemedView style={styles.loadingContainer}>
@@ -57,6 +60,25 @@ export const ProfileTemplate: React.FC<ProfileTemplateProps> = ({
         </ThemedView>
 
         <ThemedView style={styles.section}>
+          <ThemedText type="subtitle">Preferences</ThemedText>
+          
+          <Button
+            style={styles.themeButton}
+            onPress={toggleTheme}
+            variant="secondary"
+            leftIcon={
+              <IconSymbol
+                name={theme === 'light' ? 'moon' : 'sink.fill'}
+                size={20}
+                color={theme === 'light' ? '#000000' : '#FFFFFF'}
+              />
+            }
+          >
+            <ThemedText>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</ThemedText>
+          </Button>
+        </ThemedView>
+
+        <ThemedView style={styles.section}>
           <ThemedText type="subtitle">Account Information</ThemedText>
 
           <ThemedView style={styles.infoRow}>
@@ -71,10 +93,10 @@ export const ProfileTemplate: React.FC<ProfileTemplateProps> = ({
         </ThemedView>
 
         <ThemedView style={styles.buttonContainer}>
-          <Pressable style={styles.logoutButton} onPress={onLogout}>
+          <Button style={styles.logoutButton} onPress={onLogout}>
             <IconSymbol name="arrow.right.square" size={20} color="#FFFFFF" />
             <ThemedText style={styles.logoutText}>Log Out</ThemedText>
-          </Pressable>
+          </Button>
         </ThemedView>
       </ThemedView>
     </SafeAreaView>

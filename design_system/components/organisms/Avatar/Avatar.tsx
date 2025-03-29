@@ -12,7 +12,7 @@ interface AvatarProps {
 }
 
 export function Avatar({ user, size = 40, showStatus = true }: AvatarProps) {
-  const { backgroundColor, initials, dynamicStyles } = useAvatar(user, size);
+  const { initials, dynamicStyles } = useAvatar(user, size);
 
   return (
     <View style={styles.container}>
