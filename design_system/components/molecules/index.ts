@@ -7,3 +7,8 @@ export { EmptyState } from './EmptyState';
 export { ErrorMessage } from './ErrorMessage';
 export { ListEmptyState } from './ListEmptyState';
 export { ScreenHeader } from './ScreenHeader';
+export { SearchResultItem } from './SearchResultItem';
+export { UserListItem } from './UserListItem';
+export { ChatsHeader } from './ChatsHeader';
+export { TabIcon } from './TabIcon';
+export { getTabScreenOptions } from './TabScreenOptions';

@@ -1,14 +1,11 @@
 import { StyleSheet } from 'react-native';
-import { colors, spacing, radius, typography } from '@/design_system/ui/tokens';
+import { colors, typography } from '@/design_system/ui/tokens';
+import { componentStyles, flexStyles } from '@/design_system/ui/styles';
 
 export const styles = StyleSheet.create({
   container: {
-    minWidth: 18,
-    height: 18,
-    paddingHorizontal: spacing.xs,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
+    ...componentStyles.badge,
+    ...flexStyles.center,
   },
   text: {
     color: colors.text.inverse,

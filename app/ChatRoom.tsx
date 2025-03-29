@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FlatList } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { useAppContext } from '@/context/AppContext';
 import { ThemedText, ThemedView } from '@/design_system/components/atoms';
 import { MessageBubble } from '@/design_system/components/organisms';
@@ -81,8 +80,6 @@ export default function ChatRoomScreen() {
   const sortedMessages = chat?.messages.sort((a, b) => a.timestamp - b.timestamp) || [];
 
   return (
-    <>
-      <StatusBar style="auto" />
       <ChatRoomTemplate
         chatName={chatName || 'Chat'}
         participantAvatar={{
@@ -108,6 +105,5 @@ export default function ChatRoomScreen() {
         )}
         flatListRef={flatListRef}
       />
-    </>
   );
 }

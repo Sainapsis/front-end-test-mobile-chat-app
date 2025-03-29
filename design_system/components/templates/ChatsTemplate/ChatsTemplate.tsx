@@ -1,10 +1,7 @@
 import React from 'react';
-import { FlatList, Pressable, Modal } from 'react-native';
-import { ThemedText, ThemedView } from '@/design_system/components/atoms';
-import { SkeletonLoader, EmptyState } from '@/design_system/components/molecules';
-import { ChatListItem, UserListItem } from '@/design_system/components/organisms';
-import { IconSymbol } from '@/design_system/ui/vendors';
-import { Swipeable } from 'react-native-gesture-handler';
+import { ThemedView } from '@/design_system/components/atoms';
+import { ChatsHeader } from '@/design_system/components/molecules';
+import { ChatsList, NewChatModal } from '@/design_system/components/organisms';
 import { styles } from './ChatsTemplate.styles';
 
 interface ChatsTemplateProps {
@@ -38,147 +35,33 @@ export const ChatsTemplate: React.FC<ChatsTemplateProps> = ({
   onCloseModal,
   onOpenModal,
 }) => {
-  const renderEmptyComponent = () => {
-    if (loading) {
-      return (
-        <ThemedView style={styles.loadingContainer}>
-          <SkeletonLoader width="100%" height={70} style={styles.skeletonItem} />
-          <SkeletonLoader width="100%" height={70} style={styles.skeletonItem} />
-          <SkeletonLoader width="100%" height={70} style={styles.skeletonItem} />
-        </ThemedView>
-      );
-    }
-
-    return (
-      <EmptyState
-        icon="message.fill"
-        title={chats.length > 0 ? "Clear Chats" : "No Conversations Yet"}
-        message={chats.length > 0 
-          ? "Clear all your conversations" 
-          : "Start chatting with your friends by tapping the + button above"
-        }
-        color="#007AFF"
-      />
-    );
-  };
-
-  const renderRightActions = (chatId: string) => (
-    <Pressable 
-      style={styles.deleteAction}
-      onPress={() => onDeleteChat(chatId)}
-    >
-      <IconSymbol name="trash.fill" size={24} color="white" />
-    </Pressable>
-  );
-
   return (
     <ThemedView style={styles.container}>
-      <ThemedView style={styles.header}>
-        {chats.length > 0 && (
-          <Pressable
-            style={styles.clearAllButton}
-            onPress={onClearChats}
-          >
-            <ThemedText style={styles.clearAllText}>Clear All</ThemedText>
-          </Pressable>
-        )}
-        <ThemedText type="title">Chats</ThemedText>
-        <ThemedView style={styles.headerButtons}>
-          <Pressable
-            style={styles.iconButton}
-            onPress={onSearch}
-            disabled={loading}
-          >
-            <IconSymbol 
-              name="magnifyingglass" 
-              size={24} 
-              color={loading ? '#CCCCCC' : '#007AFF'} 
-            />
-          </Pressable>
-          <Pressable
-            style={styles.iconButton}
-            onPress={onOpenModal}
-            disabled={loading}
-          >
-            <IconSymbol 
-              name="plus" 
-              size={24} 
-              color={loading ? '#CCCCCC' : '#007AFF'} 
-            />
-          </Pressable>
-        </ThemedView>
-      </ThemedView>
-
-      <FlatList
-        data={chats}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <Swipeable
-            renderRightActions={() => renderRightActions(item.id)}
-            overshootRight={false}
-          >
-            <ChatListItem
-              chat={item}
-              currentUserId={currentUserId}
-              users={users}
-              onLongPress={() => onDeleteChat(item.id)}
-            />
-          </Swipeable>
-        )}
-        ListEmptyComponent={renderEmptyComponent}
-        contentContainerStyle={[
-          styles.listContainer,
-          !chats.length && styles.emptyListContainer
-        ]}
+      <ChatsHeader
+        showClearAll={chats.length > 0}
+        isLoading={loading}
+        onClearAll={onClearChats}
+        onSearch={onSearch}
+        onNewChat={onOpenModal}
       />
 
-      <Modal
-        animationType="slide"
-        transparent={true}
+      <ChatsList
+        loading={loading}
+        chats={chats}
+        users={users}
+        currentUserId={currentUserId}
+        onDeleteChat={onDeleteChat}
+      />
+
+      <NewChatModal
         visible={modalVisible}
-        onRequestClose={onCloseModal}
-      >
-        <ThemedView style={styles.modalContainer}>
-          <ThemedView style={styles.modalContent}>
-            <ThemedView style={styles.modalHeader}>
-              <ThemedText type="subtitle">New Chat</ThemedText>
-              <Pressable onPress={onCloseModal}>
-                <IconSymbol name="xmark" size={24} color="#007AFF" />
-              </Pressable>
-            </ThemedView>
-
-            <ThemedText style={styles.modalSubtitle}>
-              Select users to chat with
-            </ThemedText>
-
-            <FlatList
-              data={users.filter(user => user.id !== currentUserId)}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <UserListItem
-                  user={item}
-                  onSelect={() => onToggleUserSelection(item.id)}
-                  isSelected={selectedUsers.includes(item.id)}
-                />
-              )}
-              style={styles.userList}
-            />
-
-            <Pressable
-              style={[
-                styles.createButton,
-                selectedUsers.length === 0 && styles.disabledButton
-              ]}
-              onPress={onCreateChat}
-              disabled={selectedUsers.length === 0}
-            >
-              <ThemedText style={styles.createButtonText}>
-                Create Chat
-              </ThemedText>
-            </Pressable>
-          </ThemedView>
-        </ThemedView>
-      </Modal>
+        users={users}
+        currentUserId={currentUserId}
+        selectedUsers={selectedUsers}
+        onClose={onCloseModal}
+        onToggleUser={onToggleUserSelection}
+        onCreateChat={onCreateChat}
+      />
     </ThemedView>
   );
 };

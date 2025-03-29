@@ -1,9 +1,8 @@
 import React from 'react';
-import { StyleSheet, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppContext } from '@/context/AppContext';
-import { UserListItem } from '@/design_system/components/organisms';
 import { LoginTemplate } from '@/design_system/components/templates';
+import { UserList } from '@/design_system/components/organisms/UserList';
 
 export default function LoginScreen() {
   const { users, login } = useAppContext();
@@ -20,23 +19,10 @@ export default function LoginScreen() {
       title="Welcome to Chat App"
       subtitle="Select a user to continue"
     >
-      <FlatList
-        data={users}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <UserListItem
-            user={item}
-            onSelect={() => handleUserSelect(item.id)}
-          />
-        )}
-        contentContainerStyle={styles.listContainer}
+      <UserList 
+        users={users}
+        onUserSelect={handleUserSelect}
       />
     </LoginTemplate>
   );
 }
-
-const styles = StyleSheet.create({
-  listContainer: {
-    paddingBottom: 20,
-  },
-});
