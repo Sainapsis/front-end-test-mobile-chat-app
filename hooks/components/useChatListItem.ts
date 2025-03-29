@@ -1,9 +1,9 @@
 import { useMemo, useRef } from 'react';
 import { Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Chat } from '@/hooks/useChats';
-import { User } from '@/hooks/useUser';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { User } from '@/types/User';
+import { Chat } from '@/types/Chat';
 
 type RootStackParamList = {
   ChatRoom: { chatId: string };

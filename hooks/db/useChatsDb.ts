@@ -1,29 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { db } from '../../database/db';
-import { chats, chatParticipants, messages, chatParticipantsHistory, deletedMessages, messageReactions } from '../../database/schema';
+import { db } from '@/database/db';
+import { chats, chatParticipants, messages, chatParticipantsHistory, deletedMessages, messageReactions } from '@/database/schema';
 import { eq, and, or } from 'drizzle-orm';
-
-export interface MessageReaction {
-  id: string;
-  userId: string;
-  emoji: string;
-  createdAt: number;
-}
-
-export interface Message {
-  id: string;
-  senderId: string;
-  text: string;
-  timestamp: number;
-  reactions: MessageReaction[];
-}
-
-export interface Chat {
-  id: string;
-  participants: string[];
-  messages: Message[];
-  lastMessage?: Message;
-}
+import { MessageReaction, Message, Chat } from '@/types/Chat';
 
 export function useChatsDb(currentUserId: string | null) {
   const [userChats, setUserChats] = useState<Chat[]>([]);

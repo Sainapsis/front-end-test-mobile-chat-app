@@ -2,7 +2,7 @@ import React from 'react';
 import { FlatList } from 'react-native';
 import { UserListItem } from '@/design_system/components/molecules';
 import { styles } from './UserList.styles';
-import { User } from '@/hooks/useUser';
+import { User } from '@/types/User';
 
 interface UserListProps {
   users: User[];

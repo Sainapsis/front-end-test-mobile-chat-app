@@ -4,9 +4,9 @@ import { ThemedText } from '@/design_system/components/atoms/ThemedText';
 import { Avatar } from '@/design_system/components/organisms/Avatar';
 import { styles as createStyles, getAnimatedStyle } from './ChatListItem.styles';
 import { useChatListItem } from '@/hooks/components/useChatListItem';
-import { Chat } from '@/hooks/useChats';
-import { User } from '@/hooks/useUser';
 import { useTheme } from '@/context/ThemeContext';
+import { User } from '@/types/User';
+import { Chat } from '@/types/Chat';
 
 interface ChatListItemProps {
   chat: Chat;

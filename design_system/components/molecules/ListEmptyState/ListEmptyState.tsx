@@ -4,10 +4,10 @@ import { ThemedText } from '@/design_system/components/atoms';
 import { IconSymbol } from '@/design_system/ui/vendors';
 import { styles } from './ListEmptyState.styles';
 import { colors } from '@/design_system/ui/tokens';
-import { SFSymbols6_0 } from 'sf-symbols-typescript'; // Asegura que uses la librería correcta
+import { SFSymbols6_0 } from 'sf-symbols-typescript'; 
 
 interface ListEmptyStateProps {
-  icon?: SFSymbols6_0; // Usar directamente el tipo importado de la librería
+  icon?: SFSymbols6_0; 
   message: string;
   description?: string;
 }

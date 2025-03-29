@@ -1,6 +1,4 @@
-import { useChatsDb, Chat, Message, MessageReaction } from './db/useChatsDb';
-
-export { Chat, Message, MessageReaction };
+import { useChatsDb } from './db/useChatsDb';
 
 export function useChats(userId: string | null) {
   const { 

@@ -1,8 +1,10 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useUser, User } from '@/hooks/useUser';
-import { useChats, Chat } from '@/hooks/useChats';
+import { useUser } from '@/hooks/useUser';
+import { useChats } from '@/hooks/useChats';
 import { DatabaseProvider } from '../database/DatabaseProvider';
 import { useDatabase } from '@/hooks/useDatabase';
+import { User } from '@/types/User';
+import { Chat } from '@/types/Chat';
 
 type AppContextType = {
   users: User[];
@@ -20,7 +22,7 @@ type AppContextType = {
   deleteMessage?: (messageId: string, chatId: string) => Promise<boolean>;
   addReaction?: (messageId: string, emoji: string) => Promise<boolean>;
   removeReaction?: (reactionId: string, messageId: string) => Promise<boolean>;
-  editMessage?: (messageId: string, newText: string) => Promise<boolean>; // Add editMessage function
+  editMessage?: (messageId: string, newText: string) => Promise<boolean>;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -41,11 +43,11 @@ function AppContent({ children }: { children: ReactNode }) {
     deleteMessage: chatContext.deleteMessage || undefined,
     addReaction: chatContext.addReaction || undefined,
     removeReaction: chatContext.removeReaction || undefined,
-    editMessage: chatContext.editMessage || undefined, // Provide editMessage function
+    editMessage: chatContext.editMessage || undefined,
   };
 
   if (!isInitialized) {
-    return null; // O un componente de carga
+    return null;
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

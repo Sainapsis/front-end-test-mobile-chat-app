@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { Alert } from 'react-native';
 import { getBubbleColors } from '@/design_system/components/organisms/MessageBubble/MessageBubble.styles';
-import { Message } from '@/hooks/useChats';
+import { Message } from '@/types/Chat';
 
 interface UseMessageBubbleProps {
   message: Message;

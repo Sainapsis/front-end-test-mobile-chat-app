@@ -3,10 +3,10 @@ import { View, TouchableWithoutFeedback, Modal } from 'react-native';
 import { ThemedText } from '@/design_system/components/atoms';
 import { styles as createStyles } from './MessageBubble.styles';
 import { useMessageBubble } from '@/hooks/components/useMessageBubble';
-import { Message } from '@/hooks/useChats';
 import EmojiSelector, { Categories } from 'react-native-emoji-selector';
 import { OptionsMenu } from '@/design_system/components/organisms';
 import { useTheme } from '@/context/ThemeContext';
+import { Message } from '@/types/Chat';
 
 interface MessageBubbleProps {
   message: Message;
