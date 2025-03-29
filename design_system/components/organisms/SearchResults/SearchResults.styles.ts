@@ -12,4 +12,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.xl,
   },
+  iconButton: {
+    padding: spacing.sm,
+  },
 });

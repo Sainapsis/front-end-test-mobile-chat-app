@@ -1,9 +1,12 @@
 import React from 'react';
-import { FlatList } from 'react-native';
+import { FlatList, TouchableOpacity } from 'react-native';
 import { ThemedView, ThemedText } from '@/design_system/components/atoms';
 import { SearchResultItem } from '@/design_system/components/molecules/SearchResultItem';
 import { ErrorMessage } from '@/design_system/components/molecules/ErrorMessage';
 import { styles } from './SearchResults.styles';
+import { router, Stack } from 'expo-router';
+import { IconSymbol } from '@/design_system/ui/vendors';
+import { colors } from '@/design_system/ui/tokens';
 
 interface SearchResultsProps {
   results: any[];
@@ -21,8 +24,18 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
   onResultPress,
 }) => (
   <>
+    <Stack.Screen
+      options={{
+        headerTitle: 'Search Messages',
+        headerLeft: () => (
+          <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
+            <IconSymbol name="chevron.left" size={24} color={colors.primary[500]} />
+          </TouchableOpacity>
+        ),
+      }}
+    />
     {error && <ErrorMessage message={error} />}
-    
+
     <FlatList
       data={results}
       keyExtractor={(item) => item.id.toString()}
