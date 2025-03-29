@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
-import { ThemedText } from '@/design_system/components/atoms';
-import { MessageBubble } from '@/design_system/components/organisms';
-import { IconSymbol } from '@/design_system/ui/vendors';
+import { ThemedText } from '@/design_system/components/atoms/ThemedText';
+import { MessageBubble } from '@/design_system/components/organisms/MessageBubble';
+import { IconSymbol } from '@/design_system/ui/vendors/IconSymbol';
 import { colors, themes as Colors } from '@/design_system/ui/tokens';
 import { styles } from './SearchResultItem.styles';
 import { useColorScheme } from '@/hooks/useColorScheme';

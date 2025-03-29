@@ -1,8 +1,9 @@
 import React from 'react';
 import { FlatList, Pressable } from 'react-native';
-import { ThemedView } from '@/design_system/components/atoms';
-import { EmptyState, SkeletonLoader } from '@/design_system/components/molecules';
-import { ChatListItem } from '@/design_system/components/organisms';
+import { ThemedView } from '@/design_system/components/atoms/ThemedView';
+import { SkeletonLoader } from '@/design_system/components/molecules/SkeletonLoader';
+import { EmptyState } from '@/design_system/components/molecules/EmptyState';
+import { ChatListItem } from '@/design_system/components/organisms/ChatListItem';
 import { IconSymbol } from '@/design_system/ui/vendors';
 import { Swipeable } from 'react-native-gesture-handler';
 import { styles } from './ChatsList.styles';

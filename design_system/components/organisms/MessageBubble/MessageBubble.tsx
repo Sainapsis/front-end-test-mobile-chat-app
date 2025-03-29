@@ -1,10 +1,10 @@
 import React, { useRef, useState } from 'react';
 import { View, TouchableWithoutFeedback, Modal } from 'react-native';
-import { ThemedText } from '@/design_system/components/atoms';
+import { ThemedText } from '@/design_system/components/atoms/ThemedText';
 import { styles as createStyles } from './MessageBubble.styles';
 import { useMessageBubble } from '@/hooks/components/useMessageBubble';
+import { OptionsMenu } from '@/design_system/components/organisms/OptionsMenu';
 import EmojiSelector, { Categories } from 'react-native-emoji-selector';
-import { OptionsMenu } from '@/design_system/components/organisms';
 import { useTheme } from '@/context/ThemeContext';
 import { Message } from '@/types/Chat';
 
@@ -18,8 +18,8 @@ interface MessageBubbleProps {
   onEditMessage?: (messageId: string, currentText: string) => void;
 }
 
-export function MessageBubble({ 
-  message, 
+export function MessageBubble({
+  message,
   isCurrentUser,
   userId,
   onDeleteMessage,
@@ -29,7 +29,7 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
-  const { 
+  const {
     isDark,
     bubbleColors,
     handleLongPress,
@@ -39,14 +39,14 @@ export function MessageBubble({
     handleRemoveReaction,
     showOptionsMenu,
     setShowOptionsMenu
-  } = useMessageBubble({ 
-    message, 
+  } = useMessageBubble({
+    message,
     isCurrentUser,
     userId,
     onDeleteMessage,
     onAddReaction,
     onEditMessage,
-    onRemoveReaction 
+    onRemoveReaction
   });
 
   const bubbleRef = useRef<View>(null);
@@ -65,9 +65,10 @@ export function MessageBubble({
   return (
     <>
       <TouchableWithoutFeedback onLongPress={handleLongPress}>
-        <View 
-          ref={bubbleRef} 
-          onLayout={handleLayout} 
+        <View
+          testID="message-bubble-container"
+          ref={bubbleRef}
+          onLayout={handleLayout}
           style={[styles.container, isCurrentUser ? styles.selfContainer : styles.otherContainer]}
         >
           <View style={[

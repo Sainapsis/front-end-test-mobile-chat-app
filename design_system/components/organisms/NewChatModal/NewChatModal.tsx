@@ -1,7 +1,8 @@
 import React from 'react';
 import { Modal, Pressable, FlatList } from 'react-native';
-import { ThemedText, ThemedView } from '@/design_system/components/atoms';
-import { UserListItem } from '@/design_system/components/molecules';
+import { ThemedText } from '@/design_system/components/atoms/ThemedText';
+import { ThemedView } from '@/design_system/components/atoms/ThemedView';
+import { UserListItem } from '@/design_system/components/molecules/UserListItem';
 import { IconSymbol } from '@/design_system/ui/vendors';
 import { styles as createStyles } from './NewChatModal.styles';
 import { useTheme } from '@/context/ThemeContext';

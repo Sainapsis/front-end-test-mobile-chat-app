@@ -3,9 +3,9 @@ import { View } from 'react-native';
 import { ThemedText } from '@/design_system/components/atoms';
 import { styles } from './Avatar.styles';
 import { useAvatar } from '@/hooks/components/useAvatar';
-import { User } from '@/hooks/useUser';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { themes as Colors } from '@/design_system/ui/tokens';
+import { User } from '@/types/User';
 
 interface AvatarProps {
   user?: User;

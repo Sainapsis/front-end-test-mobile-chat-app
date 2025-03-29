@@ -4,8 +4,8 @@ import { ThemedText } from '@/design_system/components/atoms/ThemedText';
 import { Avatar } from '@/design_system/components/organisms/Avatar';
 import { styles as createStyles } from './UserListItem.styles';
 import { useUserListItem } from '@/hooks/components/useUserListItem';
-import { User } from '@/hooks/useUser';
 import { useTheme } from '@/context/ThemeContext';
+import { User } from '@/types/User';
 
 interface UserListItemProps {
   user: User;

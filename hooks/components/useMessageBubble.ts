@@ -17,9 +17,7 @@ export function useMessageBubble({
   message, 
   isCurrentUser,
   userId,
-  onDeleteMessage,
   onAddReaction,
-  onEditMessage, 
   onRemoveReaction 
 }: UseMessageBubbleProps) {
   const [showEmojiSelector, setShowEmojiSelector] = useState(false);
