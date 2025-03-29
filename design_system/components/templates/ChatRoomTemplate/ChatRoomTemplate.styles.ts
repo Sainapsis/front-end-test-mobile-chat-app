@@ -1,14 +1,17 @@
 import { StyleSheet } from 'react-native';
-import { colors, spacing } from '@/design_system/ui/tokens';
+import { colors, spacing, themes } from '@/design_system/ui/tokens';
+import { Theme } from '@/types/tColores';
 
-export const styles = StyleSheet.create({
+export const styles = (theme: Theme) =>StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: themes[theme].background?.elevated
   },
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+    backgroundColor: 'trasparent',
   },
   messagesContainer: {
     padding: spacing.sm,
@@ -34,7 +37,8 @@ export const styles = StyleSheet.create({
     borderRadius: 20,
     padding: spacing.sm,
     maxHeight: 100,
-    backgroundColor: colors.neutral[50],
+    color: themes[theme].text?.primary, // Usar el color de texto primario del them
+    backgroundColor: themes[theme].background?.elevated,
   },
   sendButton: {
     marginLeft: spacing.sm,

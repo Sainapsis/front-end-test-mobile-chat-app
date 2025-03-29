@@ -1,13 +1,14 @@
 import { StyleSheet } from 'react-native';
-import { colors, typography, spacing, radius } from '@/design_system/ui/tokens';
+import { colors, themes, typography, spacing } from '@/design_system/ui/tokens';
+import { Theme } from '@/types/tColores';
 
-export const styles = StyleSheet.create({
+export const styles = (theme: Theme) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     padding: spacing.md,
     alignItems: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: themes[theme].text?.primary,
   },
   contentContainer: {
     flex: 1,
@@ -32,13 +33,13 @@ export const styles = StyleSheet.create({
   },
   time: {
     fontSize: typography.sizes.xs,
-    color: colors.text.secondary,
+    color: themes[theme].text?.secondary,
     fontFamily: typography.families.primary,
     fontWeight: typography.weights.regular,
   },
   lastMessage: {
     fontSize: typography.sizes.sm,
-    color: colors.text.secondary,
+    color: themes[theme].text?.secondary,
     flex: 1,
     fontFamily: typography.families.primary,
     fontWeight: typography.weights.regular,

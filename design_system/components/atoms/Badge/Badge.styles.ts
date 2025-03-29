@@ -1,14 +1,15 @@
 import { StyleSheet } from 'react-native';
-import { colors, typography } from '@/design_system/ui/tokens';
+import { themes, typography } from '@/design_system/ui/tokens';
 import { componentStyles, flexStyles } from '@/design_system/ui/styles';
+import { Theme } from '@/types/tColores';
 
-export const styles = StyleSheet.create({
+export const styles = (theme: Theme) =>  StyleSheet.create({
   container: {
     ...componentStyles.badge,
     ...flexStyles.center,
   },
   text: {
-    color: colors.text.inverse,
+    color: themes[theme].text?.secondary,
     fontSize: typography.sizes.xs,
     fontWeight: typography.weights.bold,
     lineHeight: typography.lineHeights.normal,

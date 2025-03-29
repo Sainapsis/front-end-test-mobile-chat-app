@@ -1,7 +1,8 @@
 import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { colors, spacing, radius, typography } from '@/design_system/ui/tokens';
+import { spacing, radius, typography, themes } from '@/design_system/ui/tokens';
+import { Theme } from '@/types/tColores';
 
-export const styles = StyleSheet.create({
+export const createButtonStyles = (theme: Theme) => StyleSheet.create({
   base: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -10,21 +11,25 @@ export const styles = StyleSheet.create({
   } as ViewStyle,
 
   primary: {
-    backgroundColor: colors.primary[500],
+    backgroundColor: themes[theme].button?.primary?.background,
+    borderColor: themes[theme].button?.primary?.border,
   } as ViewStyle,
 
   secondary: {
-    backgroundColor: colors.neutral[100],
+    backgroundColor: themes[theme].button?.secondary.background,
+    borderColor: themes[theme].button?.secondary.border,
   } as ViewStyle,
 
   outline: {
-    backgroundColor: 'transparent',
+    backgroundColor: themes[theme].button?.outline.background,
+    color: themes[theme].button?.outline.text,
+    borderColor: themes[theme].button?.outline.border,
     borderWidth: 1,
-    borderColor: colors.primary[500],
   } as ViewStyle,
 
   ghost: {
-    backgroundColor: 'transparent',
+    backgroundColor: themes[theme].button?.ghost.background,
+    borderColor: themes[theme].button?.ghost.border,
   } as ViewStyle,
 
   small: {
@@ -47,6 +52,8 @@ export const styles = StyleSheet.create({
   } as ViewStyle,
 
   disabled: {
+    backgroundColor: themes[theme].button?.disabled.background,
+    borderColor: themes[theme].button?.disabled.border,
     opacity: 0.5,
   } as ViewStyle,
 
@@ -56,19 +63,19 @@ export const styles = StyleSheet.create({
   } as TextStyle,
 
   primaryText: {
-    color: colors.text.inverse,
+    color: themes[theme].button?.primary?.text,
   } as TextStyle,
 
   secondaryText: {
-    color: colors.text.primary,
+    color: themes[theme].button?.secondary.text,
   } as TextStyle,
 
   outlineText: {
-    color: colors.primary[500],
+    color: themes[theme].button?.outline.text,
   } as TextStyle,
 
   ghostText: {
-    color: colors.primary[500],
+    color: themes[theme].button?.ghost.text,
   } as TextStyle,
 
   smallText: {
@@ -86,12 +93,14 @@ export const styles = StyleSheet.create({
   } as TextStyle,
 
   disabledText: {
-    color: colors.text.disabled,
+    color: themes[theme].button?.disabled.text,
   } as TextStyle,
 
   contentContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    display: 'flex',
+    gap: spacing.md,
   } as ViewStyle,
 
   icon: {

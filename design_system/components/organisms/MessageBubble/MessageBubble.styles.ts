@@ -1,13 +1,14 @@
 import { StyleSheet } from 'react-native';
-import { spacing, typography, radius, colors } from '@/design_system/ui/tokens';
+import { spacing, themes, typography, radius, colors } from '@/design_system/ui/tokens';
+import { Theme } from '@/types/tColores';
 
 export const getBubbleColors = (isDark: boolean, isCurrentUser: boolean) => ({
   background: isCurrentUser
-    ? isDark ? '#235A4A' : '#DCF8C6'
-    : isDark ? '#2A2C33' : '#FFFFFF',
+    ? isDark ? colors.success.dark : colors.success.light 
+    : isDark ? colors.neutral[700] : colors.neutral[300] ,
 });
 
-export const styles = StyleSheet.create({
+export const styles = (theme: Theme) => StyleSheet.create({
   container: {
     marginVertical: spacing.xs,
     maxWidth: '80%',
@@ -37,7 +38,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.xxs,
-    backgroundColor: colors.background.default,
+    backgroundColor: themes[theme].background?.main,
     padding: spacing.xxs,
     borderRadius: radius.full,
     shadowColor: colors.neutral[900],
@@ -71,7 +72,7 @@ export const styles = StyleSheet.create({
     lineHeight: typography.lineHeights.normal,
   },
   selfMessageText: {
-    color: colors.text.black,
+    color: themes[theme].text?.black,
   },
   timeContainer: {
     flexDirection: 'row',
@@ -91,7 +92,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   emojiSelectorContainer: {
-    backgroundColor: colors.background.default,
+    backgroundColor: themes[theme].background?.main,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     height: 350,

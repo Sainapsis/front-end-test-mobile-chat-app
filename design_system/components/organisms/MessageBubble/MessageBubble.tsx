@@ -1,11 +1,12 @@
 import React, { useRef, useState } from 'react';
 import { View, TouchableWithoutFeedback, Modal } from 'react-native';
 import { ThemedText } from '@/design_system/components/atoms';
-import { styles } from './MessageBubble.styles';
+import { styles as createStyles } from './MessageBubble.styles';
 import { useMessageBubble } from '@/hooks/components/useMessageBubble';
 import { Message } from '@/hooks/useChats';
 import EmojiSelector, { Categories } from 'react-native-emoji-selector';
 import { OptionsMenu } from '@/design_system/components/organisms';
+import { useTheme } from '@/context/ThemeContext';
 
 interface MessageBubbleProps {
   message: Message;
@@ -26,6 +27,8 @@ export function MessageBubble({
   onRemoveReaction,
   onEditMessage,
 }: MessageBubbleProps) {
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
   const { 
     isDark,
     bubbleColors,

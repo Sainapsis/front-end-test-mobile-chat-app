@@ -1,6 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { colors, spacing, radius, typography } from '@/design_system/ui/tokens';
-import { colors as Colors } from '@/design_system/ui/tokens/colors';
+import { spacing, typography } from '@/design_system/ui/tokens';
 
 export const styles = StyleSheet.create({
   container: {
@@ -21,20 +20,7 @@ export const styles = StyleSheet.create({
     fontWeight: typography.weights.regular,
     lineHeight: typography.lineHeights.normal,
     textAlign: 'center',
-    color: colors.text.secondary,
     maxWidth: '80%',
     marginBottom: spacing.xl,
-  },
-  clearButton: {
-    marginTop: spacing.lg,
-    padding: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: Colors.light.tint,
-  },
-  clearButtonText: {
-    color: colors.text.inverse,
-    fontWeight: typography.weights.semiBold,
-    fontSize: typography.sizes.md,
-    lineHeight: typography.lineHeights.normal,
-  },
+  }
 });

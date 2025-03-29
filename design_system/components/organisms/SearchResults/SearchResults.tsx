@@ -6,7 +6,8 @@ import { ErrorMessage } from '@/design_system/components/molecules/ErrorMessage'
 import { styles } from './SearchResults.styles';
 import { router, Stack } from 'expo-router';
 import { IconSymbol } from '@/design_system/ui/vendors';
-import { colors } from '@/design_system/ui/tokens';
+import { themes } from '@/design_system/ui/tokens';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 interface SearchResultsProps {
   results: any[];
@@ -16,45 +17,54 @@ interface SearchResultsProps {
   onResultPress: (chatId: string) => void;
 }
 
-export const SearchResults: React.FC<SearchResultsProps> = ({
+export function SearchResults({
   results,
   error,
   searchTerm,
   currentUser,
   onResultPress,
-}) => (
-  <>
-    <Stack.Screen
-      options={{
-        headerTitle: 'Search Messages',
-        headerLeft: () => (
-          <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
-            <IconSymbol name="chevron.left" size={24} color={colors.primary[500]} />
-          </TouchableOpacity>
-        ),
-      }}
-    />
-    {error && <ErrorMessage message={error} />}
+}: SearchResultsProps) {
+  const theme = useColorScheme() ?? 'light';
 
-    <FlatList
-      data={results}
-      keyExtractor={(item) => item.id.toString()}
-      renderItem={({ item }) => (
-        <SearchResultItem
-          item={item}
-          currentUserName={currentUser?.name}
-          currentUserId={currentUser?.id || ''}
-          onPress={() => onResultPress(item.chat_id)}
-        />
-      )}
-      contentContainerStyle={styles.resultsContainer}
-      ListEmptyComponent={() => (
-        <ThemedView style={styles.emptyContainer}>
-          <ThemedText>
-            {searchTerm ? 'No messages found' : 'Start typing to search messages'}
-          </ThemedText>
-        </ThemedView>
-      )}
-    />
-  </>
-);
+  return (
+    <>
+      <Stack.Screen
+        options={{
+          headerStyle: {
+            backgroundColor: theme === 'light' ? themes.light.background.main : themes.dark.background.main,
+          },
+          headerTintColor: theme != 'light' ? themes.light.background.main : themes.dark.background.main,
+          headerTitle: 'Search Messages',
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
+              <IconSymbol name="chevron.left" size={24} color={theme === 'light' ? themes.light.text.primary : themes.dark.text.primary} />
+            </TouchableOpacity>
+          ),
+        }}
+      />
+
+      {error && <ErrorMessage message={error} />}
+
+      <FlatList
+        data={results}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <SearchResultItem
+            item={item}
+            currentUserName={currentUser?.name}
+            currentUserId={currentUser?.id || ''}
+            onPress={() => onResultPress(item.chat_id)}
+          />
+        )}
+        contentContainerStyle={styles.resultsContainer}
+        ListEmptyComponent={() => (
+          <ThemedView style={styles.emptyContainer}>
+            <ThemedText>
+              {searchTerm ? 'No messages found' : 'Start typing to search messages'}
+            </ThemedText>
+          </ThemedView>
+        )}
+      />
+    </>
+  )
+};

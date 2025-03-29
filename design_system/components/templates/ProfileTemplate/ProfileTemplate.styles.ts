@@ -65,7 +65,6 @@ export const styles = StyleSheet.create({
     marginHorizontal: spacing.lg,
   },
   logoutText: {
-    color: colors.text.inverse,
     fontWeight: 'bold',
     marginLeft: spacing.sm,
   },

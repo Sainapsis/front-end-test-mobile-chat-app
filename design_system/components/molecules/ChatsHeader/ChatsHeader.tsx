@@ -3,6 +3,7 @@ import { Pressable, Alert } from 'react-native';
 import { Button, ThemedText, ThemedView } from '@/design_system/components/atoms';
 import { IconSymbol } from '@/design_system/ui/vendors';
 import { styles } from './ChatsHeader.styles';
+import { colors } from '@/design_system/ui/tokens';
 
 interface ChatsHeaderProps {
   showClearAll: boolean;
@@ -55,14 +56,14 @@ export const ChatsHeader: React.FC<ChatsHeaderProps> = ({
           <IconSymbol 
             name="magnifyingglass" 
             size={24} 
-            color={isLoading ? '#CCCCCC' : '#007AFF'} 
+            color={isLoading ? colors.warning.main : colors.primary.dark} 
           />
         </Pressable>
         <Pressable style={styles.iconButton} onPress={onNewChat} disabled={isLoading}>
           <IconSymbol 
             name="plus" 
             size={24} 
-            color={isLoading ? '#CCCCCC' : '#007AFF'} 
+            color={isLoading ? colors.warning.main : colors.primary.dark} 
           />
         </Pressable>
       </ThemedView>

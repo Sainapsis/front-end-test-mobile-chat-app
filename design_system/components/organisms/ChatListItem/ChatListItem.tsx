@@ -2,10 +2,11 @@ import React from 'react';
 import { View, Pressable, Animated } from 'react-native';
 import { ThemedText } from '@/design_system/components/atoms/ThemedText';
 import { Avatar } from '@/design_system/components/organisms/Avatar';
-import { styles, getAnimatedStyle } from './ChatListItem.styles';
+import { styles as createStyles, getAnimatedStyle } from './ChatListItem.styles';
 import { useChatListItem } from '@/hooks/components/useChatListItem';
 import { Chat } from '@/hooks/useChats';
 import { User } from '@/hooks/useUser';
+import { useTheme } from '@/context/ThemeContext';
 
 interface ChatListItemProps {
   chat: Chat;
@@ -15,6 +16,8 @@ interface ChatListItemProps {
 }
 
 export function ChatListItem({ chat, currentUserId, users, onLongPress }: ChatListItemProps) {
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
   const {
     scaleAnim,
     opacityAnim,

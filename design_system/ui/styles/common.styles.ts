@@ -1,13 +1,17 @@
 import { StyleSheet } from 'react-native';
-import { colors } from '@/design_system/ui/tokens';
+import { colors, spacing, themes } from '@/design_system/ui/tokens';
 
 export const commonStyles = StyleSheet.create({
   container: {
     flex: 1,
+    height: '100%',
+    width: '100%',
   },
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background.default,
+  },
+  gestureContainer: {
+    flex: 1,
   },
   modalContainer: {
     flex: 1,
@@ -24,8 +28,13 @@ export const commonStyles = StyleSheet.create({
   },
   absoluteCenter: {
     position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: -50 }, { translateY: -50 }],
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+  
+  
 });

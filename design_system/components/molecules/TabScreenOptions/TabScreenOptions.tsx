@@ -1,15 +1,16 @@
 import { Platform } from 'react-native';
 import { HapticTab } from '@/design_system/components/molecules';
 import TabBarBackground from '@/design_system/ui/vendors/TabBarBackground';
-import { colors } from '@/design_system/ui/tokens';
+import { themes } from '@/design_system/ui/tokens';
+import { Theme } from '@/types/tColores';
 
 interface TabScreenOptionsProps {
-  colorScheme: 'light' | 'dark';
+  colorScheme: Theme;
   isLoading: boolean;
 }
 
 export const getTabScreenOptions = ({ colorScheme, isLoading }: TabScreenOptionsProps) => ({
-  tabBarActiveTintColor: colors[colorScheme].tint,
+  tabBarActiveTintColor: themes[colorScheme].tint,
   headerShown: false,
   tabBarButton: HapticTab,
   tabBarBackground: TabBarBackground,

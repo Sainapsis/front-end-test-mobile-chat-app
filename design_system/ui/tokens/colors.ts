@@ -1,81 +1,121 @@
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+const tintLight = "#5BE099FF";
+const tintDark = "#FFFFFF";
 
-export const colors = {
+export const palette = {
   primary: {
-    50: '#E3F2FD',
-    100: '#BBDEFB',
-    200: '#90CAF9',
-    300: '#64B5F6',
-    400: '#42A5F5',
-    500: '#2196F3',
-    600: '#1E88E5',
-    700: '#1976D2',
-    800: '#1565C0',
-    900: '#0D47A1',
+    lighter: "#E3F2FD",
+    light: "#64F6A3FF",
+    main: "#2CC5C0FF",
+    dark: "#0F1631FF",
+    darker: "#0E203BFF",
   },
   neutral: {
-    50: '#FAFAFA',
-    100: '#F5F5F5',
-    200: '#EEEEEE',
-    300: '#E0E0E0',
-    400: '#BDBDBD',
-    500: '#9E9E9E',
-    600: '#757575',
-    700: '#616161',
-    800: '#424242',
-    900: '#212121',
+    100: "#F5F5F5",
+    200: "#EEEEEE",
+    300: "#E0E0E0",
+    400: "#BDBDBD",
+    500: "#9E9E9E",
+    600: "#757575",
+    700: "#616161",
+    800: "#424242",
+    900: "#212121",
   },
   success: {
-    main: '#4CAF50',
-    light: '#81C784',
-    dark: '#388E3C',
+    light: "#81C784",
+    main: "#4CAF50",
+    dark: "#388E3C",
   },
   error: {
-    main: '#F44336',
-    light: '#E57373',
-    dark: '#D32F2F',
+    light: "#E57373",
+    main: "#F44336",
+    dark: "#D32F2F",
   },
   warning: {
-    main: '#FFC107',
-    light: '#FFD54F',
-    dark: '#FFA000',
-  },
-  text: {
-    primary: '#212121',
-    secondary: '#757575',
-    disabled: '#9E9E9E',
-    inverse: '#FFFFFF',
-    black: '#000000',
-  },
-  background: {
-    default: '#000000',
-    paper: '#F5F5F5',
-    elevated: '#FFFFFF',
-    black: '#000000',
-  },
-
-  light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
-  },
-  dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    light: "#FFD54F",
+    main: "#FFC107",
+    dark: "#FFA000",
   },
   overlay: {
-    light: 'rgba(0, 0, 0, 0.5)',
-    dark: 'rgba(255, 255, 255, 0.1)',
+    light: "rgba(0, 0, 0, 0.5)",
+    dark: "rgba(255, 255, 255, 0.1)",
   },
   border: {
-    default: '#E0E0E0',
+    default: "#E0E0E0",
+  },
+};
+
+export const themes = {
+  light: {
+    ...palette,
+    text: {
+      primary: "#11181C",
+      secondary: "#687076",
+      disabled: palette.neutral[500],
+      contrast: "#FFFFFF",
+      black: "#000000",
+    },
+    background: {
+      main: "#FFFFFF",
+      surface: palette.neutral[100],
+      elevated: "#FFFFFF",
+      black: "#000000",
+    },
+    button: {
+      primary: { background: palette.primary.main, text: "#FFFFFF", border: palette.primary.dark },
+      secondary: { background: palette.neutral[100], text: "#11181C", border: palette.neutral[400] },
+      outline: { background: "transparent", text: palette.primary.main, border: palette.primary.main },
+      ghost: { background: "transparent", text: palette.primary.main, border: "transparent" },
+      disabled: { background: palette.neutral[300], text: palette.neutral[500], border: palette.neutral[400] },
+    },
+    icon: {
+      default: "#687076",
+      active: tintLight,
+    },
+    tabIcon: {
+      default: "#687076",
+      selected: tintLight,
+    },
+    tint: tintLight,
+    overlay: {
+      light: "rgba(0, 0, 0, 0.5)",
+      dark: "rgba(255, 255, 255, 0.1)",
+    },
+  },
+
+  dark: {
+    ...palette,
+    text: {
+      primary: "#ECEDEE",
+      secondary: "#9BA1A6",
+      disabled: palette.neutral[600],
+      contrast: "#151718",
+      black: "#000000",
+    },
+    background: {
+      main: "#151718",
+      surface: "#1F2326",
+      elevated: "#2C2F33",
+      black: "#000000",
+    },
+    button: {
+      primary: { background: palette.primary.dark, text: "#FFFFFF", border: palette.primary.darker },
+      secondary: { background: palette.neutral[800], text: "#ECEDEE", border: palette.neutral[700] },
+      outline: { background: "transparent", text: palette.primary.light, border: palette.primary.light },
+      ghost: { background: "transparent", text: palette.primary.light, border: "transparent" },
+      disabled: { background: palette.neutral[700], text: palette.neutral[500], border: palette.neutral[600] },
+    },
+    icon: {
+      default: "#9BA1A6",
+      active: tintDark,
+    },
+    tabIcon: {
+      default: "#D2D8DDFF",
+      selected: tintDark,
+    },
+    tint: tintDark,
+    overlay: {
+      dark: "rgba(0, 0, 0, 0.5)",
+      light: "rgba(255, 255, 255, 0.7)",
+    },
   },
 };

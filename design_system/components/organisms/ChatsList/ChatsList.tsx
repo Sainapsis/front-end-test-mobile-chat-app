@@ -6,6 +6,7 @@ import { ChatListItem } from '@/design_system/components/organisms';
 import { IconSymbol } from '@/design_system/ui/vendors';
 import { Swipeable } from 'react-native-gesture-handler';
 import { styles } from './ChatsList.styles';
+import { colors } from '@/design_system/ui/tokens';
 
 interface ChatsListProps {
   loading: boolean;
@@ -47,7 +48,7 @@ export const ChatsList: React.FC<ChatsListProps> = ({
         icon="message.fill"
         title="No Conversations Yet"
         message="Start chatting with your friends by tapping the + button above"
-        color="#007AFF"
+        color={colors.warning.main}
       />
     );
   };

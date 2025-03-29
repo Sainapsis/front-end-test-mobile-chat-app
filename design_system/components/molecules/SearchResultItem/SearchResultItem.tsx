@@ -3,8 +3,9 @@ import { View, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/design_system/components/atoms';
 import { MessageBubble } from '@/design_system/components/organisms';
 import { IconSymbol } from '@/design_system/ui/vendors';
-import { colors } from '@/design_system/ui/tokens';
+import { colors, themes as Colors } from '@/design_system/ui/tokens';
 import { styles } from './SearchResultItem.styles';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 interface SearchResultItemProps {
   item: any;
@@ -13,13 +14,16 @@ interface SearchResultItemProps {
   onPress: () => void;
 }
 
-export const SearchResultItem: React.FC<SearchResultItemProps> = ({
+export function SearchResultItem ({
   item,
   currentUserName,
   currentUserId,
   onPress,
-}) => (
-  <TouchableOpacity style={styles.resultItem} onPress={onPress}>
+}:SearchResultItemProps) {
+  const theme = useColorScheme() ?? 'light';
+
+  return (
+    <TouchableOpacity style={[theme === 'light' ? {backgroundColor: Colors.light.text.secondary} : {backgroundColor:Colors.dark.text.secondary},styles.resultItem]} onPress={onPress}>
     <View style={styles.messageHeader}>
       <View style={styles.headerLeft}>
         <IconSymbol 
@@ -27,12 +31,12 @@ export const SearchResultItem: React.FC<SearchResultItemProps> = ({
           size={16} 
           color={colors.neutral[400]} 
         />
-        <ThemedText style={styles.chatName}>
+        <ThemedText style={[theme === 'light' ? {color: Colors.light.text.contrast} : {color:Colors.dark.text.contrast},styles.chatName]}>
           Chat with {item.participant_names?.split(',')
             .find((name: string) => name !== currentUserName)?.trim()}
         </ThemedText>
       </View>
-      <ThemedText style={styles.timestamp}>
+      <ThemedText style={[theme === 'light' ? {color: Colors.light.text.secondary} : {color:Colors.dark.text.secondary},styles.timestamp]}>
         {new Date(item.timestamp).toLocaleTimeString([], { 
           hour: '2-digit', 
           minute: '2-digit' 
@@ -45,4 +49,5 @@ export const SearchResultItem: React.FC<SearchResultItemProps> = ({
       userId={currentUserId}
     />
   </TouchableOpacity>
-);
+  );
+}

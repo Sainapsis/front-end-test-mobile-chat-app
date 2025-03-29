@@ -12,7 +12,9 @@ import { Stack } from 'expo-router';
 import { ThemedText, ThemedView } from '@/design_system/components/atoms';
 import { Avatar } from '@/design_system/components/organisms';
 import { IconSymbol } from '@/design_system/ui/vendors';
-import { styles } from './ChatRoomTemplate.styles';
+import { styles as createStyles } from './ChatRoomTemplate.styles';
+import { useTheme } from '@/context/ThemeContext';
+import { colors, themes } from '@/design_system/ui/tokens';
 
 interface ChatRoomTemplateProps {
     chatName: string;
@@ -42,6 +44,8 @@ export const ChatRoomTemplate: React.FC<ChatRoomTemplateProps> = ({
     renderMessage,
     flatListRef,
 }) => {
+    const { theme } = useTheme();
+    const styles = createStyles(theme);
     return (
         <KeyboardAvoidingView
             style={styles.container}
@@ -51,6 +55,11 @@ export const ChatRoomTemplate: React.FC<ChatRoomTemplateProps> = ({
             <StatusBar style="auto" />
             <Stack.Screen
                 options={{
+                    headerStyle: {
+                        backgroundColor: theme === 'light' ? themes.light.background.main : themes.dark.background.main,
+                    },
+                    headerTintColor: theme === 'light' ? themes.light.text.contrast : themes.dark.text.contrast,
+
                     headerTitle: () => (
                         <View style={styles.headerContainer}>
                             {participantAvatar && (
@@ -67,7 +76,7 @@ export const ChatRoomTemplate: React.FC<ChatRoomTemplateProps> = ({
                     ),
                     headerLeft: () => (
                         <Pressable onPress={onBack}>
-                            <IconSymbol name="chevron.left" size={24} color="#007AFF" />
+                            <IconSymbol name="chevron.left" size={24} color={theme === 'light' ? themes.light.text.black : colors.neutral[100]} />
                         </Pressable>
                     ),
                 }}
@@ -102,7 +111,7 @@ export const ChatRoomTemplate: React.FC<ChatRoomTemplateProps> = ({
                     <IconSymbol
                         name={isEditing ? "pencil.circle.fill" : "arrow.up.circle.fill"}
                         size={32}
-                        color="#007AFF"
+                        color={theme === 'light' ? themes.light.text.black : colors.neutral[100]}
                     />
                 </Pressable>
             </ThemedView>

@@ -1,7 +1,8 @@
 import { StyleSheet } from 'react-native';
-import { colors, spacing, typography } from '@/design_system/ui/tokens';
+import { colors, themes, spacing, typography } from '@/design_system/ui/tokens';
+import { Theme } from '@/types/tColores';
 
-export const styles = StyleSheet.create({
+export const styles = (theme: Theme) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -10,7 +11,7 @@ export const styles = StyleSheet.create({
     borderBottomColor: colors.neutral[200],
   },
   selectedContainer: {
-    backgroundColor: colors.primary[100],
+    backgroundColor: themes[theme].background?.elevated,
   },
   infoContainer: {
     marginLeft: spacing.md,
@@ -18,7 +19,7 @@ export const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: typography.sizes.sm,
-    color: colors.text.secondary,
+    color: themes[theme].text?.secondary,
     marginTop: spacing.xs,
     fontFamily: typography.families.primary as string,
     fontWeight: typography.weights.regular,

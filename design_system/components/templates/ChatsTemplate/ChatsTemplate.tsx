@@ -2,7 +2,8 @@ import React from 'react';
 import { ThemedView } from '@/design_system/components/atoms';
 import { ChatsHeader } from '@/design_system/components/molecules';
 import { ChatsList, NewChatModal } from '@/design_system/components/organisms';
-import { styles } from './ChatsTemplate.styles';
+import { styles as createStyles } from './ChatsTemplate.styles';
+import { useTheme } from '@/context/ThemeContext';
 
 interface ChatsTemplateProps {
   loading: boolean;
@@ -20,7 +21,7 @@ interface ChatsTemplateProps {
   onOpenModal: () => void;
 }
 
-export const ChatsTemplate: React.FC<ChatsTemplateProps> = ({
+export function ChatsTemplate({
   loading,
   chats,
   users,
@@ -34,7 +35,9 @@ export const ChatsTemplate: React.FC<ChatsTemplateProps> = ({
   onToggleUserSelection,
   onCloseModal,
   onOpenModal,
-}) => {
+}:ChatsTemplateProps){
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
   return (
     <ThemedView style={styles.container}>
       <ChatsHeader

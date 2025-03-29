@@ -21,7 +21,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   <View style={styles.header}>
     {onBack ? (
       <TouchableOpacity onPress={onBack} style={styles.backButton}>
-        <IconSymbol name="chevron.left" size={24} color={colors.primary[500]} />
+        <IconSymbol name="chevron.left" size={24} color={colors.primary.main} />
       </TouchableOpacity>
     ) : leftComponent}
     <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.title}>

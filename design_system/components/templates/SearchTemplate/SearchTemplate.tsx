@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, TextInput, ActivityIndicator } from 'react-native';
 import { BaseTemplate } from '../BaseTemplate';
-import { colors } from '@/design_system/ui/tokens';
+import { colors, themes as Colors } from '@/design_system/ui/tokens';
 import { styles } from './SearchTemplate.styles';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { ThemedText, ThemedView } from '@/design_system/components/atoms';
 
 interface SearchTemplateProps {
   children: React.ReactNode;
@@ -21,9 +23,11 @@ export const SearchTemplate: React.FC<SearchTemplateProps> = ({
   value = '',
   headerComponent,
 }) => {
+  const theme = useColorScheme() ?? 'light';
+
   return (
     <BaseTemplate header={headerComponent}>
-      <View style={styles.searchContainer}>
+      <ThemedView style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
           value={value}
@@ -32,14 +36,14 @@ export const SearchTemplate: React.FC<SearchTemplateProps> = ({
           placeholderTextColor={colors.neutral[400]}
         />
         {isLoading && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator color={colors.primary[500]} />
-          </View>
+          <ThemedView style={styles.loadingContainer}>
+            <ActivityIndicator color={theme === 'light' ? Colors.light.text.contrast : Colors.dark.text.contrast} />
+          </ThemedView>
         )}
-      </View>
-      <View style={styles.content}>
+      </ThemedView>
+      <ThemedView style={styles.content}>
         {children}
-      </View>
+      </ThemedView>
     </BaseTemplate>
   );
 };

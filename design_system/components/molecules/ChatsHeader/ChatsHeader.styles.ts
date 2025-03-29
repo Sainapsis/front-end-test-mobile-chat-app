@@ -19,7 +19,7 @@ export const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.primary[100],
+    backgroundColor: colors.primary.lighter,
   },
   clearAllButton: {
     backgroundColor: colors.error.main,
@@ -28,7 +28,7 @@ export const styles = StyleSheet.create({
     borderRadius: spacing.sm,
   },
   clearAllText: {
-    color: colors.text.inverse,
+    color: colors.primary.lighter,
     fontWeight: '600',
     fontSize: 14,
   },

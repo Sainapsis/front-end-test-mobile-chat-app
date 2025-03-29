@@ -1,7 +1,8 @@
 import { StyleSheet } from 'react-native';
-import { colors, spacing } from '@/design_system/ui/tokens';
+import { colors, spacing, themes } from '@/design_system/ui/tokens';
+import { Theme } from '@/types/tColores';
 
-export const styles = StyleSheet.create({
+export const styles = (theme: Theme) => StyleSheet.create({
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -11,7 +12,7 @@ export const styles = StyleSheet.create({
   modalContent: {
     width: '90%',
     maxHeight: '80%',
-    backgroundColor: colors.background.default,
+    backgroundColor: themes[theme].background?.main,
     borderRadius: spacing.md,
     padding: spacing.lg,
     shadowColor: colors.neutral[900],
@@ -37,17 +38,17 @@ export const styles = StyleSheet.create({
     maxHeight: 400,
   },
   createButton: {
-    backgroundColor: colors.primary[500],
+    backgroundColor: themes[theme].text?.primary,
     padding: spacing.md,
     borderRadius: spacing.sm,
     alignItems: 'center',
     marginTop: spacing.lg,
   },
   disabledButton: {
-    backgroundColor: colors.neutral[300],
+    backgroundColor: themes[theme].text?.disabled,
   },
   createButtonText: {
-    color: colors.text.inverse,
+    color: themes[theme].text?.contrast,
     fontWeight: 'bold',
     fontSize: 16,
   },

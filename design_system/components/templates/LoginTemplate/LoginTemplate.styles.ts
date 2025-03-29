@@ -5,9 +5,16 @@ export const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+  keyboardAvoiding: {
+    flex: 1,
+  },
+  scrollView: {
+    flexGrow: 1,
+  },
   container: {
     flex: 1,
-    paddingTop: spacing.xl,
+    paddingTop: spacing.xxxl,
+    paddingHorizontal: spacing.lg, 
   },
   header: {
     alignItems: 'center',

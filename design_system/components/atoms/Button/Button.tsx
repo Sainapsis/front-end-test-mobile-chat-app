@@ -3,7 +3,8 @@ import { ViewStyle, TextStyle, ActivityIndicator, View, StyleProp } from 'react-
 import { ThemedText } from '@/design_system/components/atoms/ThemedText';
 import { AnimatedPressable } from '@/design_system/components/atoms/Pressable';
 import { colors } from '@/design_system/ui/tokens';
-import { styles } from './Button.styles';
+import { createButtonStyles } from "./Button.styles";
+import { useTheme } from '@/context/ThemeContext';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
 type ButtonSize = 'small' | 'medium' | 'large';
@@ -33,6 +34,9 @@ export function Button({
   children,
   style,
 }: ButtonProps) {
+  const { theme } = useTheme();
+  const styles = createButtonStyles(theme);
+
   const buttonStyles: StyleProp<ViewStyle> = [
     styles.base,
     styles[variant],
@@ -51,7 +55,7 @@ export function Button({
 
   const renderContent = () => {
     if (typeof children === 'string') {
-      return <ThemedText style={textStyles}>{children}</ThemedText>;
+      return <ThemedText style={[textStyles]}>{children}</ThemedText>;
     }
     return children;
   };
@@ -63,8 +67,8 @@ export function Button({
       style={buttonStyles}
     >
       {loading ? (
-        <ActivityIndicator 
-          color={variant === 'primary' ? colors.text.inverse : colors.primary[500]} 
+        <ActivityIndicator
+          color={variant === 'primary' ? colors.border.default : colors.primary.dark}
         />
       ) : (
         <View style={styles.contentContainer}>

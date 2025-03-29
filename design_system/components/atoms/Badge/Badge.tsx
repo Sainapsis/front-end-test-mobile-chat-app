@@ -4,7 +4,8 @@ import { ThemedView } from '@/design_system/components/atoms/ThemedView';
 
 import { colors } from '@/design_system/ui/tokens';
 
-import { styles } from './Badge.styles';
+import { styles as createStyles } from './Badge.styles';
+import { useTheme } from '@/context/ThemeContext';
 
 interface BadgeProps {
   count?: number;
@@ -14,6 +15,8 @@ interface BadgeProps {
 
 export function Badge({ count, dot, color = colors.error.main }: BadgeProps) {
   if (!count && !dot) return null;
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: color }]}>

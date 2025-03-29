@@ -3,7 +3,7 @@ import { colors, spacing } from '@/design_system/ui/tokens';
 
 export const componentStyles = StyleSheet.create({
   card: {
-    backgroundColor: colors.background.paper,
+    backgroundColor: colors.neutral[400],
     borderRadius: spacing.sm,
     padding: spacing.md,
     marginVertical: spacing.sm,
@@ -25,7 +25,7 @@ export const componentStyles = StyleSheet.create({
     borderColor: colors.neutral[300],
     borderRadius: spacing.sm,
     paddingHorizontal: spacing.md,
-    backgroundColor: colors.background.paper,
+    backgroundColor: colors.neutral[400],
   },
   button: {
     height: 48,
@@ -43,7 +43,7 @@ export const componentStyles = StyleSheet.create({
   badge: {
     position: 'absolute',
     borderRadius: 999,
-    backgroundColor: colors.primary[500],
+    backgroundColor: colors.primary.lighter,
     minWidth: 20,
     height: 20,
     justifyContent: 'center',

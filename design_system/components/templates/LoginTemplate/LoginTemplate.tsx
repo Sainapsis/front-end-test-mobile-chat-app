@@ -1,5 +1,5 @@
 import React from 'react';
-import { SafeAreaView } from 'react-native';
+import { KeyboardAvoidingView, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { ThemedText, ThemedView } from '@/design_system/components/atoms';
 import { styles } from './LoginTemplate.styles';
@@ -16,18 +16,21 @@ export const LoginTemplate: React.FC<LoginTemplateProps> = ({
   children
 }) => {
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <ThemedView style={styles.safeArea}>
       <StatusBar style="auto" />
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.header}>
-          <ThemedText type="title">{title}</ThemedText>
-          <ThemedText style={styles.subtitle}>
-            {subtitle}
-          </ThemedText>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoiding}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ThemedView style={styles.container}>
+          <ThemedView style={styles.header}>
+            <ThemedText type="title">{title}</ThemedText>
+            <ThemedText style={styles.subtitle}>{subtitle}</ThemedText>
+          </ThemedView>
+          {children}
         </ThemedView>
-        {children}
-      </ThemedView>
-    </SafeAreaView>
+      </KeyboardAvoidingView>
+    </ThemedView>
   );
 };
 

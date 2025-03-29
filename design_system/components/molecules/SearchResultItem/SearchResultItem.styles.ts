@@ -6,7 +6,6 @@ export const styles = StyleSheet.create({
     marginBottom: spacing.md,
     padding: spacing.sm,
     borderRadius: 8,
-    backgroundColor: colors.neutral[50],
     borderWidth: 1,
     borderColor: colors.neutral[200],
     shadowColor: colors.neutral[900],
@@ -32,13 +31,11 @@ export const styles = StyleSheet.create({
   chatName: {
     fontSize: 14,
     fontWeight: '500',
-    color: colors.primary[700],
     marginLeft: spacing.xs,
     flex: 1,
   },
   timestamp: {
     fontSize: 12,
-    color: colors.neutral[500],
     marginLeft: spacing.sm,
   },
 });

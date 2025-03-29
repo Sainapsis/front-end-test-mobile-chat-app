@@ -26,6 +26,6 @@ export const styles = StyleSheet.create({
     link: {
         lineHeight: typography.lineHeights.normal,
         fontSize: typography.sizes.md,
-        color: colors.primary[600],
+        color: colors.primary.main,
     },
 });
