@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { colors, spacing, themes } from '@/design_system/ui/tokens';
 import { Theme } from '@/types/tColores';
 
@@ -26,9 +26,14 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     padding: spacing.sm,
+    paddingBottom: spacing.md,
     alignItems: 'flex-end',
     borderTopWidth: 1,
     borderTopColor: colors.neutral[200],
+    backgroundColor: themes[theme].background?.elevated,
+  },
+  iosInputContainer: {
+    paddingBottom: spacing.lg,
   },
   input: {
     flex: 1,
@@ -37,7 +42,8 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: 20,
     padding: spacing.sm,
     maxHeight: 100,
-    color: themes[theme].text?.primary, // Usar el color de texto primario del them
+    marginBottom: Platform.OS === 'ios' ? spacing.xs : 0,
+    color: themes[theme].text?.primary,
     backgroundColor: themes[theme].background?.elevated,
   },
   sendButton: {
