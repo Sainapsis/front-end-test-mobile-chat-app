@@ -30,19 +30,19 @@ export default function ChatRoomScreen() {
   /**
    * Handles sending or editing a message
    */
-  const handleSendMessage = () => {
-    if (messageText.trim() && currentUser && chat) {
-      if (editingMessageId) {
-        // If editing, update the message
-        editMessage?.(editingMessageId, messageText.trim());
-        setEditingMessageId(null);
-      } else {
-        // Otherwise, send a new message
-        sendMessage(chat.id, messageText.trim(), currentUser.id);
-      }
-      setMessageText('');
+  const handleSendMessage = (imageUri?: string) => {
+    if ((messageText.trim() || imageUri) && currentUser && chat) {
+        if (editingMessageId) {
+            // If editing, update the message
+            editMessage?.(editingMessageId, messageText.trim());
+            setEditingMessageId(null);
+        } else {
+            // Otherwise, send a new message
+            sendMessage(chat.id, messageText.trim(), currentUser.id, imageUri);
+        }
+        setMessageText('');
     }
-  };
+};
 
   /**
    * Initiates message editing mode

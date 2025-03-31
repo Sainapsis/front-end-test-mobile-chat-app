@@ -18,7 +18,7 @@ type AppContextType = {
   /** List of chats for the current user */
   chats: Chat[];
   createChat: (participantIds: string[]) => Promise<Chat | null>;
-  sendMessage: (chatId: string, text: string, senderId: string) => Promise<boolean>;
+  sendMessage: (chatId: string, text: string, senderId: string, imageUri?: string) => Promise<boolean>;
   loading: boolean;
   dbInitialized: boolean;
   clearChats: (userId: string) => Promise<void>;
@@ -55,6 +55,10 @@ function AppContent({ children }: { children: ReactNode }) {
     addReaction: chatContext.addReaction || undefined,
     removeReaction: chatContext.removeReaction || undefined,
     editMessage: chatContext.editMessage || undefined,
+    sendMessage: async (chatId: string, text: string, senderId: string, imageUri?: string) => {
+      if (!chatContext.sendMessage) return false;
+      return chatContext.sendMessage(chatId, text, senderId, imageUri);
+    },
   };
 
   if (!isInitialized) {

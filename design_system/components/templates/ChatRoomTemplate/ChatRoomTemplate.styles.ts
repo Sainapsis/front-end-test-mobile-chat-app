@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 import { colors, spacing, themes } from '@/design_system/ui/tokens';
 import { Theme } from '@/types/tColores';
 
-export const styles = (theme: Theme) =>StyleSheet.create({
+export const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: themes[theme].background?.elevated
@@ -47,4 +47,35 @@ export const styles = (theme: Theme) =>StyleSheet.create({
   disabledButton: {
     opacity: 0.5,
   },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  mediaButton: {
+    padding: spacing.xs,
+  },
+  previewImage: {
+    width: spacing.xxl,
+    height: spacing.xxl,
+    borderRadius: spacing.xs,
+    marginRight: spacing.sm,
+  },
+  mediaPreviewContainer: {
+    position: 'relative',
+    marginBottom: spacing.xs,
+  },
+  mediaPreview: {
+    width: '100%',
+    height: spacing.xxxl * 5,
+    borderRadius: spacing.xs,
+  },
+  removeMediaButton: {
+    position: 'absolute',
+    top: spacing.xxs,
+    right: spacing.xxs,
+    backgroundColor: colors.neutral[900],
+    borderRadius: spacing.sm,
+    padding: spacing.xxs,
+},
 });

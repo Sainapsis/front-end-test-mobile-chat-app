@@ -23,9 +23,15 @@ export const messages = sqliteTable("messages", {
   id: text("id").primaryKey(),
   chatId: text("chat_id").notNull(),
   senderId: text("sender_id").notNull(),
-  text: text("text").notNull(),
+  text: text("text"),
   timestamp: integer("timestamp").notNull(),
   editedAt: integer("edited_at"),
+  hasMultimedia: integer("has_multimedia").default(0),
+  multimediaType: text("multimedia_type"),
+  multimediaUrl: text("multimedia_url"),
+  thumbnailUrl: text("thumbnail_url"),
+  duration: integer("duration"),
+  size: integer("size"),
 });
 
 /**

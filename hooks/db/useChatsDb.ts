@@ -103,10 +103,16 @@ export function useChatsDb(currentUserId: string | null) {
             .map(m => ({
               id: m.id,
               senderId: m.senderId,
-              text: m.text,
+              text: m.text || undefined,
               timestamp: m.timestamp,
               reactions: messageReactionsMap[m.id] || [],
-            }));
+              hasMultimedia: !!m.hasMultimedia, // Convert to boolean
+              multimediaType: m.multimediaType || undefined,
+              multimediaUrl: m.multimediaUrl || undefined,
+              thumbnailUrl: m.thumbnailUrl || undefined,
+              duration: m.duration || undefined,
+              size: m.size || undefined,
+            })) as Message[]; // Explicit type assertion
 
           const lastMessage = chatMessages.length > 0 ? chatMessages[chatMessages.length - 1] : undefined;
 
@@ -173,47 +179,62 @@ export function useChatsDb(currentUserId: string | null) {
    * @param senderId - ID of the sender
    * @returns Boolean indicating success
    */
-  const sendMessage = useCallback(async (chatId: string, text: string, senderId: string) => {
-    if (!text.trim()) return false;
+  const sendMessage = useCallback(async (chatId: string, text: string, senderId: string, imageUri?: string) => {
+    if (!text.trim() && !imageUri) return false;
 
     try {
-      const messageId = `msg${Date.now()}`;
-      const timestamp = Date.now();
+        const messageId = `msg${Date.now()}`;
+        const timestamp = Date.now();
 
-      await db.insert(messages).values({
-        id: messageId,
-        chatId,
-        senderId,
-        text,
-        timestamp,
-      });
+        const messageValues = {
+            id: messageId,
+            chatId,
+            senderId,
+            timestamp,
+            text: text || null,
+            hasMultimedia: !!imageUri,
+            multimediaType: imageUri ? 'image' : null,
+            multimediaUrl: imageUri || null,
+            thumbnailUrl: imageUri ? `${imageUri}?thumb` : null,
+            duration: imageUri ? 0 : null, // Add duration with default value
+            size: imageUri ? 0 : null,     // Add size with default value
+        };
 
-      const newMessage: Message = {
-        reactions: [],
-        id: messageId,
-        senderId,
-        text,
-        timestamp,
-      };
+        await db.insert(messages).values({
+            ...messageValues,
+            hasMultimedia: imageUri ? 1 : 0, // Convert boolean to number for SQLite
+        });
 
-      setUserChats(prevChats =>
-        prevChats.map(chat =>
-          chat.id === chatId
-            ? {
-                ...chat,
-                messages: [...chat.messages, newMessage],
-                lastMessage: newMessage,
-              }
-            : chat
-        )
-      );
+        const newMessage: Message = {
+            id: messageId,
+            senderId,
+            text: text || undefined,
+            timestamp,
+            reactions: [],
+            hasMultimedia: !!imageUri,
+            multimediaType: imageUri ? 'image' : undefined,
+            multimediaUrl: imageUri || undefined,
+            thumbnailUrl: imageUri ? `${imageUri}?thumb` : undefined,
+        };
 
-      return true;
+        setUserChats(prevChats =>
+            prevChats.map(chat =>
+                chat.id === chatId
+                    ? {
+                        ...chat,
+                        messages: [...chat.messages, newMessage],
+                        lastMessage: newMessage,
+                    }
+                    : chat
+            )
+        );
+
+        return true;
     } catch (error) {
-      console.error('Error sending message:', error);
-      return false;
+        console.error('Error sending message:', error);
+        return false;
     }
-  }, []);
+}, []);
 
   /**
    * Deletes a chat for a specific user

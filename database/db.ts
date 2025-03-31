@@ -57,9 +57,15 @@ export async function initializeDatabase() {
         id TEXT PRIMARY KEY,
         chat_id TEXT NOT NULL,
         sender_id TEXT NOT NULL,
-        text TEXT NOT NULL,
+        text TEXT,
         timestamp INTEGER NOT NULL,
         edited_at INTEGER,
+        has_multimedia INTEGER DEFAULT 0,
+        multimedia_type TEXT,
+        multimedia_url TEXT,
+        thumbnail_url TEXT,
+        duration INTEGER,
+        size INTEGER,
         FOREIGN KEY (chat_id) REFERENCES chats (id)
       );
     `);

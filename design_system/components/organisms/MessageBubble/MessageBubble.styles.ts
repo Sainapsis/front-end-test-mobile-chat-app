@@ -104,5 +104,16 @@ export const styles = (theme: Theme) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border.default,
     marginBottom: spacing.sm,
-  }
+  },
+  imageContainer: {
+      marginBottom: spacing.sm,
+      borderRadius: radius.md,
+      overflow: 'hidden',
+      width: '100%',
+      aspectRatio: 1,
+  },
+  messageImage: {
+      width: '100%',
+      height: '100%',
+  },
 });

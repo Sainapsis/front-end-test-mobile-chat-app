@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     KeyboardAvoidingView,
     Platform,
@@ -6,46 +6,93 @@ import {
     TextInput,
     Pressable,
     View,
+    TouchableOpacity,
+    Image // Add this import
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router';
 import { ThemedText, ThemedView } from '@/design_system/components/atoms';
 import { Avatar } from '@/design_system/components/organisms';
 import { IconSymbol } from '@/design_system/ui/vendors';
-import { styles as createStyles } from './ChatRoomTemplate.styles';
+import { createStyles } from './ChatRoomTemplate.styles';
 import { useTheme } from '@/context/ThemeContext';
 import { colors, themes } from '@/design_system/ui/tokens';
+import { useChatInput } from '@/hooks/useChatInput';
 
 interface ChatRoomTemplateProps {
-    /** Name of the chat room */
+    /** Name of the chat room displayed in the header */
     chatName: string;
-    /** Avatar of the chat participant */
+    /** 
+     * Avatar configuration for the chat participant
+     * @property user - User object containing avatar information
+     * @property size - Size of the avatar in pixels
+     */
     participantAvatar?: {
         user: any;
         size: number;
     };
-    /** Array of messages in the chat */
+    /** 
+     * Array of messages to be displayed in the chat
+     * @remarks Each message object should contain at least an id property
+     */
     messages: any[];
-    /** Current message text in the input field */
+    /** 
+     * Current message text in the input field
+     * @remarks Controlled by the parent component
+     */
     messageText: string;
-    /** Whether the user is editing a message */
+    /** 
+     * Whether the user is editing an existing message
+     * @default false
+     */
     isEditing: boolean;
-    /** Function to be called when navigating back */
+    /** 
+     * Callback function triggered when navigating back
+     * @remarks Typically used to handle navigation to previous screen
+     */
     onBack: () => void;
-    /** Function to be called when the message text changes */
+    /** 
+     * Callback function triggered when the message text changes
+     * @param text - The new text value from the input field
+     */
     onMessageChange: (text: string) => void;
-    /** Function to be called when sending a message */
-    onSendMessage: () => void;
-    /** Function to render each message */
+    /** 
+     * Callback function triggered when sending a message
+     * @param imageUri - Optional URI of an image to be sent with the message
+     */
+    onSendMessage: (imageUri?: string) => void;
+    /** 
+     * Function to render each message in the list
+     * @param item - The message object to be rendered
+     * @returns React node representing the message
+     */
     renderMessage: (item: any) => React.ReactNode;
-    /** Reference to the FlatList component */
+    /** 
+     * Reference to the FlatList component
+     * @remarks Used for programmatic control of the message list
+     */
     flatListRef: React.RefObject<FlatList>;
 }
 
 /**
  * ChatRoomTemplate component provides a complete layout for a chat room interface.
- * It includes a header with participant info, a message list, and an input area.
- * Supports keyboard avoidance and theme-based styling.
+ * 
+ * @component
+ * @example
+ * <ChatRoomTemplate
+ *   chatName="General Chat"
+ *   messages={messages}
+ *   messageText={messageText}
+ *   onMessageChange={setMessageText}
+ *   onSendMessage={handleSendMessage}
+ *   renderMessage={renderMessage}
+ * />
+ * 
+ * @remarks
+ * - Supports keyboard avoidance for better mobile experience
+ * - Includes theme-based styling using the app's design system
+ * - Handles image selection and sending
+ * - Provides a customizable header with back navigation
  */
 export const ChatRoomTemplate: React.FC<ChatRoomTemplateProps> = ({
     chatName,
@@ -61,12 +108,11 @@ export const ChatRoomTemplate: React.FC<ChatRoomTemplateProps> = ({
 }) => {
     const { theme } = useTheme();
     const styles = createStyles(theme);
+    
+    const { selectedImage, pickImageAsync, handleSend, removeImage } = useChatInput(onSendMessage);
+
     return (
-        <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-        >
+        <KeyboardAvoidingView style={styles.container}>
             <StatusBar style="auto" />
             <Stack.Screen
                 options={{
@@ -111,6 +157,29 @@ export const ChatRoomTemplate: React.FC<ChatRoomTemplateProps> = ({
             />
 
             <ThemedView style={styles.inputContainer}>
+                <TouchableOpacity
+                    style={styles.mediaButton}
+                    onPress={pickImageAsync}
+                >
+                    <IconSymbol name="photo" size={24} color={theme === 'light' ? themes.light.text.black : colors.neutral[100]} />
+                </TouchableOpacity>
+
+                {selectedImage && (
+                    <View style={styles.mediaPreviewContainer}>
+                        <Image
+                            source={{ uri: selectedImage }}
+                            style={styles.previewImage}
+                            resizeMode="cover"
+                        />
+                        <TouchableOpacity
+                            style={styles.removeMediaButton}
+                            onPress={removeImage}
+                        >
+                            <IconSymbol name="xmark" size={16} color={colors.neutral[100]} />
+                        </TouchableOpacity>
+                    </View>
+                )}
+
                 <TextInput
                     style={styles.input}
                     value={messageText}
@@ -118,10 +187,11 @@ export const ChatRoomTemplate: React.FC<ChatRoomTemplateProps> = ({
                     placeholder="Type a message..."
                     multiline
                 />
+
                 <Pressable
-                    style={[styles.sendButton, !messageText.trim() && styles.disabledButton]}
-                    onPress={onSendMessage}
-                    disabled={!messageText.trim()}
+                    style={[styles.sendButton, (!messageText.trim() && !selectedImage) && styles.disabledButton]}
+                    onPress={handleSend}
+                    disabled={!messageText.trim() && !selectedImage}
                 >
                     <IconSymbol
                         name={isEditing ? "pencil.circle.fill" : "arrow.up.circle.fill"}

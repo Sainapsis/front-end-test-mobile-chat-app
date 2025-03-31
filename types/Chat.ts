@@ -21,13 +21,25 @@ export interface Message {
   /** ID of the user who sent the message */
   senderId: string;
   /** Content of the message */
-  text: string;
+  text?: string;
   /** Timestamp when the message was sent */
   timestamp: number;
   /** List of reactions to the message */
   reactions: MessageReaction[];
   /** Optional timestamp when the message was last edited */
   editedAt?: number;
+  /** Indicates if the message contains multimedia */
+  hasMultimedia?: boolean;
+  /** Type of multimedia content (if any) */
+  multimediaType?: 'image' | 'audio' | 'video';
+  /** URL of the multimedia content */
+  multimediaUrl?: string;
+  /** URL of the thumbnail for the multimedia content */
+  thumbnailUrl?: string;
+  /** Duration of the multimedia content in seconds (for audio/video) */
+  duration?: number;
+  /** Size of the multimedia content in bytes */
+  size?: number;
 }
 
 /**

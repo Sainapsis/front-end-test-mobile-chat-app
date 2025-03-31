@@ -7,6 +7,7 @@ import { OptionsMenu } from '@/design_system/components/organisms/OptionsMenu';
 import EmojiSelector, { Categories } from 'react-native-emoji-selector';
 import { useTheme } from '@/context/ThemeContext';
 import { Message } from '@/types/Chat';
+import { Image } from 'react-native';
 
 interface MessageBubbleProps {
   /** Message data to be displayed */
@@ -30,35 +31,36 @@ interface MessageBubbleProps {
  * It includes options for long-press actions and an emoji selector for reactions.
  */
 export function MessageBubble({
-  message,
-  isCurrentUser,
-  userId,
-  onDeleteMessage,
-  onAddReaction,
-  onRemoveReaction,
-  onEditMessage,
-}: MessageBubbleProps) {
-  const { theme } = useTheme();
-  const styles = createStyles(theme);
-  const {
-    isDark,
-    bubbleColors,
-    handleLongPress,
-    showEmojiSelector,
-    setShowEmojiSelector,
-    handleEmojiSelected,
-    handleRemoveReaction,
-    showOptionsMenu,
-    setShowOptionsMenu
-  } = useMessageBubble({
     message,
     isCurrentUser,
     userId,
     onDeleteMessage,
     onAddReaction,
+    onRemoveReaction,
     onEditMessage,
-    onRemoveReaction
-  });
+}: MessageBubbleProps) {
+    const { theme } = useTheme();
+    const styles = createStyles(theme);
+    
+    const {
+        isDark,
+        bubbleColors,
+        handleLongPress,
+        showEmojiSelector,
+        setShowEmojiSelector,
+        handleEmojiSelected,
+        handleRemoveReaction,
+        showOptionsMenu,
+        setShowOptionsMenu
+    } = useMessageBubble({
+        message,
+        isCurrentUser,
+        userId,
+        onDeleteMessage,
+        onAddReaction,
+        onEditMessage,
+        onRemoveReaction
+    });
 
   const bubbleRef = useRef<View>(null);
   const [bubblePosition, setBubblePosition] = useState({ x: 0, y: 0, width: 0 });
@@ -68,7 +70,7 @@ export function MessageBubble({
   };
 
   const handleLayout = () => {
-    bubbleRef.current?.measure((x, y, width, height, pageX, pageY) => {
+    bubbleRef.current?.measure((_x, _y, width, _height, pageX, pageY) => {
       setBubblePosition({ x: pageX, y: pageY, width });
     });
   };
@@ -87,9 +89,22 @@ export function MessageBubble({
             isCurrentUser ? styles.selfBubble : styles.otherBubble,
             { backgroundColor: bubbleColors.background }
           ]}>
-            <ThemedText style={[styles.messageText, isCurrentUser && !isDark && styles.selfMessageText]}>
-              {message.text}
-            </ThemedText>
+            {message.multimediaUrl && message.multimediaType === 'image' && (
+              <View style={styles.imageContainer}>
+                <Image
+                  source={{ uri: message.multimediaUrl }}
+                  style={styles.messageImage}
+                  resizeMode="cover"
+                />
+              </View>
+            )}
+            
+            {message.text && (
+              <ThemedText style={[styles.messageText, isCurrentUser && !isDark && styles.selfMessageText]}>
+                {message.text}
+              </ThemedText>
+            )}
+            
             <View style={styles.timeContainer}>
               <ThemedText style={styles.timeText}>
                 {formatTime(message.timestamp)}
@@ -119,7 +134,7 @@ export function MessageBubble({
       <OptionsMenu
         visible={showOptionsMenu}
         onClose={() => setShowOptionsMenu(false)}
-        onEdit={() => onEditMessage?.(message.id, message.text)}
+        onEdit={() => message.text && onEditMessage?.(message.id, message.text)}
         onDelete={() => onDeleteMessage?.(message.id)}
         onAddEmoji={() => setShowEmojiSelector(true)}
         position={{ top: bubblePosition.y, left: bubblePosition.x, width: bubblePosition.width }} // Pass position as a prop
