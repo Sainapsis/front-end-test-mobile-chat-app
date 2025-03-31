@@ -82,7 +82,7 @@ export function MessageBubble({
   const transformTimestampToTime = (timestamp: number) => {
     const date = new Date(timestamp);
 
-    const hours = date.getHours() % 12 || 12; // Convierte 0 en 12
+    const hours = date.getHours() % 12 || 12; 
     const minutes = date.getMinutes();
     const ampm = date.getHours() >= 12 ? "PM" : "AM";
 

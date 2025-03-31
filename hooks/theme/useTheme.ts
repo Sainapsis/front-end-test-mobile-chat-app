@@ -9,7 +9,7 @@ export const useTheme = () => {
   const lightTheme = {
     background: '#FFFFFF',
     text: '#000000',
-    bubble: '#F0F0F0',
+    bubble: '#918d8d4f',
     ownBubble: '#007AFF',
     reactionBackground: '#F0F0F0',
     reactionText: '#666666',

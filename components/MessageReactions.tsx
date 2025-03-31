@@ -116,7 +116,7 @@ export function MessageReactions({
         onRequestClose={() => setShowEmojiPicker(false)}
       >
         <TouchableOpacity
-          style={[styles.modalOverlay, { backgroundColor: colors.background }]}
+          style={[styles.modalOverlay, { backgroundColor: "#0c0c0c87" }]}
           activeOpacity={1}
           onPress={() => setShowEmojiPicker(false)}
         >
