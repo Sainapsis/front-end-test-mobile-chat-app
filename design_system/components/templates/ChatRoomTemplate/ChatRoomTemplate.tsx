@@ -108,11 +108,14 @@ export const ChatRoomTemplate: React.FC<ChatRoomTemplateProps> = ({
 }) => {
     const { theme } = useTheme();
     const styles = createStyles(theme);
-    
     const { selectedImage, pickImageAsync, handleSend, removeImage } = useChatInput(onSendMessage);
 
     return (
-        <KeyboardAvoidingView style={styles.container}>
+        <KeyboardAvoidingView 
+            style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        >
             <StatusBar style="auto" />
             <Stack.Screen
                 options={{
@@ -156,7 +159,7 @@ export const ChatRoomTemplate: React.FC<ChatRoomTemplateProps> = ({
                 )}
             />
 
-            <ThemedView style={styles.inputContainer}>
+            <ThemedView style={[styles.inputContainer, Platform.OS === 'ios' && styles.iosInputContainer]}>
                 <TouchableOpacity
                     style={styles.mediaButton}
                     onPress={pickImageAsync}
