@@ -176,7 +176,7 @@ export function MessageBubble({
         <TouchableOpacity style={bubbleStyle} onLongPress={handleLongPress}>
           {renderMessageContent()}
           <View style={styles.messageInfo}>
-          <Text style={[styles.text, textStyle]}>{transformTimestampToTime(message.timestamp)}</Text>
+            <Text style={[styles.text, textStyle]}>{transformTimestampToTime(message.timestamp)}</Text>
             <MessageStatus
               status={message.status}
               isOwnMessage={isOwnMessage}

@@ -6,25 +6,43 @@ export const useTheme = () => {
   const colorScheme = useColorScheme() as Theme;
   const isDark = colorScheme === 'dark';
 
+  const lightTheme = {
+    background: '#FFFFFF',
+    text: '#000000',
+    bubble: '#F0F0F0',
+    ownBubble: '#007AFF',
+    reactionBackground: '#F0F0F0',
+    reactionText: '#666666',
+    reactionCount: '#999999',
+    userReactedBackground: '#007AFF',
+    userReactedText: '#FFFFFF',
+    editInputBackground: '#F0F0F0',
+    editInputText: '#000000',
+    editInputPlaceholder: '#999999',
+    border: '#E1E1E1',
+    primary: '#007AFF',
+  };
+
+  const darkTheme = {
+    background: '#1C1C1E',
+    text: '#FFFFFF',
+    bubble: '#2C2C2E',
+    ownBubble: '#0A84FF',
+    reactionBackground: '#2C2C2E',
+    reactionText: '#FFFFFF',
+    reactionCount: '#8E8E93',
+    userReactedBackground: '#0A84FF',
+    userReactedText: '#FFFFFF',
+    editInputBackground: '#2C2C2E',
+    editInputText: '#FFFFFF',
+    editInputPlaceholder: '#8E8E93',
+    border: '#38383A',
+    primary: '#0A84FF',
+  };
+
   return {
     isDark,
     theme: colorScheme,
-    colors: {
-      background: isDark ? '#000000' : '#FFFFFF',
-      text: isDark ? '#FFFFFF' : '#000000',
-      bubble: isDark ? '#1C1C1E' : '#E8E8E8',
-      ownBubble: isDark ? '#0A84FF' : '#007AFF',
-      reactionBackground: isDark ? '#2C2C2E' : '#F2F2F7',
-      reactionText: isDark ? '#FFFFFF' : '#000000',
-      reactionCount: isDark ? '#8E8E93' : '#8E8E93',
-      userReactedBackground: isDark ? '#0A84FF' : '#E3F2FD',
-      userReactedText: isDark ? '#FFFFFF' : '#007AFF',
-      editInputBackground: isDark ? 'rgba(250, 241, 241, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-      editInputText: isDark ? '#FFFFFF' : '#000000',
-      editInputPlaceholder: isDark ? 'rgba(255, 255, 255, 0.5)' : '#8E8E93',
-      modalOverlay: isDark ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)',
-      modalBackground: isDark ? '#1C1C1E' : '#FFFFFF',
-      border: isDark ? '#38383A' : '#E1E1E1',
-    },
+    colors: isDark ? darkTheme : lightTheme,
   };
 }; 

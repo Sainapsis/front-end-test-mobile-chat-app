@@ -163,76 +163,69 @@ export function useChatsDb(currentUserId: string | null) {
       voiceUrl?: string,
       voiceDuration?: number,
       isVoiceMessage?: boolean,
-    
     ) => {
-      if (!text?.trim() && !mediaUrl) return false;
+      if (!text?.trim() && !mediaUrl) return null;
     
     try {
       const messageId = `msg${Date.now()}`;
       const timestamp = Date.now();
 
-        const messageData = {
+      const messageData = {
         id: messageId,
         chatId: chatId,
         senderId: senderId,
         timestamp: timestamp,
-          status: "sent",
-          isEdited: 0, // Inicialmente no está editado
-          editedAt: null, // Inicialmente no tiene fecha de edición
-        } as any;
+        status: "sending",
+        isEdited: 0,
+        editedAt: null,
+      } as any;
 
-        // Solo agregar campos si tienen valor
-        if (text?.trim()) {
-          messageData.text = text.trim();
-        }
-        if (mediaUrl) {
-          messageData.mediaUrl = mediaUrl;
-        }
-        if (mediaType) {
-          messageData.mediaType = mediaType;
-        }
-        if (mediaThumbnail) {
-          messageData.mediaThumbnail = mediaThumbnail;
-        }
+      // Solo agregar campos si tienen valor
+      if (text?.trim()) {
+        messageData.text = text.trim();
+      }
+      if (mediaUrl) {
+        messageData.mediaUrl = mediaUrl;
+      }
+      if (mediaType) {
+        messageData.mediaType = mediaType;
+      }
+      if (mediaThumbnail) {
+        messageData.mediaThumbnail = mediaThumbnail;
+      }
+      if (voiceUrl) {
+        messageData.voiceUrl = voiceUrl;
+      }
+      if (voiceDuration) {
+        messageData.voiceDuration = voiceDuration;
+      }
+      if (isVoiceMessage) {
+        messageData.isVoiceMessage = isVoiceMessage;
+      }
 
-        if (voiceUrl) {
-          messageData.voiceUrl = voiceUrl;
-        }
-        if (voiceDuration) {
-          messageData.voiceDuration = voiceDuration;
-        }
-        
-        if (isVoiceMessage) {
-          messageData.isVoiceMessage = isVoiceMessage;
-        }
-
-        
- console.log('messageData', messageData);
-        // Insert new message
-        await db.insert(messages).values(messageData);
+      // Insert new message
+      await db.insert(messages).values(messageData);
       
       const newMessage: Message = {
         id: messageId,
         senderId,
-          text: text?.trim() || undefined,
-          mediaUrl: mediaUrl || undefined,
-          mediaType: mediaType || undefined,
-          mediaThumbnail: mediaThumbnail || undefined,
-          voiceUrl: voiceUrl || undefined,
-          voiceDuration: voiceDuration || undefined,
-          isVoiceMessage: isVoiceMessage || undefined,
+        text: text?.trim() || undefined,
+        mediaUrl: mediaUrl || undefined,
+        mediaType: mediaType || undefined,
+        mediaThumbnail: mediaThumbnail || undefined,
+        voiceUrl: voiceUrl || undefined,
+        voiceDuration: voiceDuration || undefined,
+        isVoiceMessage: isVoiceMessage || undefined,
         timestamp,
-          reactions: [],
-          status: "sent",
-          isEdited: false,
-          editedAt: undefined,
+        reactions: [],
+        status: "sending",
+        isEdited: false,
+        editedAt: undefined,
       };
 
-
-      
       // Update state
-        setUserChats((prevChats) => {
-          return prevChats.map((chat) => {
+      setUserChats((prevChats) => {
+        return prevChats.map((chat) => {
           if (chat.id === chatId) {
             return {
               ...chat,
@@ -244,14 +237,14 @@ export function useChatsDb(currentUserId: string | null) {
         });
       });
       
-      return true;
+      return newMessage;
     } catch (error) {
-        console.error("Error sending message:", error);
-        return false;
-      }
-    },
-    []
-  );
+      console.error("Error sending message:", error);
+      return null;
+    }
+  },
+  []
+);
 
   const updateMessageStatus = async (
     messageId: string,

@@ -68,7 +68,7 @@ export function ForwardMessageModal({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={[styles.container, { backgroundColor: colors.modalOverlay }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <ThemedView style={[styles.content, { backgroundColor: colors.background }]}>
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
             <Pressable onPress={onClose}>

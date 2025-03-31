@@ -116,11 +116,11 @@ export function MessageReactions({
         onRequestClose={() => setShowEmojiPicker(false)}
       >
         <TouchableOpacity
-          style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}
+          style={[styles.modalOverlay, { backgroundColor: colors.background }]}
           activeOpacity={1}
           onPress={() => setShowEmojiPicker(false)}
         >
-          <ThemedView style={[styles.emojiPicker, { backgroundColor: colors.modalBackground }]}>
+          <ThemedView style={[styles.emojiPicker, { backgroundColor: colors.background }]}>
             {EMOJIS.map((emoji) => (
               <TouchableOpacity
                 key={emoji}

@@ -20,6 +20,7 @@ import { pickImage } from "@/utils/imageUtils";
 import { ForwardMessageModal } from '@/components/ForwardMessageModal';
 import { useTheme } from "@react-navigation/native";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
+import { useMessageStatus } from '../hooks/useMessageStatus';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
@@ -45,6 +46,7 @@ export default function ChatRoomScreen() {
   const router = useRouter();
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  const { simulateMessageSending, markAsRead } = useMessageStatus(chatId, currentUser?.id || '');
 
   const chat = chats.find((c) => c.id === chatId);
 
@@ -71,13 +73,22 @@ export default function ChatRoomScreen() {
   }, [chat?.messages.length]);
 
   const handleSendMessage = async () => {
-    if ((messageText.trim() || messageText === "") && currentUser && chat) {
-       await sendMessage(
+    if (!messageText.trim() || !currentUser || !chat) return;
+
+    try {
+      const newMessage = await sendMessage(
         chat.id,
         messageText.trim(),
         currentUser.id
       );
-      setMessageText("");
+      setMessageText('');
+      
+      // Iniciar simulación de envío
+      if (newMessage) {
+        simulateMessageSending(newMessage.id);
+      }
+    } catch (error) {
+      console.error('Error al enviar mensaje:', error);
     }
   };
 
