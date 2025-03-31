@@ -22,7 +22,7 @@ type AppContextType = {
     voiceDuration?: number,
     isVoiceMessage?: boolean,
     
-  ) => Promise<boolean>;
+  ) => Promise<Message | null>;
   addReaction: (messageId: string, userId: string, emoji: string) => Promise<boolean>;
   removeReaction: (reactionId: string) => Promise<boolean>;
   searchMessages: (query: string, chatId?: string) => Promise<void>;
