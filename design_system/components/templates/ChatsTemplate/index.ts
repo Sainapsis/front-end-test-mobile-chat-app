@@ -1,0 +1,1 @@
+export { ChatsTemplate } from './ChatsTemplate';

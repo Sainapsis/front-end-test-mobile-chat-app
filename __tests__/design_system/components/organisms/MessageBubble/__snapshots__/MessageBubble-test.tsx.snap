@@ -1,0 +1,139 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MessageBubble Component renders correctly with snapshot 1`] = `
+[
+  <View
+    accessibilityState={
+      {
+        "busy": undefined,
+        "checked": undefined,
+        "disabled": undefined,
+        "expanded": undefined,
+        "selected": undefined,
+      }
+    }
+    accessible={true}
+    focusable={false}
+    onClick={[Function]}
+    onLayout={[Function]}
+    onResponderGrant={[Function]}
+    onResponderMove={[Function]}
+    onResponderRelease={[Function]}
+    onResponderTerminate={[Function]}
+    onResponderTerminationRequest={[Function]}
+    onStartShouldSetResponder={[Function]}
+    style={
+      [
+        {
+          "marginVertical": 4,
+          "maxWidth": "80%",
+        },
+        {
+          "alignSelf": "flex-end",
+        },
+      ]
+    }
+    testID="message-bubble-container"
+  >
+    <View
+      style={
+        [
+          {
+            "borderRadius": 12,
+            "boxShadow": "0px 1px 1px rgba(0, 0, 0, 0.1)",
+            "elevation": 1,
+            "paddingHorizontal": 12,
+            "paddingVertical": 8,
+          },
+          {
+            "borderBottomRightRadius": 2,
+          },
+          {
+            "backgroundColor": "#E5E5EA",
+          },
+        ]
+      }
+    >
+      <Text>
+        Hello, this is a test message
+      </Text>
+      <View
+        style={
+          {
+            "flexDirection": "row",
+            "justifyContent": "flex-end",
+            "marginTop": 2,
+          }
+        }
+      >
+        <Text>
+          07:00 PM
+        </Text>
+      </View>
+      <View
+        style={
+          [
+            {
+              "backgroundColor": "#FFFFFF",
+              "borderRadius": 9999,
+              "bottom": -16,
+              "elevation": 5,
+              "flexDirection": "row",
+              "flexWrap": "wrap",
+              "gap": 2,
+              "padding": 2,
+              "position": "absolute",
+              "shadowColor": "#212121",
+              "shadowOffset": {
+                "height": 2,
+                "width": 0,
+              },
+              "shadowOpacity": 0.25,
+              "shadowRadius": 3.84,
+            },
+            {
+              "right": 4,
+            },
+          ]
+        }
+      >
+        <View
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": undefined,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessible={true}
+          focusable={true}
+          onClick={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "backgroundColor": "#F5F5F5",
+              "borderRadius": 9999,
+              "paddingHorizontal": 2,
+              "paddingVertical": 2,
+            }
+          }
+        >
+          <Text>
+            👍
+          </Text>
+        </View>
+      </View>
+    </View>
+  </View>,
+  <View
+    testID="options-menu"
+  />,
+]
+`;

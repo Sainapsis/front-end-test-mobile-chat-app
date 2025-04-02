@@ -1,0 +1,1 @@
+export { ChatRoomTemplate } from './ChatRoomTemplate';

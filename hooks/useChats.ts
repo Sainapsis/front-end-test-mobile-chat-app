@@ -1,19 +1,29 @@
-import { useChatsDb, Chat, Message } from './db/useChatsDb';
+import { useChatsDb } from './db/useChatsDb';
 
-export { Chat, Message };
-
-export function useChats(currentUserId: string | null) {
+export function useChats(userId: string | null) {
   const { 
     chats, 
     createChat, 
     sendMessage, 
-    loading 
-  } = useChatsDb(currentUserId);
+    loading, 
+    clearChats,
+    deleteChat,
+    deleteMessage,
+    addReaction,
+    removeReaction,
+    editMessage,  // Add editMessage function
+  } = useChatsDb(userId);
 
   return {
     chats,
     createChat,
     sendMessage,
     loading,
+    clearChats,
+    deleteChat,
+    deleteMessage,
+    addReaction,
+    removeReaction,
+    editMessage,  // Return editMessage function
   };
-} 
+}

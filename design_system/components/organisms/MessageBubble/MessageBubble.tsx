@@ -1,0 +1,172 @@
+import React, { useRef, useState } from 'react';
+import { View, TouchableWithoutFeedback, Modal } from 'react-native';
+import { ThemedText } from '@/design_system/components/atoms/ThemedText';
+import { styles as createStyles } from './MessageBubble.styles';
+import { useMessageBubble } from '@/hooks/components/useMessageBubble';
+import { OptionsMenu } from '@/design_system/components/organisms/OptionsMenu';
+import EmojiSelector, { Categories } from 'react-native-emoji-selector';
+import { useTheme } from '@/context/ThemeContext';
+import { Message } from '@/types/Chat';
+import { Image } from 'react-native';
+
+interface MessageBubbleProps {
+  /** Message data to be displayed */
+  message: Message;
+  /** Whether the message is from the current user */
+  isCurrentUser: boolean;
+  /** Current user's ID */
+  userId: string;
+  /** Function to be called when deleting a message */
+  onDeleteMessage?: (messageId: string) => void;
+  /** Function to be called when adding a reaction */
+  onAddReaction?: (messageId: string, emoji: string) => void;
+  /** Function to be called when removing a reaction */
+  onRemoveReaction?: (reactionId: string, messageId: string) => void;
+  /** Function to be called when editing a message */
+  onEditMessage?: (messageId: string, currentText: string) => void;
+}
+
+/**
+ * MessageBubble component displays a chat message with support for reactions, editing, and deletion.
+ * It includes options for long-press actions and an emoji selector for reactions.
+ */
+export function MessageBubble({
+    message,
+    isCurrentUser,
+    userId,
+    onDeleteMessage,
+    onAddReaction,
+    onRemoveReaction,
+    onEditMessage,
+}: MessageBubbleProps) {
+    const { theme } = useTheme();
+    const styles = createStyles(theme);
+    
+    const {
+        isDark,
+        bubbleColors,
+        handleLongPress,
+        showEmojiSelector,
+        setShowEmojiSelector,
+        handleEmojiSelected,
+        handleRemoveReaction,
+        showOptionsMenu,
+        setShowOptionsMenu
+    } = useMessageBubble({
+        message,
+        isCurrentUser,
+        userId,
+        onDeleteMessage,
+        onAddReaction,
+        onEditMessage,
+        onRemoveReaction
+    });
+
+  const bubbleRef = useRef<View>(null);
+  const [bubblePosition, setBubblePosition] = useState({ x: 0, y: 0, width: 0 });
+
+  const formatTime = (timestamp: number) => {
+    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const handleLayout = () => {
+    bubbleRef.current?.measure((_x, _y, width, _height, pageX, pageY) => {
+      setBubblePosition({ x: pageX, y: pageY, width });
+    });
+  };
+
+  return (
+    <>
+      <TouchableWithoutFeedback onLongPress={handleLongPress}>
+        <View
+          testID="message-bubble-container"
+          ref={bubbleRef}
+          onLayout={handleLayout}
+          style={[styles.container, isCurrentUser ? styles.selfContainer : styles.otherContainer]}
+        >
+          <View style={[
+            styles.bubble,
+            isCurrentUser ? styles.selfBubble : styles.otherBubble,
+            { backgroundColor: bubbleColors.background }
+          ]}>
+            {message.multimediaUrl && message.multimediaType === 'image' && (
+              <View style={styles.imageContainer}>
+                <Image
+                  source={{ uri: message.multimediaUrl }}
+                  style={styles.messageImage}
+                  resizeMode="cover"
+                />
+              </View>
+            )}
+            
+            {message.text && (
+              <ThemedText style={[styles.messageText, isCurrentUser && !isDark && styles.selfMessageText]}>
+                {message.text}
+              </ThemedText>
+            )}
+            
+            <View style={styles.timeContainer}>
+              <ThemedText style={styles.timeText}>
+                {formatTime(message.timestamp)}
+              </ThemedText>
+            </View>
+            {message.reactions && message.reactions.length > 0 && (
+              <View style={[
+                styles.reactionsContainer,
+                isCurrentUser ? styles.reactionsRight : styles.reactionsLeft
+              ]}>
+                {message.reactions.map((reaction) => (
+                  <TouchableWithoutFeedback
+                    key={reaction.id}
+                    onPress={() => handleRemoveReaction(reaction.id)}
+                  >
+                    <View style={styles.reaction}>
+                      <ThemedText style={styles.reactionText}>{reaction.emoji}</ThemedText>
+                    </View>
+                  </TouchableWithoutFeedback>
+                ))}
+              </View>
+            )}
+          </View>
+        </View>
+      </TouchableWithoutFeedback>
+
+      <OptionsMenu
+        visible={showOptionsMenu}
+        onClose={() => setShowOptionsMenu(false)}
+        onEdit={() => message.text && onEditMessage?.(message.id, message.text)}
+        onDelete={() => onDeleteMessage?.(message.id)}
+        onAddEmoji={() => setShowEmojiSelector(true)}
+        position={{ top: bubblePosition.y, left: bubblePosition.x, width: bubblePosition.width }} // Pass position as a prop
+      />
+
+      <Modal
+        visible={showEmojiSelector}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowEmojiSelector(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowEmojiSelector(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.emojiSelectorContainer}>
+              <View style={styles.emojiSelectorHeader}>
+                <ThemedText darkColor='#000000'>Select Reaction</ThemedText>
+              </View>
+              <View style={{ height: 300 }}>
+                <EmojiSelector
+                  onEmojiSelected={handleEmojiSelected}
+                  showSearchBar={false}
+                  showHistory={false}
+                  showTabs
+                  columns={8}
+                  category={Categories.emotion}
+                  showSectionTitles={false}
+                />
+              </View>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    </>
+  );
+}

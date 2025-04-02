@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ThemedView Component renders correctly with snapshot 1`] = `
+<View
+  style={
+    [
+      {
+        "backgroundColor": "#FFFFFF",
+      },
+      undefined,
+    ]
+  }
+>
+  <View
+    testID="child-view"
+  />
+</View>
+`;
