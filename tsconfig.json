@@ -7,7 +7,9 @@
       "@/app/*": ["./app/*"],
       "@/components/*": ["./components/*"],
       "@/hooks/*": ["./hooks/*"],
-      "@/drizzle/*": ["./drizzle/*"]
+      "@/drizzle/*": ["./drizzle/*"],
+      "@/providers/*": ["./providers/*"],
+      "@/assets/*": ["./assets/*"]
     }
   },
   "include": [
