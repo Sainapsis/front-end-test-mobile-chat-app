@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, FlatList, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useAppContext } from '@/hooks/AppContext';
+import { useAppContext } from '@/hooks/useAppContext';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { UserListItem } from '@/components/UserListItem';
@@ -11,8 +11,11 @@ export default function LoginScreen() {
   const { users, login } = useAppContext();
   const router = useRouter();
 
-  const handleUserSelect = (userId: string) => {
-    if (login(userId)) {
+
+  //Bug fixed, promise was not handled
+  const handleUserSelect = async (userId: string) => {
+    const success = await login(userId);
+    if (success) {
       router.replace('/(tabs)');
     }
   };

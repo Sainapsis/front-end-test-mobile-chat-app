@@ -109,15 +109,18 @@ export async function seedDatabase() {
       
       // Insert messages
       console.log(`Adding messages for chat ${chat.id}...`);
-      for (const message of chat.messages) {
-        await db.insert(messages).values({
-          id: message.id,
-          chatId: chat.id,
-          senderId: message.senderId,
-          text: message.text,
-          timestamp: message.timestamp,
-        }).onConflictDoNothing();
-      }
+      // for (const message of chat.messages) {
+      //   await db.insert(messages).values({
+      //     id: message.id,
+      //     chatId: chat.id,
+      //     senderId: message.senderId,
+      //     text: message.text,
+      //     timestamp: message.timestamp,
+      //     status: 'read',
+      //     isEdited: 0,
+      //     editedAt: null
+      //   }).onConflictDoNothing();
+      // }
     }
     
     console.log('Database seeded successfully');

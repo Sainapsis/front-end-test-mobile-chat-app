@@ -1,7 +1,8 @@
+import { initializeDatabase } from '@/database/db';
+import { seedDatabase } from '@/database/seed';
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
-import { initializeDatabase } from './db';
-import { seedDatabase } from './seed';
+
 
 interface DatabaseContextType {
   isInitialized: boolean;
