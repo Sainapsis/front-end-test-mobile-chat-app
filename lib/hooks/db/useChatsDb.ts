@@ -3,8 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 import { eq } from "drizzle-orm";
 
 //BL
-import { db } from "../../lib/database/db";
-import { chats, chatParticipants, messages } from "../../lib/database/schema";
+import { db } from "../../database/db";
+import { chats, chatParticipants, messages } from "../../database/schema";
 import {
   ChatInterface,
   SendMessageInterface,
@@ -155,10 +155,6 @@ export function useChatsDb(currentUserId: string | null) {
     }
   };
 
-  useEffect(() => {
-    loadChats();
-  }, [currentUserId]);
-
   const createChat = useCallback(
     async (participantIds: string[]) => {
       if (!currentUserId || !participantIds.includes(currentUserId)) {
@@ -212,16 +208,6 @@ export function useChatsDb(currentUserId: string | null) {
       if (!message) {
         throw new Error("Message not found");
       }
-
-      const newMessageId = `msg${Date.now()}`;
-
-      const forwardedMessage: MessageInterface = {
-        id: newMessageId,
-        senderId: senderId,
-        text: message.text,
-        timestamp: Date.now(),
-        status: "sent",
-      };
 
       sendMessage({
         text: message.text,
@@ -357,6 +343,10 @@ export function useChatsDb(currentUserId: string | null) {
     }
   };
 
+  useEffect(() => {
+    loadChats();
+  }, [currentUserId]);
+
   return {
     chats: userChats,
     createChat,
@@ -369,4 +359,3 @@ export function useChatsDb(currentUserId: string | null) {
     addReactionToMessage,
   };
 }
-

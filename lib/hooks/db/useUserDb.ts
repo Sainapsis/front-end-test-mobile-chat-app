@@ -3,8 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 import { eq } from "drizzle-orm";
 
 // BL
-import { users } from "../../lib/database/schema";
-import { db } from "../../lib/database/db";
+import { users } from "../../database/schema";
+import { db } from "../../database/db";
 import { UserInterface } from "@/lib/interfaces/User.interface";
 
 export function useUserDb() {
@@ -32,12 +32,11 @@ export function useUserDb() {
     try {
       const user = await db.select().from(users).where(eq(users.id, userId));
 
-      if (!user || user.length === 0) {
-        return false;
+      if (user && user.length > 0) {
+        setCurrentUser(user[0]);
+        return true;
       }
-
-      setCurrentUser(user[0]);
-      return true;
+      return false;
     } catch (error) {
       console.error("Error during login:", error);
       return false;

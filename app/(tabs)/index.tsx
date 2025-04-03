@@ -1,11 +1,19 @@
-import React, { useState } from 'react';
-import { FlatList, StyleSheet, Pressable, Modal } from 'react-native';
-import { useAppContext } from '@/hooks/AppContext';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { ChatListItem } from '@/components/ChatListItem';
-import { UserListItem } from '@/components/UserListItem';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+// TP
+import React, { useEffect, useState } from "react";
+import { FlatList, StyleSheet, Pressable, Modal } from "react-native";
+import Toast from "react-native-toast-message";
+
+// BL
+import { useAppContext } from "@/hooks/AppContext";
+import { handleCreateChatProps } from "@/lib/interfaces/Messages.interface";
+import { isChatAlreadyCreated } from "@/lib/helpers/isChatAlreadyCreated";
+
+// UI
+import { ThemedText } from "@/UI/components/atoms/ThemedText";
+import { ThemedView } from "@/UI/components/atoms/ThemedView";
+import { ChatListItem } from "@/UI/components/organisms/ExistingChatsModal/ChatListItem";
+import { UserListItem } from "@/UI/components/molecules/UserListItem";
+import { IconSymbol } from "@/UI/components/ui/IconSymbol";
 
 export default function ChatsScreen() {
   const { currentUser, users, chats, createChat } = useAppContext();
@@ -14,18 +22,9 @@ export default function ChatsScreen() {
 
   const toggleUserSelection = (userId: string) => {
     if (selectedUsers.includes(userId)) {
-      setSelectedUsers(selectedUsers.filter(id => id !== userId));
+      setSelectedUsers(selectedUsers.filter((id) => id !== userId));
     } else {
       setSelectedUsers([...selectedUsers, userId]);
-    }
-  };
-
-  const handleCreateChat = () => {
-    if (currentUser && selectedUsers.length > 0) {
-      const participants = [currentUser.id, ...selectedUsers];
-      createChat(participants);
-      setModalVisible(false);
-      setSelectedUsers([]);
     }
   };
 
@@ -35,6 +34,27 @@ export default function ChatsScreen() {
       <ThemedText>Tap the + button to start a new conversation</ThemedText>
     </ThemedView>
   );
+
+  const handleCreateChat = ({
+    currentUser,
+    selectedUsers,
+    setModalVisible,
+    setSelectedUsers,
+    chats,
+    createChat,
+  }: handleCreateChatProps) => {
+    if (!currentUser) return;
+
+    if (selectedUsers.length > 0) {
+      const participants = [currentUser.id, ...selectedUsers];
+
+      if (isChatAlreadyCreated({ participants, chats, selectedUsers })) return;
+
+      createChat(participants);
+      setModalVisible(false);
+      setSelectedUsers([]);
+    }
+  };
 
   return (
     <ThemedView style={styles.container}>
@@ -54,7 +74,7 @@ export default function ChatsScreen() {
         renderItem={({ item }) => (
           <ChatListItem
             chat={item}
-            currentUserId={currentUser?.id || ''}
+            currentUserId={currentUser?.id || ""}
             users={users}
           />
         )}
@@ -75,10 +95,12 @@ export default function ChatsScreen() {
           <ThemedView style={styles.modalContent}>
             <ThemedView style={styles.modalHeader}>
               <ThemedText type="subtitle">New Chat</ThemedText>
-              <Pressable onPress={() => {
-                setModalVisible(false);
-                setSelectedUsers([]);
-              }}>
+              <Pressable
+                onPress={() => {
+                  setModalVisible(false);
+                  setSelectedUsers([]);
+                }}
+              >
                 <IconSymbol name="xmark" size={24} color="#007AFF" />
               </Pressable>
             </ThemedView>
@@ -88,7 +110,7 @@ export default function ChatsScreen() {
             </ThemedText>
 
             <FlatList
-              data={users.filter(user => user.id !== currentUser?.id)}
+              data={users.filter((user) => user.id !== currentUser?.id)}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <UserListItem
@@ -99,13 +121,23 @@ export default function ChatsScreen() {
               )}
               style={styles.userList}
             />
+            <Toast />
 
             <Pressable
               style={[
                 styles.createButton,
-                selectedUsers.length === 0 && styles.disabledButton
+                selectedUsers.length === 0 && styles.disabledButton,
               ]}
-              onPress={handleCreateChat}
+              onPress={() =>
+                handleCreateChat({
+                  currentUser,
+                  selectedUsers,
+                  setModalVisible,
+                  setSelectedUsers,
+                  chats,
+                  createChat,
+                })
+              }
               disabled={selectedUsers.length === 0}
             >
               <ThemedText style={styles.createButtonText}>
@@ -125,9 +157,9 @@ const styles = StyleSheet.create({
     paddingTop: 60,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
@@ -135,46 +167,46 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 122, 255, 0.1)",
   },
   listContainer: {
     flexGrow: 1,
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
     marginTop: 40,
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
   },
   modalContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    width: '90%',
-    maxHeight: '80%',
+    width: "90%",
+    maxHeight: "80%",
     borderRadius: 10,
     padding: 20,
     elevation: 5,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
   },
   modalSubtitle: {
@@ -184,17 +216,17 @@ const styles = StyleSheet.create({
     maxHeight: 400,
   },
   createButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     padding: 15,
     borderRadius: 10,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 20,
   },
   disabledButton: {
-    backgroundColor: '#CCCCCC',
+    backgroundColor: "#CCCCCC",
   },
   createButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
+    color: "white",
+    fontWeight: "bold",
   },
 });
