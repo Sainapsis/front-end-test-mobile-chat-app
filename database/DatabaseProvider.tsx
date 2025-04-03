@@ -1,7 +1,8 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo } from 'react';
 import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
 import { initializeDatabase } from './db';
 import { seedDatabase } from './seed';
+import * as FileSystem from 'expo-file-system';
 
 interface DatabaseContextType {
   isInitialized: boolean;
@@ -16,7 +17,7 @@ const DatabaseContext = createContext<DatabaseContextType>({
 export const useDatabaseStatus = () => useContext(DatabaseContext);
 
 interface DatabaseProviderProps {
-  children: ReactNode;
+  readonly children: ReactNode;
 }
 
 export function DatabaseProvider({ children }: DatabaseProviderProps) {
@@ -24,20 +25,54 @@ export function DatabaseProvider({ children }: DatabaseProviderProps) {
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const contextValue = useMemo(() => ({
+    isInitialized,
+    error
+  }), [isInitialized, error]);
+
   useEffect(() => {
     let isMounted = true;
 
     async function setupDatabase() {
       try {
-        console.log('Initializing database...');
-        // Initialize the database schema
+        // Delete existing database file if it exists
+        const dbPath = `${FileSystem.documentDirectory}chat-app.db`;
+        const dbJournalPath = `${FileSystem.documentDirectory}chat-app.db-journal`;
+        console.log('Checking database at:', dbPath);
+
+        // Delete main database file
+        const dbExists = await FileSystem.getInfoAsync(dbPath);
+        if (dbExists.exists) {
+          console.log('Found existing database, deleting...');
+          try {
+            await FileSystem.deleteAsync(dbPath, { idempotent: true });
+            // Also delete journal file if it exists
+            const journalExists = await FileSystem.getInfoAsync(dbJournalPath);
+            if (journalExists.exists) {
+              await FileSystem.deleteAsync(dbJournalPath, { idempotent: true });
+            }
+            console.log('Database files deleted successfully');
+          } catch (deleteError) {
+            console.error('Error deleting database:', deleteError);
+          }
+
+          // Verify deletion
+          const dbStillExists = await FileSystem.getInfoAsync(dbPath);
+          if (dbStillExists.exists) {
+            throw new Error('Failed to delete existing database');
+          }
+        }
+
+        // Increased delay to ensure file system operations complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        console.log('Initializing new database...');
         await initializeDatabase();
         console.log('Database initialized');
-        
-        // Seed the database with initial data
+
         await seedDatabase();
         console.log('Database seeded');
-        
+
         if (isMounted) {
           setIsInitialized(true);
           setLoading(false);
@@ -50,9 +85,9 @@ export function DatabaseProvider({ children }: DatabaseProviderProps) {
         }
       }
     }
-    
+
     setupDatabase();
-    
+
     return () => {
       isMounted = false;
     };
@@ -77,7 +112,7 @@ export function DatabaseProvider({ children }: DatabaseProviderProps) {
   }
 
   return (
-    <DatabaseContext.Provider value={{ isInitialized, error }}>
+    <DatabaseContext.Provider value={contextValue}>
       {children}
     </DatabaseContext.Provider>
   );
