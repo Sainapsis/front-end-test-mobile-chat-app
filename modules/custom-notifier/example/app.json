@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "custom-notifier-example",
+    "slug": "custom-notifier-example",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "expo.modules.customnotifier.example"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "expo.modules.customnotifier.example"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "../app.plugin.js",
+        {
+          "notificationIcon": "ic_notification",
+          "notificationColor": "#FF0000",
+          "notificationChannelId": "custom_notifications",
+          "notificationChannelName": "Custom Notifications",
+          "notificationChannelDescription": "Channel for custom notifications"
+        }
+      ]
+    ]
+  }
+}
