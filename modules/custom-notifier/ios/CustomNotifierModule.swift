@@ -2,6 +2,8 @@ import ExpoModulesCore
 import UserNotifications
 
 public class CustomNotifierModule: Module, UNUserNotificationCenterDelegate {
+  var shouldShowAlertForForegroundNotifications = true
+
   // Each module class must implement the definition function. The definition consists of components
   // that describes the module's functionality and behavior.
   // See https://docs.expo.dev/modules/module-api for more details about available components.
@@ -22,6 +24,11 @@ public class CustomNotifierModule: Module, UNUserNotificationCenterDelegate {
     // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
     Function("hello") {
       return "Hello world! 👋"
+    }
+
+    // Function to control foreground presentation behavior
+    Function("setShouldShowAlertForForegroundNotifications") { (shouldShow: Bool) in
+        self.shouldShowAlertForForegroundNotifications = shouldShow
     }
 
     // Defines a JavaScript function that always returns a Promise and whose native code
@@ -53,9 +60,15 @@ public class CustomNotifierModule: Module, UNUserNotificationCenterDelegate {
         let content = UNMutableNotificationContent()
         content.title = options["title"] as? String ?? ""
         content.body = options["body"] as? String ?? ""
-        
+        let isSilent = options["isSilent"] as? Bool ?? false
+
         if let data = options["data"] as? [String: Any] {
           content.userInfo = data
+        }
+        
+        // For silent notifications, don't set sound
+        if !isSilent {
+           content.sound = UNNotificationSound.default
         }
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
@@ -75,6 +88,7 @@ public class CustomNotifierModule: Module, UNUserNotificationCenterDelegate {
           if let data = content.userInfo as? [String: Any] {
             eventData["data"] = data
           }
+          // Send event immediately after adding the request
           self.sendEvent("onNotificationReceived", eventData)
           
           promise.resolve(identifier)
@@ -110,23 +124,43 @@ public class CustomNotifierModule: Module, UNUserNotificationCenterDelegate {
   }
 
   // UNUserNotificationCenterDelegate methods
+  // Called when app receives notification in foreground
   public func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     willPresent notification: UNNotification,
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
   ) {
+    let userInfo = notification.request.content.userInfo
+    let isSilent = userInfo["isSilent"] as? Bool ?? false // Check if notification was intended to be silent
+
+    // Send received event regardless of presentation
     var eventData: [String: Any] = [
         "notificationId": notification.request.identifier,
         "action": "received"
     ]
     if let data = notification.request.content.userInfo as? [String: Any] {
-        eventData["data"] = data
+        // Remove internal flag before sending to JS
+        var jsData = data
+        jsData.removeValue(forKey: "isSilent")
+        eventData["data"] = jsData
     }
     self.sendEvent("onNotificationReceived", eventData)
     
-    completionHandler([.banner, .sound, .badge])
+    // Determine presentation options
+    if isSilent || !self.shouldShowAlertForForegroundNotifications {
+        // If it was silent OR we globally disabled foreground alerts, show nothing
+        completionHandler([]) 
+    } else {
+        // Otherwise, show banner, sound, badge for normal notifications
+        if #available(iOS 14.0, *) {
+             completionHandler([.banner, .sound, .badge, .list])
+        } else {
+            completionHandler([.alert, .sound, .badge])
+        }
+    }
   }
 
+  // Called when user interacts with notification (taps it)
   public func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     didReceive response: UNNotificationResponse,
@@ -137,7 +171,10 @@ public class CustomNotifierModule: Module, UNUserNotificationCenterDelegate {
         "action": "pressed"
     ]
     if let data = response.notification.request.content.userInfo as? [String: Any] {
-        eventData["data"] = data
+        // Remove internal flag before sending to JS
+        var jsData = data
+        jsData.removeValue(forKey: "isSilent")
+        eventData["data"] = jsData
     }
     self.sendEvent("onNotificationPressed", eventData)
     

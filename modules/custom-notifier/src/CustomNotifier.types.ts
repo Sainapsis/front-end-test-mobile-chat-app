@@ -27,6 +27,7 @@ export interface NotificationOptions {
   title: string;
   body: string;
   data?: Record<string, any>;
+  isSilent?: boolean;
 }
 
 export interface CustomNotifierEvents {

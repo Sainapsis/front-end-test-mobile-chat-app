@@ -1,6 +1,6 @@
+import React, { useState, useEffect } from 'react';
 import CustomNotifier, { useNotifications} from 'custom-notifier';
-import { useState, useEffect } from 'react';
-import { Text, View, Button, StyleSheet, Alert } from 'react-native';
+import { Text, View, Button, StyleSheet, Alert, Platform } from 'react-native';
 import { NotificationEvent } from 'custom-notifier/src/CustomNotifier.types';
 
 // Request permissions
@@ -30,32 +30,41 @@ export default function TestRNM() {
     cancelAllNotifications,
     addNotificationReceivedListener,
     addNotificationPressedListener,
+    setShouldShowAlertForForegroundNotifications,
   } = useNotifications();
   
   const [notificationId, setNotificationId] = useState<string | null>(null);
+  const [foregroundAlerts, setForegroundAlerts] = useState(true);
 
   useEffect(() => {
-    addNotificationReceivedListener((event: NotificationEvent) => {
+    if (Platform.OS === 'ios') {
+      setShouldShowAlertForForegroundNotifications(foregroundAlerts);
+    }
+
+    const receivedSubscription = addNotificationReceivedListener((event: NotificationEvent) => {
       console.log('[Example] Notification Received:', event);
       Alert.alert(
         'Notification Received',
-        `ID: ${event.notificationId}\nData: ${JSON.stringify(event.data)}`
+        `ID: ${event.notificationId}\nAction: ${event.action}\nData: ${JSON.stringify(event.data)}`
       );
     });
 
-    addNotificationPressedListener((event: NotificationEvent) => {
+    const pressedSubscription = addNotificationPressedListener((event: NotificationEvent) => {
       console.log('[Example] Notification Pressed:', event);
       Alert.alert(
         'Notification Pressed',
-        `ID: ${event.notificationId}\nData: ${JSON.stringify(event.data)}`
+        `ID: ${event.notificationId}\nAction: ${event.action}\nData: ${JSON.stringify(event.data)}`
       );
-      // Navigate based on event.data if needed
       if (event.data?.screen) {
         console.log(`Navigate to screen: ${event.data.screen}`)
-        // Implement navigation logic here
       }
     });
-  }, [addNotificationReceivedListener, addNotificationPressedListener]);
+    
+    return () => {
+      receivedSubscription?.remove();
+      pressedSubscription?.remove();
+    };
+  }, [addNotificationReceivedListener, addNotificationPressedListener, setShouldShowAlertForForegroundNotifications, foregroundAlerts]);
 
   const handleValidateNotification = async () => {
     try {
@@ -66,20 +75,27 @@ export default function TestRNM() {
     }
   }
 
-  const handleShowNotification = async () => {
+  const handleShowNotification = async (isSilent: boolean = false) => {
     try {
       const newNotificationId = await showNotification({
-        title: 'Test Notification',
-        body: 'Press me to see data!',
-        data: { screen: 'details', itemId: 123 }
+        title: isSilent ? 'Silent Data Update' : 'Test Notification',
+        body: isSilent ? 'Processing in background...' : 'Press me to see data!',
+        data: { 
+          screen: isSilent ? 'backgroundTask' : 'details', 
+          itemId: Date.now(),
+          sentSilent: isSilent
+        },
+        isSilent: isSilent
       });
       
       if (newNotificationId) {
-        console.log('Notification shown with ID:', newNotificationId);
-        setNotificationId(newNotificationId);
+        console.log(`Notification ${isSilent ? 'silent' : 'normal'} shown with ID:`, newNotificationId);
+        if (!isSilent) {
+          setNotificationId(newNotificationId);
+        }
       }
     } catch (error) {
-      console.error('Error showing notification:', error);
+      console.error(`Error showing ${isSilent ? 'silent' : 'normal'} notification:`, error);
     }
   }
 
@@ -102,6 +118,15 @@ export default function TestRNM() {
       console.error('Error cancelling all notifications:', error);
     }
   }
+
+  const toggleForegroundAlert = () => {
+    if (Platform.OS === 'ios') {
+      const newValue = !foregroundAlerts;
+      setForegroundAlerts(newValue);
+      setShouldShowAlertForForegroundNotifications(newValue);
+      Alert.alert('Foreground Alert Setting (iOS)', `Will ${newValue ? 'show' : 'hide'} alerts for foreground notifications.`);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -132,13 +157,19 @@ export default function TestRNM() {
         />
         <View style={styles.buttonSpacing} />
         <Button
-          title="Show Notification with Data"
-          onPress={handleShowNotification}
+          title="Show Normal Notification"
+          onPress={() => handleShowNotification(false)}
           disabled={hasPermission !== true}
         />
         <View style={styles.buttonSpacing} />
         <Button
-          title="Cancel Last Notification"
+          title="Show Silent Notification (Data Only)"
+          onPress={() => handleShowNotification(true)}
+          disabled={hasPermission !== true}
+        />
+        <View style={styles.buttonSpacing} />
+        <Button
+          title="Cancel Last Visible Notification"
           onPress={handleCancelNotification}
           disabled={!notificationId}
         />
@@ -148,6 +179,16 @@ export default function TestRNM() {
           onPress={handleCancelAllNotifications}
           disabled={hasPermission !== true}
         />
+         {Platform.OS === 'ios' && (
+          <>
+            <View style={styles.buttonSpacing} />
+            <Button
+              title={`Foreground Alert: ${foregroundAlerts ? 'ON' : 'OFF'} (iOS)`}
+              onPress={toggleForegroundAlert}
+              disabled={hasPermission !== true}
+            />
+          </>
+        )}
       </View>
     </View>
   );

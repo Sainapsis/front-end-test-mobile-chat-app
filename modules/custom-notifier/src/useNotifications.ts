@@ -7,7 +7,8 @@ const DEBUG_TAG = '[CustomNotifier]';
 
 type NotificationHandler = (event: NotificationEvent) => void;
 
-interface Subscription {
+// Define a minimal subscription type based on what expo-modules usually returns
+interface ExpoSubscription {
   remove: () => void;
 }
 
@@ -16,8 +17,8 @@ export const useNotifications = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const notificationReceivedListener = useRef<Subscription | null>(null);
-  const notificationPressedListener = useRef<Subscription | null>(null);
+  const notificationReceivedListener = useRef<ExpoSubscription | null>(null);
+  const notificationPressedListener = useRef<ExpoSubscription | null>(null);
 
   useEffect(() => {
     console.log(DEBUG_TAG, 'Initializing notifications hook');
@@ -172,16 +173,42 @@ export const useNotifications = () => {
     }
   }, []);
 
-  const addNotificationReceivedListener = useCallback((handler: NotificationHandler) => {
+  const addNotificationReceivedListener = useCallback((handler: NotificationHandler): ExpoSubscription | null => {
     console.log(DEBUG_TAG, 'Adding onNotificationReceived listener');
     notificationReceivedListener.current?.remove();
-    notificationReceivedListener.current = CustomNotifier.addListener('onNotificationReceived', handler);
+    try {
+      // Assuming CustomNotifier.addListener conforms to returning { remove(): void }
+      notificationReceivedListener.current = CustomNotifier.addListener('onNotificationReceived', handler);
+      return notificationReceivedListener.current;
+    } catch (e) {
+       console.error(DEBUG_TAG, "Failed to add onNotificationReceived listener", e);
+       return null;
+    }
   }, []);
 
-  const addNotificationPressedListener = useCallback((handler: NotificationHandler) => {
+  const addNotificationPressedListener = useCallback((handler: NotificationHandler): ExpoSubscription | null => {
     console.log(DEBUG_TAG, 'Adding onNotificationPressed listener');
     notificationPressedListener.current?.remove();
-    notificationPressedListener.current = CustomNotifier.addListener('onNotificationPressed', handler);
+     try {
+      // Assuming CustomNotifier.addListener conforms to returning { remove(): void }
+      notificationPressedListener.current = CustomNotifier.addListener('onNotificationPressed', handler);
+      return notificationPressedListener.current;
+    } catch (e) {
+       console.error(DEBUG_TAG, "Failed to add onNotificationPressed listener", e);
+       return null;
+    }
+  }, []);
+
+  // iOS only: Control foreground notification presentation
+  const setShouldShowAlertForForegroundNotifications = useCallback((shouldShow: boolean) => {
+    if (Platform.OS === 'ios' && CustomNotifier.setShouldShowAlertForForegroundNotifications) {
+      console.log(DEBUG_TAG, 'Setting foreground alert presentation:', shouldShow);
+      try {
+          CustomNotifier.setShouldShowAlertForForegroundNotifications(shouldShow);
+      } catch(e) {
+          console.warn(DEBUG_TAG, "Failed to set foreground alert presentation (might be Android)", e)
+      }
+    }
   }, []);
 
   return {
@@ -195,5 +222,6 @@ export const useNotifications = () => {
     checkPermissions,
     addNotificationReceivedListener,
     addNotificationPressedListener,
+    setShouldShowAlertForForegroundNotifications,
   };
 }; 

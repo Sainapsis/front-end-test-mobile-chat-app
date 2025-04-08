@@ -22,6 +22,7 @@ import java.net.URL
 import java.util.UUID
 
 private const val CHANNEL_ID = "custom_notifier_channel"
+private const val SILENT_CHANNEL_ID = "custom_notifier_silent_channel"
 private const val PERMISSION_REQUEST_CODE = 123
 private const val TAG = "CustomNotifierModule"
 private const val NOTIFICATION_PRESSED_ACTION = "expo.modules.customnotifier.NOTIFICATION_PRESSED"
@@ -64,7 +65,8 @@ class CustomNotifierModule : Module() {
       try {
         Log.d(TAG, "Starting permission request process")
         createNotificationChannel()
-        Log.d(TAG, "Notification channel created")
+        createSilentNotificationChannel()
+        Log.d(TAG, "Notification channels created")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
           Log.d(TAG, "Device is Android 13 or higher, checking POST_NOTIFICATIONS permission")
@@ -161,9 +163,12 @@ class CustomNotifierModule : Module() {
         val title = options["title"] as? String ?: ""
         val body = options["body"] as? String ?: ""
         val data = options["data"] as? Map<String, Any>
-        Log.d(TAG, "Notification data - Title: $title, Body: $body")
+        val isSilent = options["isSilent"] as? Boolean ?: false
+        Log.d(TAG, "Notification data - Title: $title, Body: $body, Silent: $isSilent")
 
         val notificationId = UUID.randomUUID().toString()
+        val targetChannelId = if (isSilent) SILENT_CHANNEL_ID else CHANNEL_ID
+
         val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
             action = NOTIFICATION_PRESSED_ACTION
             putExtra("notificationId", notificationId)
@@ -184,17 +189,25 @@ class CustomNotifierModule : Module() {
             pendingIntentFlags
         )
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val notificationBuilder = NotificationCompat.Builder(context, targetChannelId)
           .setContentTitle(title)
           .setContentText(body)
           .setSmallIcon(android.R.drawable.ic_dialog_info)
-          .setPriority(NotificationCompat.PRIORITY_DEFAULT)
           .setAutoCancel(true)
           .setContentIntent(pendingIntent)
-          .build()
+
+        if (isSilent) {
+            notificationBuilder
+                .setPriority(NotificationCompat.PRIORITY_MIN)
+        } else {
+            notificationBuilder
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+        }
+
+        val notification = notificationBuilder.build()
 
         notificationManager.notify(notificationId.hashCode(), notification)
-        Log.d(TAG, "Notification shown successfully with ID: $notificationId")
+        Log.d(TAG, "Notification shown successfully with ID: $notificationId (Silent: $isSilent)")
         
         sendEvent("onNotificationReceived", mapOf(
             "notificationId" to notificationId,
@@ -293,21 +306,29 @@ class CustomNotifierModule : Module() {
   }
 
   private fun createNotificationChannel() {
+    createChannel(CHANNEL_ID, "Custom Notifications", NotificationManager.IMPORTANCE_DEFAULT)
+  }
+
+  private fun createSilentNotificationChannel() {
+    createChannel(SILENT_CHANNEL_ID, "Silent Notifications", NotificationManager.IMPORTANCE_MIN, silent = true)
+  }
+
+  private fun createChannel(id: String, name: String, importance: Int, silent: Boolean = false) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      Log.d(TAG, "Creating notification channel")
+      Log.d(TAG, "Creating notification channel - ID: $id, Name: $name, Importance: $importance, Silent: $silent")
       try {
-          val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Custom Notifications",
-            NotificationManager.IMPORTANCE_DEFAULT
-          ).apply {
-            description = "Channel for custom notifications"
+          val channel = NotificationChannel(id, name, importance)
+          channel.description = if (silent) "Channel for silent notifications" else "Channel for custom notifications"
+          if (silent) {
+              channel.setSound(null, null)
+              channel.enableVibration(false)
+              channel.enableLights(false)
           }
           val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
           manager.createNotificationChannel(channel)
-          Log.d(TAG, "Notification channel created successfully")
+          Log.d(TAG, "Notification channel $id created successfully")
       } catch (e: Exception) {
-          Log.e(TAG, "Failed to create notification channel", e)
+          Log.e(TAG, "Failed to create notification channel $id", e)
       }
     } else {
       Log.d(TAG, "Skipping channel creation - device below Android O")
