@@ -35,7 +35,16 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "custom-notifier"
+      [
+        "custom-notifier",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#0F4D0F",
+          "channelId": "default",
+          "channelName": "Default Channel",
+          "channelDescription": "A default channel"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

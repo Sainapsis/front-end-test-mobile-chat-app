@@ -1,4 +1,5 @@
 import ExpoModulesCore
+import UserNotifications
 
 public class CustomNotifierModule: Module {
   // Each module class must implement the definition function. The definition consists of components
@@ -16,7 +17,7 @@ public class CustomNotifierModule: Module {
     ])
 
     // Defines event names that the module can send to JavaScript.
-    Events("onChange")
+    Events("onNotificationReceived", "onNotificationPressed")
 
     // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
     Function("hello") {
@@ -25,24 +26,72 @@ public class CustomNotifierModule: Module {
 
     // Defines a JavaScript function that always returns a Promise and whose native code
     // is by default dispatched on the different thread than the JavaScript runtime runs on.
-    AsyncFunction("setValueAsync") { (value: String) in
-      // Send an event to JavaScript.
-      self.sendEvent("onChange", [
-        "value": value
-      ])
+    AsyncFunction("requestPermissions") { () -> Promise in
+      Promise { promise in
+        let center = UNUserNotificationCenter.current()
+        center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+          if let error = error {
+            promise.reject("PERMISSION_ERROR", error.localizedDescription)
+            return
+          }
+          promise.resolve(granted)
+        }
+      }
+    }
+
+    AsyncFunction("checkPermissions") { () -> Promise in
+      Promise { promise in
+        let center = UNUserNotificationCenter.current()
+        center.getNotificationSettings { settings in
+          promise.resolve(settings.authorizationStatus == .authorized)
+        }
+      }
+    }
+
+    AsyncFunction("showNotification") { (options: [String: Any]) -> Promise in
+      Promise { promise in
+        let content = UNMutableNotificationContent()
+        content.title = options["title"] as? String ?? ""
+        content.body = options["body"] as? String ?? ""
+        
+        if let data = options["data"] as? [String: Any] {
+          content.userInfo = data
+        }
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        let identifier = UUID().uuidString
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+
+        UNUserNotificationCenter.current().add(request) { error in
+          if let error = error {
+            promise.reject("NOTIFICATION_ERROR", error.localizedDescription)
+            return
+          }
+          promise.resolve(identifier)
+        }
+      }
+    }
+
+    AsyncFunction("cancelNotification") { (id: String) -> Promise in
+      Promise { promise in
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id])
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [id])
+        promise.resolve(nil)
+      }
+    }
+
+    AsyncFunction("cancelAllNotifications") { () -> Promise in
+      Promise { promise in
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+        promise.resolve(nil)
+      }
     }
 
     // Enables the module to be used as a native view. Definition components that are accepted as part of the
     // view definition: Prop, Events.
     View(CustomNotifierView.self) {
-      // Defines a setter for the `url` prop.
-      Prop("url") { (view: CustomNotifierView, url: URL) in
-        if view.webView.url != url {
-          view.webView.load(URLRequest(url: url))
-        }
-      }
-
-      Events("onLoad")
+      // Defines a setter for the `url`
     }
   }
 }
