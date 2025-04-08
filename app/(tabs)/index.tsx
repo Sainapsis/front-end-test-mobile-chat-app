@@ -6,6 +6,8 @@ import { ThemedView } from '@/components/ThemedView';
 import { ChatListItem } from '@/components/ChatListItem';
 import { UserListItem } from '@/components/UserListItem';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import CustomNotifierView from 'custom-notifier/src/CustomNotifierView';
+import TestRNM from '@/components/test-rnm';
 
 export default function ChatsScreen() {
   const { currentUser, users, chats, createChat } = useAppContext();
@@ -38,7 +40,7 @@ export default function ChatsScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedView style={styles.header}>
+      {/* <ThemedView style={styles.header}>
         <ThemedText type="title">Chats</ThemedText>
         <Pressable
           style={styles.newChatButton}
@@ -46,8 +48,10 @@ export default function ChatsScreen() {
         >
           <IconSymbol name="plus" size={24} color="#007AFF" />
         </Pressable>
-      </ThemedView>
-
+      </ThemedView> */}
+      
+      <TestRNM />
+{/* 
       <FlatList
         data={chats}
         keyExtractor={(item) => item.id}
@@ -60,7 +64,7 @@ export default function ChatsScreen() {
         )}
         ListEmptyComponent={renderEmptyComponent}
         contentContainerStyle={styles.listContainer}
-      />
+      /> */}
 
       <Modal
         animationType="slide"
