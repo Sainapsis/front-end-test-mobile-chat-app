@@ -2,7 +2,9 @@ package expo.modules.customnotifier
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
@@ -14,18 +16,21 @@ import expo.modules.kotlin.Promise
 import android.app.Activity
 import androidx.core.app.ActivityCompat
 import android.util.Log
+import expo.modules.kotlin.AppContext
+import expo.modules.kotlin.exception.Exceptions
 import java.net.URL
 import java.util.UUID
 
 private const val CHANNEL_ID = "custom_notifier_channel"
 private const val PERMISSION_REQUEST_CODE = 123
 private const val TAG = "CustomNotifierModule"
+private const val NOTIFICATION_PRESSED_ACTION = "expo.modules.customnotifier.NOTIFICATION_PRESSED"
 
 class CustomNotifierModule : Module() {
   private val context
     get() = requireNotNull(appContext.reactContext)
 
-  private val activity: Activity?
+  private val currentActivity: Activity?
     get() = appContext.activityProvider?.currentActivity
 
   private val notificationManager
@@ -68,8 +73,8 @@ class CustomNotifierModule : Module() {
           Log.d(TAG, "Current permission status: $granted")
           
           if (!granted) {
-            val currentActivity = activity
-            if (currentActivity == null) {
+            val activity = currentActivity
+            if (activity == null) {
               Log.e(TAG, "Activity is null, cannot request permissions")
               promise.reject(
                 "ACTIVITY_NULL",
@@ -79,7 +84,7 @@ class CustomNotifierModule : Module() {
               return@AsyncFunction
             }
 
-            val shouldShowRationale = ActivityCompat.shouldShowRequestPermissionRationale(currentActivity, permission)
+            val shouldShowRationale = ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)
             Log.d(TAG, "Should show permission rationale: $shouldShowRationale")
 
             if (shouldShowRationale) {
@@ -95,7 +100,7 @@ class CustomNotifierModule : Module() {
             try {
               Log.d(TAG, "Requesting POST_NOTIFICATIONS permission")
               ActivityCompat.requestPermissions(
-                currentActivity,
+                activity,
                 arrayOf(permission),
                 PERMISSION_REQUEST_CODE
               )
@@ -158,18 +163,46 @@ class CustomNotifierModule : Module() {
         val data = options["data"] as? Map<String, Any>
         Log.d(TAG, "Notification data - Title: $title, Body: $body")
 
-        val id = UUID.randomUUID().toString()
+        val notificationId = UUID.randomUUID().toString()
+        val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+            action = NOTIFICATION_PRESSED_ACTION
+            putExtra("notificationId", notificationId)
+            putExtra("notificationData", data?.let { HashMap(it) })
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        
+        val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        } else {
+            PendingIntent.FLAG_UPDATE_CURRENT
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            notificationId.hashCode(),
+            intent,
+            pendingIntentFlags
+        )
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
           .setContentTitle(title)
           .setContentText(body)
           .setSmallIcon(android.R.drawable.ic_dialog_info)
           .setPriority(NotificationCompat.PRIORITY_DEFAULT)
           .setAutoCancel(true)
+          .setContentIntent(pendingIntent)
           .build()
 
-        notificationManager.notify(id.hashCode(), notification)
-        Log.d(TAG, "Notification shown successfully with ID: $id")
-        promise.resolve(id)
+        notificationManager.notify(notificationId.hashCode(), notification)
+        Log.d(TAG, "Notification shown successfully with ID: $notificationId")
+        
+        sendEvent("onNotificationReceived", mapOf(
+            "notificationId" to notificationId,
+            "data" to data,
+            "action" to "received"
+        ))
+
+        promise.resolve(notificationId)
       } catch (e: Exception) {
         Log.e(TAG, "Error showing notification", e)
         promise.reject(
@@ -222,23 +255,72 @@ class CustomNotifierModule : Module() {
       // Defines an event that the view can send to JavaScript.
       Events("onLoad")
     }
+
+    OnActivityEntersForeground {
+      currentActivity?.intent?.let { handleIntent(it) }
+    }
+
+    OnNewIntent {
+      handleIntent(it)
+    }
+  }
+
+  private fun handleIntent(intent: Intent?) {
+    intent?.let {
+      if (it.action == NOTIFICATION_PRESSED_ACTION) {
+        val notificationId = it.getStringExtra("notificationId")
+        val data = try {
+             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                 it.getSerializableExtra("notificationData", HashMap::class.java)
+             } else {
+                 @Suppress("DEPRECATION")
+                 it.getSerializableExtra("notificationData") as? HashMap<*, *>
+             }
+        } catch (e: Exception) {
+             Log.e(TAG, "Error extracting notification data from intent", e)
+             null
+        }
+
+        Log.d(TAG, "Notification pressed event received for ID: $notificationId")
+        sendEvent("onNotificationPressed", mapOf(
+            "notificationId" to notificationId,
+            "data" to data?.toMap(),
+            "action" to "pressed"
+        ))
+        it.action = null
+      }
+    }
   }
 
   private fun createNotificationChannel() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       Log.d(TAG, "Creating notification channel")
-      val channel = NotificationChannel(
-        CHANNEL_ID,
-        "Custom Notifications",
-        NotificationManager.IMPORTANCE_DEFAULT
-      ).apply {
-        description = "Channel for custom notifications"
+      try {
+          val channel = NotificationChannel(
+            CHANNEL_ID,
+            "Custom Notifications",
+            NotificationManager.IMPORTANCE_DEFAULT
+          ).apply {
+            description = "Channel for custom notifications"
+          }
+          val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+          manager.createNotificationChannel(channel)
+          Log.d(TAG, "Notification channel created successfully")
+      } catch (e: Exception) {
+          Log.e(TAG, "Failed to create notification channel", e)
       }
-      val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-      notificationManager.createNotificationChannel(channel)
-      Log.d(TAG, "Notification channel created successfully")
     } else {
       Log.d(TAG, "Skipping channel creation - device below Android O")
     }
   }
+}
+
+fun HashMap<*, *>?.toMap(): Map<String, Any?>? {
+    return this?.mapNotNull { (key, value) ->
+        if (key is String) {
+            key to value
+        } else {
+            null
+        }
+    }?.toMap()
 }

@@ -1,18 +1,33 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import CustomNotifier from './CustomNotifierModule';
-import { NotificationOptions } from './CustomNotifier.types';
+import { NotificationOptions, NotificationEvent } from './CustomNotifier.types';
 import { Platform } from 'react-native';
 
 const DEBUG_TAG = '[CustomNotifier]';
+
+type NotificationHandler = (event: NotificationEvent) => void;
+
+interface Subscription {
+  remove: () => void;
+}
 
 export const useNotifications = () => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const notificationReceivedListener = useRef<Subscription | null>(null);
+  const notificationPressedListener = useRef<Subscription | null>(null);
+
   useEffect(() => {
     console.log(DEBUG_TAG, 'Initializing notifications hook');
     checkPermissions();
+
+    return () => {
+      console.log(DEBUG_TAG, 'Cleaning up listeners');
+      notificationReceivedListener.current?.remove();
+      notificationPressedListener.current?.remove();
+    };
   }, []);
 
   const checkPermissions = useCallback(async () => {
@@ -157,6 +172,18 @@ export const useNotifications = () => {
     }
   }, []);
 
+  const addNotificationReceivedListener = useCallback((handler: NotificationHandler) => {
+    console.log(DEBUG_TAG, 'Adding onNotificationReceived listener');
+    notificationReceivedListener.current?.remove();
+    notificationReceivedListener.current = CustomNotifier.addListener('onNotificationReceived', handler);
+  }, []);
+
+  const addNotificationPressedListener = useCallback((handler: NotificationHandler) => {
+    console.log(DEBUG_TAG, 'Adding onNotificationPressed listener');
+    notificationPressedListener.current?.remove();
+    notificationPressedListener.current = CustomNotifier.addListener('onNotificationPressed', handler);
+  }, []);
+
   return {
     hasPermission,
     isLoading,
@@ -166,5 +193,7 @@ export const useNotifications = () => {
     cancelNotification,
     cancelAllNotifications,
     checkPermissions,
+    addNotificationReceivedListener,
+    addNotificationPressedListener,
   };
 }; 

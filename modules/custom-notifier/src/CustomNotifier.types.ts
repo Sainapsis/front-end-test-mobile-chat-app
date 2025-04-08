@@ -12,11 +12,16 @@ export type ChangeEventPayload = {
   value: string;
 };
 
-export type CustomNotifierViewProps = {
+export interface CustomNotifierViewProps {
   url: string;
-  onLoad: (event: { nativeEvent: OnLoadEventPayload }) => void;
-  style?: StyleProp<ViewStyle>;
-};
+  onLoad?: (event: { nativeEvent: OnLoadEventPayload }) => void;
+}
+
+export interface NotificationEvent {
+  notificationId: string;
+  data?: Record<string, any>;
+  action?: string; // e.g., 'pressed', 'received'
+}
 
 export interface NotificationOptions {
   title: string;
@@ -24,15 +29,8 @@ export interface NotificationOptions {
   data?: Record<string, any>;
 }
 
-export interface NotificationEvent {
-  id: string;
-  title: string;
-  body: string;
-  data?: Record<string, any>;
-}
-
 export interface CustomNotifierEvents {
-  [key: string]: (event: NotificationEvent) => void;
+  [key: string]: (...args: any[]) => void;
   onNotificationReceived: (event: NotificationEvent) => void;
   onNotificationPressed: (event: NotificationEvent) => void;
 }

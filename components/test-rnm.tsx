@@ -1,6 +1,7 @@
 import CustomNotifier, { useNotifications} from 'custom-notifier';
-import { useState } from 'react';
-import { Text, View, Button, StyleSheet } from 'react-native';
+import { useState, useEffect } from 'react';
+import { Text, View, Button, StyleSheet, Alert } from 'react-native';
+import { NotificationEvent } from 'custom-notifier/src/CustomNotifier.types';
 
 // Request permissions
 // const hasPermission = await CustomNotifier.requestPermissions();
@@ -19,15 +20,47 @@ import { Text, View, Button, StyleSheet } from 'react-native';
 // await CustomNotifier.cancelAllNotifications();
 
 export default function TestRNM() {
-  const { isLoading, hasPermission, error, requestPermissions, showNotification, cancelNotification, cancelAllNotifications, checkPermissions } = useNotifications();
+  const {
+    isLoading,
+    hasPermission,
+    error,
+    requestPermissions,
+    showNotification,
+    cancelNotification,
+    cancelAllNotifications,
+    addNotificationReceivedListener,
+    addNotificationPressedListener,
+  } = useNotifications();
+  
   const [notificationId, setNotificationId] = useState<string | null>(null);
+
+  useEffect(() => {
+    addNotificationReceivedListener((event: NotificationEvent) => {
+      console.log('[Example] Notification Received:', event);
+      Alert.alert(
+        'Notification Received',
+        `ID: ${event.notificationId}\nData: ${JSON.stringify(event.data)}`
+      );
+    });
+
+    addNotificationPressedListener((event: NotificationEvent) => {
+      console.log('[Example] Notification Pressed:', event);
+      Alert.alert(
+        'Notification Pressed',
+        `ID: ${event.notificationId}\nData: ${JSON.stringify(event.data)}`
+      );
+      // Navigate based on event.data if needed
+      if (event.data?.screen) {
+        console.log(`Navigate to screen: ${event.data.screen}`)
+        // Implement navigation logic here
+      }
+    });
+  }, [addNotificationReceivedListener, addNotificationPressedListener]);
 
   const handleValidateNotification = async () => {
     try {
       const granted = await requestPermissions();
-      const permission = await checkPermissions();
       console.log('Permission granted:', granted);
-      console.log('Permission:', permission);
     } catch (error) {
       console.error('Error requesting permissions:', error);
     }
@@ -35,15 +68,15 @@ export default function TestRNM() {
 
   const handleShowNotification = async () => {
     try {
-      const notificationId = await showNotification({
+      const newNotificationId = await showNotification({
         title: 'Test Notification',
-        body: 'This is a test notification',
-        data: { screen: 'home' }
+        body: 'Press me to see data!',
+        data: { screen: 'details', itemId: 123 }
       });
       
-      if (notificationId) {
-        console.log('Notification shown with ID:', notificationId);
-        setNotificationId(notificationId);
+      if (newNotificationId) {
+        console.log('Notification shown with ID:', newNotificationId);
+        setNotificationId(newNotificationId);
       }
     } catch (error) {
       console.error('Error showing notification:', error);
@@ -99,7 +132,7 @@ export default function TestRNM() {
         />
         <View style={styles.buttonSpacing} />
         <Button
-          title="Show Notification"
+          title="Show Notification with Data"
           onPress={handleShowNotification}
           disabled={hasPermission !== true}
         />

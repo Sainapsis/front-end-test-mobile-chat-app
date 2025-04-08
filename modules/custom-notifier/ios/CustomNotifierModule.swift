@@ -1,7 +1,7 @@
 import ExpoModulesCore
 import UserNotifications
 
-public class CustomNotifierModule: Module {
+public class CustomNotifierModule: Module, UNUserNotificationCenterDelegate {
   // Each module class must implement the definition function. The definition consists of components
   // that describes the module's functionality and behavior.
   // See https://docs.expo.dev/modules/module-api for more details about available components.
@@ -67,6 +67,16 @@ public class CustomNotifierModule: Module {
             promise.reject("NOTIFICATION_ERROR", error.localizedDescription)
             return
           }
+          
+          var eventData: [String: Any] = [
+            "notificationId": identifier,
+            "action": "received"
+          ]
+          if let data = content.userInfo as? [String: Any] {
+            eventData["data"] = data
+          }
+          self.sendEvent("onNotificationReceived", eventData)
+          
           promise.resolve(identifier)
         }
       }
@@ -93,5 +103,44 @@ public class CustomNotifierModule: Module {
     View(CustomNotifierView.self) {
       // Defines a setter for the `url`
     }
+
+    OnCreate {
+      UNUserNotificationCenter.current().delegate = self
+    }
+  }
+
+  // UNUserNotificationCenterDelegate methods
+  public func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    willPresent notification: UNNotification,
+    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+  ) {
+    var eventData: [String: Any] = [
+        "notificationId": notification.request.identifier,
+        "action": "received"
+    ]
+    if let data = notification.request.content.userInfo as? [String: Any] {
+        eventData["data"] = data
+    }
+    self.sendEvent("onNotificationReceived", eventData)
+    
+    completionHandler([.banner, .sound, .badge])
+  }
+
+  public func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    didReceive response: UNNotificationResponse,
+    withCompletionHandler completionHandler: @escaping () -> Void
+  ) {
+    var eventData: [String: Any] = [
+        "notificationId": response.notification.request.identifier,
+        "action": "pressed"
+    ]
+    if let data = response.notification.request.content.userInfo as? [String: Any] {
+        eventData["data"] = data
+    }
+    self.sendEvent("onNotificationPressed", eventData)
+    
+    completionHandler()
   }
 }
