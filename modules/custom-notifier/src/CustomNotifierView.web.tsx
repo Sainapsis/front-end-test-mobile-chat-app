@@ -1,21 +1,17 @@
-import * as React from 'react';
+// CustomNotifierView.web.tsx - Web counterpart.
+// If the native view is removed/unused, this should likely be removed too.
 
-import { CustomNotifierViewProps } from './CustomNotifier.types';
+// import * as React from 'react';
 
-export default function CustomNotifierView(props: CustomNotifierViewProps) {
-  const handleLoad = () => {
-    if (props.onLoad) {
-      props.onLoad({ nativeEvent: { url: props.url } });
-    }
-  };
+// // Removed import { CustomNotifierViewProps } from './CustomNotifier.types';
 
-  return (
-    <div>
-      <iframe
-        style={{ flex: 1 }}
-        src={props.url}
-        onLoad={handleLoad}
-      />
-    </div>
-  );
-}
+// export default function CustomNotifierView(props: any) { // Use 'any' or define specific web props
+//   return (
+//     <div>
+//       <span>{props.name}</span>
+//     </div>
+//   );
+// }
+
+// --- OR --- Simply export null if the component is removed:
+export default null;

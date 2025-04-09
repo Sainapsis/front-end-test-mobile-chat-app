@@ -1,184 +1,125 @@
-import { useCallback, useEffect, useState, useRef } from 'react';
-import CustomNotifier from './CustomNotifierModule';
-import { NotificationOptions, NotificationEvent } from './CustomNotifier.types';
-import { Platform } from 'react-native';
+import * as React from 'react';
+import CustomNotifierModule from './CustomNotifierModule';
+import { 
+    NotificationReceivedEvent, 
+    NotificationOpenedEvent, 
+    TokenRefreshEvent 
+} from './CustomNotifier.types';
+import { Platform, AppState, AppStateStatus } from 'react-native';
 
 const DEBUG_TAG = '[CustomNotifier]';
 
-type NotificationHandler = (event: NotificationEvent) => void;
+// Define handler types based on the new event types
+type NotificationReceivedHandler = (event: NotificationReceivedEvent) => void;
+type NotificationOpenedHandler = (event: NotificationOpenedEvent) => void;
+type TokenRefreshHandler = (event: TokenRefreshEvent) => void;
 
-// Define a minimal subscription type based on what expo-modules usually returns
 interface ExpoSubscription {
   remove: () => void;
 }
 
 export const useNotifications = () => {
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [hasPermission, setHasPermission] = React.useState<boolean | null>(null);
+  const [fcmToken, setFcmToken] = React.useState<string | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
-  const notificationReceivedListener = useRef<ExpoSubscription | null>(null);
-  const notificationPressedListener = useRef<ExpoSubscription | null>(null);
+  // Refs for the listeners
+  const notificationReceivedListener = React.useRef<ExpoSubscription | null>(null);
+  const notificationOpenedListener = React.useRef<ExpoSubscription | null>(null);
+  const tokenRefreshedListener = React.useRef<ExpoSubscription | null>(null);
 
-  useEffect(() => {
-    console.log(DEBUG_TAG, 'Initializing notifications hook');
-    checkPermissions();
-
-    return () => {
-      console.log(DEBUG_TAG, 'Cleaning up listeners');
-      notificationReceivedListener.current?.remove();
-      notificationPressedListener.current?.remove();
-    };
-  }, []);
-
-  const checkPermissions = useCallback(async () => {
+  // --- Permission Check --- 
+  const checkPermissions = React.useCallback(async (showLoading = false) => {
+    console.log(DEBUG_TAG, 'Checking notification permissions...');
+    if (showLoading) setIsLoading(true);
+    setError(null);
     try {
-      console.log(DEBUG_TAG, 'Checking notification permissions');
-      setError(null);
-      const granted = await CustomNotifier.checkPermissions();
+      const granted = await CustomNotifierModule.checkPermissions();
       console.log(DEBUG_TAG, 'Permission check result:', granted);
       setHasPermission(granted);
       return granted;
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Error checking permissions';
-      console.error(DEBUG_TAG, 'Error checking permissions:', {
-        message: errorMessage,
-        code: error?.code,
-        fullError: error
-      });
+    } catch (e: any) {
+      const errorMessage = e?.message || 'Error checking permissions';
+      console.error(DEBUG_TAG, 'Error checking permissions:', e);
       setError(errorMessage);
       setHasPermission(false);
       return false;
     } finally {
-      setIsLoading(false);
+       if (showLoading) setIsLoading(false);
     }
   }, []);
 
-  const requestPermissions = useCallback(async () => {
+  // --- Permission Request --- 
+  const requestPermissions = React.useCallback(async () => {
+    console.log(DEBUG_TAG, 'Requesting notification permissions...');
+    setIsLoading(true);
+    setError(null);
     try {
-      console.log(DEBUG_TAG, 'Requesting notification permissions');
-      setIsLoading(true);
-      setError(null);
-      const granted = await CustomNotifier.requestPermissions();
-      console.log(DEBUG_TAG, 'Permission request result:', granted);
-      
-      if (Platform.OS === 'android') {
-        console.log(DEBUG_TAG, 'Android platform detected, waiting for permission result');
-        setTimeout(async () => {
-          try {
-            console.log(DEBUG_TAG, 'Checking actual permission status after request');
-            const actualPermission = await CustomNotifier.checkPermissions();
-            console.log(DEBUG_TAG, 'Actual permission status:', actualPermission);
-            setHasPermission(actualPermission);
-          } catch (error: any) {
-            const errorMessage = error?.message || 'Error checking permissions after request';
-            console.error(DEBUG_TAG, 'Error in permission check after request:', {
-              message: errorMessage,
-              code: error?.code,
-              fullError: error
-            });
-            setError(errorMessage);
-            setHasPermission(false);
-          } finally {
-            setIsLoading(false);
-          }
-        }, 1000);
-        return granted;
-      }
+      const requested = await CustomNotifierModule.requestPermissions();
+      console.log(DEBUG_TAG, 'Permission request initiated, result indicates if dialog shown (Android) or granted status (iOS):', requested);
 
-      setHasPermission(granted);
-      return granted;
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Error requesting permissions';
-      console.error(DEBUG_TAG, 'Error requesting permissions:', {
-        message: errorMessage,
-        code: error?.code,
-        fullError: error
-      });
+      if (Platform.OS === 'android' && !requested) {
+         console.log(DEBUG_TAG, 'Android: Waiting for user interaction or app focus to recheck permission.');
+      } else {
+         const currentStatus = await checkPermissions();
+         setHasPermission(currentStatus);
+         console.log(DEBUG_TAG, `Permission status after request: ${currentStatus}`);
+         return currentStatus;
+      }
+      return requested;
+    } catch (e: any) {
+      const errorMessage = e?.message || 'Error requesting permissions';
+      console.error(DEBUG_TAG, 'Error requesting permissions:', e);
       setError(errorMessage);
       setHasPermission(false);
       return false;
     } finally {
       if (Platform.OS !== 'android') {
-        setIsLoading(false);
+         setIsLoading(false);
       }
     }
-  }, []);
+  }, [checkPermissions]);
 
-  const showNotification = useCallback(async (options: NotificationOptions) => {
-    try {
-      console.log(DEBUG_TAG, 'Attempting to show notification:', options);
-      setError(null);
-      const currentPermission = await checkPermissions();
-      console.log(DEBUG_TAG, 'Current permission status:', currentPermission);
-      
-      if (!currentPermission) {
-        console.log(DEBUG_TAG, 'No permission, requesting permissions');
-        const granted = await requestPermissions();
-        if (!granted) {
-          const errorMessage = 'No notification permissions granted';
-          console.log(DEBUG_TAG, errorMessage);
-          setError(errorMessage);
-          return null;
-        }
-      }
-
-      console.log(DEBUG_TAG, 'Showing notification');
-      const notificationId = await CustomNotifier.showNotification(options);
-      console.log(DEBUG_TAG, 'Notification shown with ID:', notificationId);
-      return notificationId;
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Error showing notification';
-      console.error(DEBUG_TAG, 'Error showing notification:', {
-        message: errorMessage,
-        code: error?.code,
-        fullError: error
-      });
-      setError(errorMessage);
+  // --- Get FCM Token --- 
+  const getFcmToken = React.useCallback(async () => {
+    console.log(DEBUG_TAG, 'Getting FCM token...');
+    let currentPermission = hasPermission;
+    if (currentPermission === null) {
+        console.warn(DEBUG_TAG, 'Checking permissions before getting token...');
+        currentPermission = await checkPermissions(true);
+    }
+    
+    if (currentPermission === false) {
+      const msg = 'Cannot get FCM token without notification permissions.';
+      console.error(DEBUG_TAG, msg);
+      setError(msg);
+      setIsLoading(false);
       return null;
     }
-  }, [checkPermissions, requestPermissions]);
 
-  const cancelNotification = useCallback(async (id: string) => {
+    setError(null);
     try {
-      console.log(DEBUG_TAG, 'Cancelling notification:', id);
-      setError(null);
-      await CustomNotifier.cancelNotification(id);
-      console.log(DEBUG_TAG, 'Notification cancelled successfully');
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Error cancelling notification';
-      console.error(DEBUG_TAG, 'Error cancelling notification:', {
-        message: errorMessage,
-        code: error?.code,
-        fullError: error
-      });
+      const token = await CustomNotifierModule.getFcmToken();
+      console.log(DEBUG_TAG, 'FCM token received:', token);
+      setFcmToken(token);
+      return token;
+    } catch (e: any) {
+      const errorMessage = e?.message || 'Error getting FCM token';
+      console.error(DEBUG_TAG, 'Error getting FCM token:', e);
       setError(errorMessage);
-    }
-  }, []);
+      setFcmToken(null);
+      return null;
+    } 
+  }, [hasPermission, checkPermissions]);
 
-  const cancelAllNotifications = useCallback(async () => {
-    try {
-      console.log(DEBUG_TAG, 'Cancelling all notifications');
-      setError(null);
-      await CustomNotifier.cancelAllNotifications();
-      console.log(DEBUG_TAG, 'All notifications cancelled successfully');
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Error cancelling all notifications';
-      console.error(DEBUG_TAG, 'Error cancelling all notifications:', {
-        message: errorMessage,
-        code: error?.code,
-        fullError: error
-      });
-      setError(errorMessage);
-    }
-  }, []);
-
-  const addNotificationReceivedListener = useCallback((handler: NotificationHandler): ExpoSubscription | null => {
+  // --- Add Listeners --- 
+  const addNotificationReceivedListener = React.useCallback((handler: NotificationReceivedHandler): ExpoSubscription | null => {
     console.log(DEBUG_TAG, 'Adding onNotificationReceived listener');
     notificationReceivedListener.current?.remove();
     try {
-      // Assuming CustomNotifier.addListener conforms to returning { remove(): void }
-      notificationReceivedListener.current = CustomNotifier.addListener('onNotificationReceived', handler);
+      notificationReceivedListener.current = CustomNotifierModule.addListener('onNotificationReceived', handler);
+      console.log(DEBUG_TAG, 'onNotificationReceived listener added successfully.');
       return notificationReceivedListener.current;
     } catch (e) {
        console.error(DEBUG_TAG, "Failed to add onNotificationReceived listener", e);
@@ -186,42 +127,99 @@ export const useNotifications = () => {
     }
   }, []);
 
-  const addNotificationPressedListener = useCallback((handler: NotificationHandler): ExpoSubscription | null => {
-    console.log(DEBUG_TAG, 'Adding onNotificationPressed listener');
-    notificationPressedListener.current?.remove();
+  const addNotificationOpenedListener = React.useCallback((handler: NotificationOpenedHandler): ExpoSubscription | null => {
+    console.log(DEBUG_TAG, 'Adding onNotificationOpened listener');
+    notificationOpenedListener.current?.remove();
      try {
-      // Assuming CustomNotifier.addListener conforms to returning { remove(): void }
-      notificationPressedListener.current = CustomNotifier.addListener('onNotificationPressed', handler);
-      return notificationPressedListener.current;
+      notificationOpenedListener.current = CustomNotifierModule.addListener('onNotificationOpened', handler);
+       console.log(DEBUG_TAG, 'onNotificationOpened listener added successfully.');
+      return notificationOpenedListener.current;
     } catch (e) {
-       console.error(DEBUG_TAG, "Failed to add onNotificationPressed listener", e);
+       console.error(DEBUG_TAG, "Failed to add onNotificationOpened listener", e);
        return null;
     }
   }, []);
 
-  // iOS only: Control foreground notification presentation
-  const setShouldShowAlertForForegroundNotifications = useCallback((shouldShow: boolean) => {
-    if (Platform.OS === 'ios' && CustomNotifier.setShouldShowAlertForForegroundNotifications) {
-      console.log(DEBUG_TAG, 'Setting foreground alert presentation:', shouldShow);
-      try {
-          CustomNotifier.setShouldShowAlertForForegroundNotifications(shouldShow);
-      } catch(e) {
-          console.warn(DEBUG_TAG, "Failed to set foreground alert presentation (might be Android)", e)
-      }
+  const addTokenRefreshedListener = React.useCallback((handler: TokenRefreshHandler): ExpoSubscription | null => {
+    console.log(DEBUG_TAG, 'Adding onTokenRefreshed listener');
+    tokenRefreshedListener.current?.remove();
+     try {
+      tokenRefreshedListener.current = CustomNotifierModule.addListener('onTokenRefreshed', (event: TokenRefreshEvent) => {
+          console.log(DEBUG_TAG, 'Token refreshed via listener:', event.token);
+          setFcmToken(event.token);
+          handler(event);
+      });
+      console.log(DEBUG_TAG, 'onTokenRefreshed listener added successfully.');
+      return tokenRefreshedListener.current;
+    } catch (e) {
+       console.error(DEBUG_TAG, "Failed to add onTokenRefreshed listener", e);
+       return null;
     }
   }, []);
 
+  // --- Initial Setup Effect --- 
+  React.useEffect(() => {
+    console.log(DEBUG_TAG, 'Initializing notifications hook effect...');
+    let isMounted = true;
+    setIsLoading(true);
+
+    const initialize = async () => {
+        const initialPermission = await checkPermissions();
+        if (!isMounted) return;
+
+        if (initialPermission) {
+            console.log(DEBUG_TAG, 'Initial permission granted, getting token...');
+            await getFcmToken();
+        } else {
+            console.log(DEBUG_TAG, 'Initial permission not granted.');
+        }
+         if (isMounted) {
+             setIsLoading(false);
+         }
+    };
+
+    initialize();
+
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+       if (Platform.OS === 'android' && nextAppState === 'active') {
+           console.log(DEBUG_TAG, 'App became active on Android, re-checking permissions...');
+           const statusBeforeCall = hasPermission;
+           const currentStatus = await checkPermissions();
+           if (!isMounted) return;
+
+           setHasPermission(currentStatus);
+           setIsLoading(false);
+           
+           if (currentStatus && !statusBeforeCall && !fcmToken) { 
+               console.log(DEBUG_TAG, 'Permission granted after app focus, getting token...');
+               await getFcmToken();
+           }
+       }
+    };
+
+    const appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      isMounted = false;
+      console.log(DEBUG_TAG, 'Cleaning up listeners and AppState subscription');
+      notificationReceivedListener.current?.remove();
+      notificationOpenedListener.current?.remove();
+      tokenRefreshedListener.current?.remove();
+      appStateSubscription?.remove();
+    };
+  }, [checkPermissions, getFcmToken, hasPermission, fcmToken]);
+
+  // --- Returned Hook API --- 
   return {
-    hasPermission,
-    isLoading,
-    error,
+    hasPermission, 
+    fcmToken,      
+    isLoading,     
+    error,         
     requestPermissions,
-    showNotification,
-    cancelNotification,
-    cancelAllNotifications,
-    checkPermissions,
+    checkPermissions,  
+    getFcmToken,       
     addNotificationReceivedListener,
-    addNotificationPressedListener,
-    setShouldShowAlertForForegroundNotifications,
+    addNotificationOpenedListener,  
+    addTokenRefreshedListener,     
   };
-}; 
+};

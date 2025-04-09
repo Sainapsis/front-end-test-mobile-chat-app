@@ -10,14 +10,14 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.arleysainapsis.frontendtestmobilechatapp"
+      "bundleIdentifier": "com.sainapsis.chatapp"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.arleysainapsis.frontendtestmobilechatapp"
+      "package": "com.sainapsis.chatapp"
     },
     "web": {
       "bundler": "metro",

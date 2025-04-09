@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import CustomNotifier, { useNotifications} from 'custom-notifier';
-import { Text, View, Button, StyleSheet, Alert, Platform } from 'react-native';
-import { NotificationEvent } from 'custom-notifier/src/CustomNotifier.types';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNotifications } from 'custom-notifier';
+import { Text, View, Button, StyleSheet, Alert, Platform, ScrollView, ActivityIndicator } from 'react-native';
+import { NotificationReceivedEvent, NotificationOpenedEvent, TokenRefreshEvent } from 'custom-notifier/src/CustomNotifier.types';
 
 // Request permissions
 // const hasPermission = await CustomNotifier.requestPermissions();
@@ -19,208 +19,237 @@ import { NotificationEvent } from 'custom-notifier/src/CustomNotifier.types';
 // // Cancel all notifications
 // await CustomNotifier.cancelAllNotifications();
 
+const DEBUG_TAG = '[TestComponent]';
+
 export default function TestRNM() {
   const {
     isLoading,
     hasPermission,
+    fcmToken,
     error,
     requestPermissions,
-    showNotification,
-    cancelNotification,
-    cancelAllNotifications,
+    checkPermissions,
+    getFcmToken,
     addNotificationReceivedListener,
-    addNotificationPressedListener,
-    setShouldShowAlertForForegroundNotifications,
+    addNotificationOpenedListener,
+    addTokenRefreshedListener,
   } = useNotifications();
   
-  const [notificationId, setNotificationId] = useState<string | null>(null);
-  const [foregroundAlerts, setForegroundAlerts] = useState(true);
+  const [lastReceived, setLastReceived] = useState<NotificationReceivedEvent | null>(null);
+  const [lastOpened, setLastOpened] = useState<NotificationOpenedEvent | null>(null);
+  const [lastTokenRefresh, setLastTokenRefresh] = useState<TokenRefreshEvent | null>(null);
 
   useEffect(() => {
-    if (Platform.OS === 'ios') {
-      setShouldShowAlertForForegroundNotifications(foregroundAlerts);
-    }
+    console.log(DEBUG_TAG, 'Setting up notification listeners...');
 
-    const receivedSubscription = addNotificationReceivedListener((event: NotificationEvent) => {
-      console.log('[Example] Notification Received:', event);
+    const receivedSubscription = addNotificationReceivedListener((event: NotificationReceivedEvent) => {
+      console.log(DEBUG_TAG, 'Notification Received:', JSON.stringify(event, null, 2));
+      setLastReceived(event);
       Alert.alert(
         'Notification Received',
-        `ID: ${event.notificationId}\nAction: ${event.action}\nData: ${JSON.stringify(event.data)}`
+        `Title: ${event.notification?.title || 'N/A'}\nBody: ${event.notification?.body || 'N/A'}\nData: ${JSON.stringify(event.data)}`
       );
     });
 
-    const pressedSubscription = addNotificationPressedListener((event: NotificationEvent) => {
-      console.log('[Example] Notification Pressed:', event);
+    const openedSubscription = addNotificationOpenedListener((event: NotificationOpenedEvent) => {
+      console.log(DEBUG_TAG, 'Notification Opened:', JSON.stringify(event, null, 2));
+      setLastOpened(event);
       Alert.alert(
-        'Notification Pressed',
-        `ID: ${event.notificationId}\nAction: ${event.action}\nData: ${JSON.stringify(event.data)}`
+        'Notification Opened',
+        `Title: ${event.notification?.title || 'N/A'}\nBody: ${event.notification?.body || 'N/A'}\nData: ${JSON.stringify(event.data)}`
       );
       if (event.data?.screen) {
-        console.log(`Navigate to screen: ${event.data.screen}`)
+        console.log(DEBUG_TAG, `Navigation requested to screen: ${event.data.screen}`);
       }
+    });
+
+    const tokenSubscription = addTokenRefreshedListener((event: TokenRefreshEvent) => {
+      console.log(DEBUG_TAG, 'Token Refreshed:', event.token);
+      setLastTokenRefresh(event);
+      Alert.alert('Token Refreshed', `New Token: ${event.token}`);
     });
     
     return () => {
+      console.log(DEBUG_TAG, 'Removing notification listeners...');
       receivedSubscription?.remove();
-      pressedSubscription?.remove();
+      openedSubscription?.remove();
+      tokenSubscription?.remove();
     };
-  }, [addNotificationReceivedListener, addNotificationPressedListener, setShouldShowAlertForForegroundNotifications, foregroundAlerts]);
+  }, [addNotificationReceivedListener, addNotificationOpenedListener, addTokenRefreshedListener]);
 
-  const handleValidateNotification = async () => {
-    try {
-      const granted = await requestPermissions();
-      console.log('Permission granted:', granted);
-    } catch (error) {
-      console.error('Error requesting permissions:', error);
-    }
+  const handleRequestPermission = async () => {
+    console.log(DEBUG_TAG, 'handleRequestPermission pressed');
+    await requestPermissions();
   }
 
-  const handleShowNotification = async (isSilent: boolean = false) => {
-    try {
-      const newNotificationId = await showNotification({
-        title: isSilent ? 'Silent Data Update' : 'Test Notification',
-        body: isSilent ? 'Processing in background...' : 'Press me to see data!',
-        data: { 
-          screen: isSilent ? 'backgroundTask' : 'details', 
-          itemId: Date.now(),
-          sentSilent: isSilent
-        },
-        isSilent: isSilent
-      });
-      
-      if (newNotificationId) {
-        console.log(`Notification ${isSilent ? 'silent' : 'normal'} shown with ID:`, newNotificationId);
-        if (!isSilent) {
-          setNotificationId(newNotificationId);
-        }
-      }
-    } catch (error) {
-      console.error(`Error showing ${isSilent ? 'silent' : 'normal'} notification:`, error);
-    }
+  const handleGetToken = async () => {
+    console.log(DEBUG_TAG, 'handleGetToken pressed');
+    await getFcmToken();
   }
 
-  const handleCancelNotification = async () => {
-    try {
-      if (notificationId) {
-        await cancelNotification(notificationId);
-        setNotificationId(null);
-      }
-    } catch (error) {
-      console.error('Error cancelling notification:', error);
-    }
-  }
-
-  const handleCancelAllNotifications = async () => {
-    try {
-      await cancelAllNotifications();
-      setNotificationId(null);
-    } catch (error) {
-      console.error('Error cancelling all notifications:', error);
-    }
-  }
-
-  const toggleForegroundAlert = () => {
-    if (Platform.OS === 'ios') {
-      const newValue = !foregroundAlerts;
-      setForegroundAlerts(newValue);
-      setShouldShowAlertForForegroundNotifications(newValue);
-      Alert.alert('Foreground Alert Setting (iOS)', `Will ${newValue ? 'show' : 'hide'} alerts for foreground notifications.`);
-    }
-  };
-
-  if (isLoading) {
+  if (isLoading && hasPermission === null) {
     return (
       <View style={styles.container}>
-        <Text>Loading...</Text>
+        <ActivityIndicator size="large" />
+        <Text style={styles.loadingText}>Initializing Notifications...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <Text style={styles.title}>Custom Notifier (FCM)</Text>
+      
       <View style={styles.statusContainer}>
-        <Text style={[styles.statusText, error ? { marginBottom: 10 } : null]}>
-          Permission Status: {hasPermission ? 'Granted' : 'Not Granted'}
+        <Text style={styles.statusText}>Permission Status:</Text>
+        <Text style={[styles.statusValue, hasPermission === true ? styles.granted : (hasPermission === false ? styles.denied : styles.unknown)]}>
+          {hasPermission === true ? 'Granted' : (hasPermission === false ? 'Denied' : 'Unknown')}
         </Text>
         {error && (
-          <Text style={styles.errorText}>
-            Error: {error}
-          </Text>
+          <Text style={styles.errorText}>Error: {error}</Text>
         )}
+      </View>
+
+      <View style={styles.tokenContainer}>
+         <Text style={styles.tokenLabel}>FCM Token:</Text>
+         <Text selectable style={styles.tokenValue}>{fcmToken || 'N/A'}</Text>
       </View>
 
       <View style={styles.buttonContainer}>
         <Button
           title="Request Permissions"
-          onPress={handleValidateNotification}
-          disabled={hasPermission === true}
+          onPress={handleRequestPermission}
+          disabled={hasPermission === true || isLoading} 
         />
         <View style={styles.buttonSpacing} />
         <Button
-          title="Show Normal Notification"
-          onPress={() => handleShowNotification(false)}
-          disabled={hasPermission !== true}
+          title="Get/Refresh FCM Token"
+          onPress={handleGetToken}
+          disabled={hasPermission !== true || isLoading}
         />
-        <View style={styles.buttonSpacing} />
-        <Button
-          title="Show Silent Notification (Data Only)"
-          onPress={() => handleShowNotification(true)}
-          disabled={hasPermission !== true}
-        />
-        <View style={styles.buttonSpacing} />
-        <Button
-          title="Cancel Last Visible Notification"
-          onPress={handleCancelNotification}
-          disabled={!notificationId}
-        />
-        <View style={styles.buttonSpacing} />
-        <Button
-          title="Cancel All Notifications"
-          onPress={handleCancelAllNotifications}
-          disabled={hasPermission !== true}
-        />
-         {Platform.OS === 'ios' && (
-          <>
-            <View style={styles.buttonSpacing} />
-            <Button
-              title={`Foreground Alert: ${foregroundAlerts ? 'ON' : 'OFF'} (iOS)`}
-              onPress={toggleForegroundAlert}
-              disabled={hasPermission !== true}
-            />
-          </>
-        )}
       </View>
-    </View>
+
+      <View style={styles.eventLogContainer}>
+         <Text style={styles.logTitle}>Last Events:</Text>
+         <View style={styles.eventDetail}>
+            <Text style={styles.eventLabel}>Received:</Text>
+            <Text style={styles.eventData}>{lastReceived ? JSON.stringify(lastReceived.data) : 'None'}</Text>
+         </View>
+         <View style={styles.eventDetail}>
+            <Text style={styles.eventLabel}>Opened:</Text>
+            <Text style={styles.eventData}>{lastOpened ? JSON.stringify(lastOpened.data) : 'None'}</Text>
+         </View>
+         <View style={styles.eventDetail}>
+            <Text style={styles.eventLabel}>Token Refresh:</Text>
+            <Text style={styles.eventData}>{lastTokenRefresh ? `...${lastTokenRefresh.token.slice(-10)}` : 'None'}</Text>
+         </View>
+      </View>
+
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f9fa',
+  },
+  contentContainer: {
+      padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#343a40',
   },
   statusContainer: {
     marginBottom: 20,
-    padding: 10,
+    padding: 15,
     borderRadius: 8,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#e9ecef',
+    borderWidth: 1,
+    borderColor: '#dee2e6',
   },
   statusText: {
     fontSize: 16,
-    textAlign: 'center',
+    fontWeight: '600',
+    marginBottom: 5,
+    color: '#495057',
   },
+  statusValue: {
+      fontSize: 16,
+      textAlign: 'center',
+      fontWeight: 'bold',
+  },
+  granted: { color: '#28a745' },
+  denied: { color: '#dc3545' },
+  unknown: { color: '#6c757d' },
   errorText: {
+    marginTop: 10,
     fontSize: 14,
     color: '#dc3545',
     textAlign: 'center',
   },
+   tokenContainer: {
+     marginBottom: 20,
+     padding: 15,
+     borderRadius: 8,
+     backgroundColor: '#fff',
+     borderWidth: 1,
+     borderColor: '#ced4da',
+  },
+  tokenLabel: {
+      fontSize: 16,
+      fontWeight: '600',
+      marginBottom: 5,
+      color: '#495057',
+  },
+  tokenValue: {
+      fontSize: 12,
+      fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+      color: '#007bff',
+      flexWrap: 'wrap',
+  },
   buttonContainer: {
-    width: '100%',
+    marginBottom: 30,
   },
   buttonSpacing: {
-    height: 10,
+    height: 15,
+  },
+  loadingText: {
+      marginTop: 15,
+      fontSize: 16,
+      color: '#6c757d',
+  },
+  eventLogContainer: {
+      marginTop: 10,
+      padding: 15,
+      borderRadius: 8,
+      backgroundColor: '#fff',
+      borderWidth: 1,
+      borderColor: '#ced4da',
+  },
+  logTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 10,
+      color: '#343a40',
+  },
+  eventDetail: {
+      marginBottom: 8,
+  },
+  eventLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: '#495057',
+      marginBottom: 3,
+  },
+  eventData: {
+      fontSize: 12,
+      color: '#6c757d',
+      fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
   },
 });
 
