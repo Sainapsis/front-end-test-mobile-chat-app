@@ -25,6 +25,7 @@ export default function ChatRoomScreen() {
   const router = useRouter();
   
   const chat = chats.find(c => c.id === chatId);
+  console.log('Mensajes del chat actual:', chat?.messages);
   
   const chatParticipants = chat?.participants
     .filter(id => id !== currentUser?.id)
@@ -95,6 +96,7 @@ export default function ChatRoomScreen() {
           <MessageBubble
             message={item}
             isCurrentUser={item.senderId === currentUser.id}
+            chatId={chat.id}
           />
         )}
         contentContainerStyle={styles.messagesContainer}

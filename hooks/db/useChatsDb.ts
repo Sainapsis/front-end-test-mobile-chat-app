@@ -8,6 +8,7 @@ export interface Message {
   senderId: string;
   text: string;
   timestamp: number;
+  reaction?: string;
 }
 
 export interface Chat {
@@ -77,6 +78,7 @@ export function useChatsDb(currentUserId: string | null) {
             senderId: m.senderId,
             text: m.text,
             timestamp: m.timestamp,
+            reaction: m.reaction ?? undefined,
           }));
           
           // Determine last message
@@ -183,10 +185,73 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  const updateMessage = useCallback(async (
+    chatId: string,
+    messageId: string,
+    updates: Partial<Message>
+  ): Promise<boolean> => {
+      console.log('Updates recibidos:', updates);
+    try {
+      setUserChats(prevChats => {
+        return prevChats.map(chat => {
+          if (chat.id !== chatId) return chat;
+
+          const updatedMessages = chat.messages.map(message => {
+            if (message.id === messageId) {
+              return { ...message, ...updates };
+            }
+            return message;
+          });
+
+          return {
+            ...chat,
+            messages: updatedMessages,
+            lastMessage:
+              chat.lastMessage?.id === messageId
+                ? { ...chat.lastMessage, ...updates }
+                : chat.lastMessage,
+          };
+        });
+      });
+
+      const valuesToUpdate: Partial<Message> = {};
+
+      if (updates.text !== undefined) {
+        valuesToUpdate.text = updates.text;
+      }
+      if (updates.reaction !== undefined) {
+        valuesToUpdate.reaction = updates.reaction;
+      }
+      if (updates.timestamp !== undefined) {
+        valuesToUpdate.timestamp = updates.timestamp;
+      }
+
+      if (Object.keys(valuesToUpdate).length === 0) {
+        console.warn('No values to update');
+        return false; // o simplemente return true si no consideras esto un error
+      }
+
+      await db.update(messages)
+        .set(valuesToUpdate)
+        .where(eq(messages.id, messageId));
+
+      const updated = await db.select().from(messages).where(eq(messages.id, messageId));
+      console.log('Mensaje desde DB:', updated);
+
+      return true;
+    } catch (error) {
+      console.error('Error updating message:', error);
+      return false;
+    }
+  }, []);
+
+
+
   return {
     chats: userChats,
     createChat,
     sendMessage,
+    updateMessage,
     loading,
   };
 } 

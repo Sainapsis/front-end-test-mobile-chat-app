@@ -49,6 +49,18 @@ export async function initializeDatabase() {
         FOREIGN KEY (chat_id) REFERENCES chats (id)
       );
     `);
+
+    console.log("Ensuring 'reaction' column exists in messages table...");
+    const result = await sqlite.getAllAsync(`PRAGMA table_info(messages);`);
+    const hasReactionColumn = result.some((column: any) => column.name === 'reaction');
+
+    if (!hasReactionColumn) {
+      console.log("Adding 'reaction' column...");
+      await sqlite.execAsync(`ALTER TABLE messages ADD COLUMN reaction TEXT;`);
+      console.log("✅ Column 'reaction' added.");
+    } else {
+      console.log("✅ Column 'reaction' already exists.");
+    }
     
     console.log('All tables created successfully!');
   } catch (error) {

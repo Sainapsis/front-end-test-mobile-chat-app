@@ -16,4 +16,5 @@ export const messages = sqliteTable("messages", {
   senderId: text("sender_id").notNull(),
   text: text("text").notNull(),
   timestamp: integer("timestamp").notNull(),
+  reaction: text("reaction"),
 }); 
