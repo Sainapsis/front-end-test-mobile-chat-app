@@ -8,10 +8,6 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
-android/
-ios/
-!modules/*/android/
-!modules/*/ios/
 
 # Native
 *.orig.*
@@ -38,5 +34,3 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
-
-app-example

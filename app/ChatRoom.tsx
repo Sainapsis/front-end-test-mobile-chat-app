@@ -18,13 +18,13 @@ import { Avatar } from '@/components/Avatar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 
 export default function ChatRoomScreen() {
-  const { chatId } = useLocalSearchParams<{ chatId: string }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const { currentUser, users, chats, sendMessage } = useAppContext();
   const [messageText, setMessageText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
   
-  const chat = chats.find(c => c.id === chatId);
+  const chat = chats.find(c => c.id === id);
   
   const chatParticipants = chat?.participants
     .filter(id => id !== currentUser?.id)

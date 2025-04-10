@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "custom-bg-tasks": ["../src/index"],
+      "custom-bg-tasks/*": ["../src/*"]
+    }
+  }
+}

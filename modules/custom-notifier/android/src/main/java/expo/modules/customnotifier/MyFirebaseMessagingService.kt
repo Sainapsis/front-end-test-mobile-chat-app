@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.media.RingtoneManager
 import android.os.Build
+import android.os.Bundle
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -32,7 +33,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         // Data messages are the type traditionally used with FCM.
         if (remoteMessage.data.isNotEmpty()) {
             Log.d(TAG, "Message data payload: ${remoteMessage.data}")
-            handleDataMessage(remoteMessage.data)
+            handleDataMessage(remoteMessage)
             // Optionally: If you want data-only messages to ALSO show a notification, build one here.
         }
 
@@ -76,19 +77,43 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
      * Handle time allotted to BroadcastReceivers.
      * Can be used for long running tasks based on message data.
      */
-    private fun handleDataMessage(data: Map<String, String>) {
+    private fun handleDataMessage(remoteMessage: RemoteMessage) {
         Log.d(TAG, "Handling data message")
-        // Process data payload here
-        // e.g., update local storage, trigger background task, etc.
-
-        // Send event to JS layer
-        val eventData = data.toMap() // Convert data payload
+        
+        val data = remoteMessage.data
+        
+        // Send event to JS layer if app is in foreground
+        val eventData = data.toMap()
         CustomNotifierModule.sendNotificationReceivedEvent(applicationContext, eventData)
-
-        // Example: If a specific data key indicates a UI update is needed when app returns
-        // if (data["update_required"] == "true") { ... }
+        
+        // For background processing, send a broadcast intent
+        // This will be picked up by the main application which can start a headless task
+        val intent = Intent("com.firebase.messaging.NEW_MESSAGE")
+        
+        // Add data from remote message to intent
+        val bundle = Bundle()
+        remoteMessage.data.forEach { (key, value) ->
+            bundle.putString(key, value)
+        }
+        
+        // Add message metadata
+        remoteMessage.messageId?.let { bundle.putString("messageId", it) }
+        remoteMessage.collapseKey?.let { bundle.putString("collapseKey", it) }
+        bundle.putString("from", remoteMessage.from ?: "")
+        bundle.putLong("sentTime", remoteMessage.sentTime)
+        bundle.putString("to", remoteMessage.to ?: "")
+        
+        // Set the action for special handling
+        bundle.putString("action", "ReactNativeFirebaseMessagingHeadlessTask")
+        
+        intent.putExtras(bundle)
+        
+        // We need to set package to make sure this is delivered to our app
+        intent.setPackage(applicationContext.packageName)
+        
+        Log.d(TAG, "Broadcasting message for headless task processing")
+        applicationContext.sendBroadcast(intent)
     }
-
 
     /**
      * Persist token to third-party servers. Modify this method to associate the

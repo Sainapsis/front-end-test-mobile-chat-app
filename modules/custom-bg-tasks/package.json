@@ -1,0 +1,48 @@
+{
+  "name": "custom-bg-tasks",
+  "version": "0.1.0",
+  "description": "Background tasks execution plugin for Expo",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "scripts": {
+    "build": "expo-module build",
+    "clean": "expo-module clean",
+    "lint": "expo-module lint",
+    "test": "expo-module test",
+    "prepare": "expo-module prepare",
+    "prepublishOnly": "expo-module prepublishOnly",
+    "expo-module": "expo-module",
+    "open:ios": "xed example/ios",
+    "open:android": "open -a \"Android Studio\" example/android"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "custom-bg-tasks",
+    "CustomBgTasks",
+    "background",
+    "notifications",
+    "database"
+  ],
+  "repository": "http://test.com",
+  "bugs": {
+    "url": "http://test.com/issues"
+  },
+  "author": "Arley Hernandez <arley.hernandez@sainapsis.com> ()",
+  "license": "MIT",
+  "homepage": "http://test.com#readme",
+  "dependencies": {
+    "expo-modules-core": "^1.5.12"
+  },
+  "devDependencies": {
+    "@types/react": "~18.3.12",
+    "expo-module-scripts": "^4.0.4",
+    "expo": "~52.0.0",
+    "react-native": "0.76.0"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}

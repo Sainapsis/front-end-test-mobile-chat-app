@@ -5,4 +5,5 @@ export const users = sqliteTable("users", {
   name: text("name").notNull(),
   avatar: text("avatar").notNull(),
   status: text("status", { enum: ["online", "offline", "away"] }).notNull(),
+  modificationDate: text("modificationDate").notNull(),
 }); 

@@ -1,18 +1,45 @@
-import React, { useState } from 'react';
-import { FlatList, StyleSheet, Pressable, Modal } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { FlatList, StyleSheet, Pressable, Modal, TextInput, View, Keyboard } from 'react-native';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { ChatListItem } from '@/components/ChatListItem';
 import { UserListItem } from '@/components/UserListItem';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import CustomNotifierView from 'custom-notifier/src/CustomNotifierView';
-import TestRNM from '@/components/test-rnm';
+import { onAppBootstrap } from '@/utils/notifier';
+import messaging from '@react-native-firebase/messaging';
+// import CustomNotifierView from 'custom-notifier/src/CustomNotifierView';
+// import TestRNM from '@/components/test-rnm';
 
 export default function ChatsScreen() {
   const { currentUser, users, chats, createChat } = useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [fcmToken, setFcmToken] = useState<string>('');
+
+  useEffect(() => {
+    const initializeNotifications = async () => {
+      const unsubscribe = await onAppBootstrap(currentUser);
+      return unsubscribe;
+    };
+
+    const unsubscribe = initializeNotifications();
+    return () => {
+      unsubscribe.then(unsub => unsub && unsub());
+    };
+  }, [currentUser]);
+
+  useEffect(() => {
+    const getToken = async () => {
+      try {
+        const token = await messaging().getToken();
+        setFcmToken(token);
+      } catch (error) {
+        console.error('Error getting FCM token:', error);
+      }
+    };
+    getToken();
+  }, []);
 
   const toggleUserSelection = (userId: string) => {
     if (selectedUsers.includes(userId)) {
@@ -50,8 +77,8 @@ export default function ChatsScreen() {
         </Pressable>
       </ThemedView> */}
       
-      <TestRNM />
-{/* 
+      {/* <TestRNM /> */}
+
       <FlatList
         data={chats}
         keyExtractor={(item) => item.id}
@@ -64,7 +91,21 @@ export default function ChatsScreen() {
         )}
         ListEmptyComponent={renderEmptyComponent}
         contentContainerStyle={styles.listContainer}
-      /> */}
+      />
+
+      <ThemedText>User: {currentUser?.name || 'Unknown'}</ThemedText>
+      <ThemedText>Current Date: {currentUser?.modificationDate}</ThemedText>
+
+
+      <View style={styles.tokenContainer}>
+        <TextInput
+          style={styles.tokenInput}
+          value={fcmToken}
+          selectTextOnFocus
+          multiline={true}
+          numberOfLines={10}
+        />
+      </View>
 
       <Modal
         animationType="slide"
@@ -200,5 +241,27 @@ const styles = StyleSheet.create({
   createButtonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  tokenContainer: {
+    width: '100%',
+    height: 300,
+    backgroundColor: 'white',
+    padding: 10,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  tokenInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 4,
+    padding: 8,
+    fontSize: 12,
   },
 });

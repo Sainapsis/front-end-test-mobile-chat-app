@@ -1,0 +1,30 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Permisos para recibir notificaciones -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application>
+        <!-- Receptor de notificaciones -->
+        <receiver
+            android:name=".CustomBgTasksNotificationReceiver"
+            android:exported="true"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="com.google.firebase.messaging.DATA_MESSAGE" />
+                <action android:name="io.invertase.firebase.messaging.NOTIFICATION_RECEIVED" />
+            </intent-filter>
+        </receiver>
+        
+        <!-- Servicio para ejecución en segundo plano -->
+        <service
+            android:name=".CustomBgTasksService"
+            android:exported="false"
+            android:enabled="true"
+            android:foregroundServiceType="dataSync" />
+    </application>
+</manifest>
