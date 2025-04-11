@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  View, 
-  StyleSheet, 
-  FlatList, 
-  TextInput, 
-  Pressable, 
-  KeyboardAvoidingView, 
-  Platform
+import {
+  View,
+  StyleSheet,
+  FlatList,
+  TextInput,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
+  Image
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -19,27 +20,42 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, users, chats, sendMessage } = useAppContext();
+  const { currentUser, users, chats, sendMessage, loadChats, updateMessage, deleteMessage   } = useAppContext();
   const [messageText, setMessageText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
-  
+  const [activeEditMessage, setActiveEditMessage] = useState<string | null>(null);
+
   const chat = chats.find(c => c.id === chatId);
-  console.log('Mensajes del chat actual:', chat?.messages);
-  
+
   const chatParticipants = chat?.participants
     .filter(id => id !== currentUser?.id)
     .map(id => users.find(user => user.id === id))
     .filter(Boolean) || [];
-  
-  const chatName = chatParticipants.length === 1 
-    ? chatParticipants[0]?.name 
+
+  const chatName = chatParticipants.length === 1
+    ? chatParticipants[0]?.name
     : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
 
   const handleSendMessage = () => {
     if (messageText.trim() && currentUser && chat) {
       sendMessage(chat.id, messageText.trim(), currentUser.id);
       setMessageText('');
+    }
+  };
+
+  const handleEditMessage = async (newText: string) => {
+    if (messageText.trim() && currentUser && chat && activeEditMessage) {
+      await updateMessage(chatId, activeEditMessage, { text: newText });
+      setActiveEditMessage(null);
+      setMessageText('');
+    }
+  };
+
+  const handleDelete = async (chatId: string, messageId: string) => {
+    const success = await deleteMessage(chatId, messageId);
+    if (!success) {
+      alert('No se pudo eliminar el mensaje');
     }
   };
 
@@ -50,6 +66,11 @@ export default function ChatRoomScreen() {
       }, 100);
     }
   }, [chat?.messages.length]);
+
+  useEffect(() => {
+    loadChats();
+  }, []);
+
 
   if (!chat || !currentUser) {
     return (
@@ -66,13 +87,13 @@ export default function ChatRoomScreen() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <StatusBar style="auto" />
-      <Stack.Screen 
+      <Stack.Screen
         options={{
           headerTitle: () => (
             <View style={styles.headerContainer}>
-              <Avatar 
-                user={chatParticipants[0]} 
-                size={32} 
+              <Avatar
+                user={chatParticipants[0]}
+                size={32}
                 showStatus={false}
               />
               <ThemedText type="defaultSemiBold" numberOfLines={1}>
@@ -85,27 +106,34 @@ export default function ChatRoomScreen() {
               <IconSymbol name="chevron.left" size={24} color="#007AFF" />
             </Pressable>
           ),
-        }} 
+        }}
       />
-
-      <FlatList
-        ref={flatListRef}
-        data={chat.messages}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <MessageBubble
-            message={item}
-            isCurrentUser={item.senderId === currentUser.id}
-            chatId={chat.id}
+      <Pressable style={{ flex: 1 }} onPress={() => setActiveEditMessage(null)}>
+          <FlatList
+            ref={flatListRef}
+            data={chat.messages}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <MessageBubble
+                message={item}
+                isCurrentUser={item.senderId === currentUser.id}
+                chatId={chat.id}
+                showEmojiPicker={activeEditMessage === item.id}
+                onOpenEmojiPicker={() => setActiveEditMessage(item.id)}
+                onCloseEmojiPicker={() => setActiveEditMessage(null)}
+                setMessageText={setMessageText}
+                setActiveEditMessage={setActiveEditMessage}
+                onDeleteMessage={handleDelete}
+              />
+            )}
+            contentContainerStyle={styles.messagesContainer}
+            ListEmptyComponent={() => (
+              <ThemedView style={styles.emptyContainer}>
+                <ThemedText>No messages yet. Say hello!</ThemedText>
+              </ThemedView>
+            )}
           />
-        )}
-        contentContainerStyle={styles.messagesContainer}
-        ListEmptyComponent={() => (
-          <ThemedView style={styles.emptyContainer}>
-            <ThemedText>No messages yet. Say hello!</ThemedText>
-          </ThemedView>
-        )}
-      />
+      </Pressable>
 
       <ThemedView style={styles.inputContainer}>
         <TextInput
@@ -116,11 +144,22 @@ export default function ChatRoomScreen() {
           multiline
         />
         <Pressable
-          style={[styles.sendButton, !messageText.trim() && styles.disabledButton]}
-          onPress={handleSendMessage}
+          style={[styles.sendButton,
+              !messageText.trim() && styles.disabledButton, ]}
+          onPress={async () => {
+            if (activeEditMessage) {
+              await handleEditMessage(messageText.trim());
+            } else {
+              handleSendMessage();
+            }
+          }}
           disabled={!messageText.trim()}
         >
-          <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />
+          <Image
+              source={require('@/assets/images/sendIcon.png')}
+              style={styles.sendIcon}
+              resizeMode="contain"
+          />
         </Pressable>
       </ThemedView>
     </KeyboardAvoidingView>
@@ -157,21 +196,32 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     borderTopWidth: 1,
     borderTopColor: '#E1E1E1',
+    backgroundColor: '#fff',
   },
   input: {
     flex: 1,
     borderWidth: 1,
     borderColor: '#E1E1E1',
     borderRadius: 20,
-    padding: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     maxHeight: 100,
     backgroundColor: '#F9F9F9',
   },
   sendButton: {
-    marginLeft: 10,
-    marginBottom: 5,
+    marginLeft: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  sendIcon: {
+    width: 40,
+    height: 40,
   },
   disabledButton: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
-}); 
+});

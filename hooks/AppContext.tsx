@@ -13,6 +13,12 @@ type AppContextType = {
   chats: Chat[];
   createChat: (participantIds: string[]) => Promise<Chat | null>;
   sendMessage: (chatId: string, text: string, senderId: string) => Promise<boolean>;
+  updateMessage: (
+    chatId: string,
+    messageId: string,
+    updates: Partial<Message>
+  ) => Promise<boolean>;
+  deleteMessage: (chatId: string, messageId: string) => Promise<boolean>;
   loading: boolean;
   dbInitialized: boolean;
 };
