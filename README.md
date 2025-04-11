@@ -46,4 +46,8 @@ Se probaron todos los flujos principales para garantizar su correcto funcionamie
 
 ---
 
+## Detalles técnicos
+
+Los detalles específicos de cada cambio, incluyendo las modificaciones en archivos como `ChatRoom.tsx`, `MessageBubble.tsx`, `AppContext.tsx`, y `useChatsDb.ts`, están documentados en el archivo [`IMPLEMENTATION.md`](./IMPLEMENTATION.md).
+
 Este trabajo busca ofrecer una experiencia moderna y agradable para los usuarios que utilizan la funcionalidad de chat, haciendo la aplicación más intuitiva, expresiva y adaptada a las necesidades de comunicación actuales.
