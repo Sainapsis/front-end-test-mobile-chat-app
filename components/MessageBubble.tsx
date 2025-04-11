@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { Message } from '@/hooks/useChats';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -29,12 +29,21 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
           ? [styles.selfBubble, { backgroundColor: isDark ? '#235A4A' : '#DCF8C6' }]
           : [styles.otherBubble, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }]
       ]}>
-        <ThemedText style={[
-          styles.messageText,
-          isCurrentUser && !isDark && styles.selfMessageText
-        ]}>
-          {message.text}
-        </ThemedText>
+        {message.imageUrl && (
+          <Image 
+            source={{ uri: message.imageUrl }} 
+            style={styles.image}
+            resizeMode="cover"
+          />
+        )}
+        {message.text && (
+          <ThemedText style={[
+            styles.messageText,
+            isCurrentUser && !isDark && styles.selfMessageText
+          ]}>
+            {message.text}
+          </ThemedText>
+        )}
         <View style={styles.timeContainer}>
           <ThemedText style={styles.timeText}>
             {formatTime(message.timestamp)}
@@ -70,6 +79,12 @@ const styles = StyleSheet.create({
   },
   otherBubble: {
     borderBottomLeftRadius: 4,
+  },
+  image: {
+    width: 200,
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 8,
   },
   messageText: {
     fontSize: 16,

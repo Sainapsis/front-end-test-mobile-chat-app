@@ -17,7 +17,7 @@ export async function initializeDatabase() {
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         avatar TEXT NOT NULL,
-        status TEXT NOT NULL
+        status TEXT NOT NULL DEFAULT 'offline'
       );
     `);
     
@@ -45,6 +45,12 @@ export async function initializeDatabase() {
         chat_id TEXT NOT NULL,
         sender_id TEXT NOT NULL,
         text TEXT NOT NULL,
+        image_url TEXT,
+        voice_url TEXT,
+        message_type TEXT NOT NULL DEFAULT 'text', -- text, image, voice
+        is_read INTEGER NOT NULL DEFAULT 0, -- 0: unread, 1: read
+        delivery_status TEXT NOT NULL DEFAULT 'sending', -- sending, sent, delivered, read
+        reactions TEXT, -- JSON string of reactions {userId: reaction}
         timestamp INTEGER NOT NULL,
         FOREIGN KEY (chat_id) REFERENCES chats (id)
       );

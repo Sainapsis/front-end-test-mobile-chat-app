@@ -6,10 +6,13 @@ import {
   TextInput, 
   Pressable, 
   KeyboardAvoidingView, 
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as ImagePicker from 'expo-image-picker';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -21,6 +24,7 @@ export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const { currentUser, users, chats, sendMessage } = useAppContext();
   const [messageText, setMessageText] = useState('');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
   
@@ -35,10 +39,30 @@ export default function ChatRoomScreen() {
     ? chatParticipants[0]?.name 
     : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
 
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.5,
+    });
+
+    if (!result.canceled) {
+      // Compress the image
+      const compressedImage = await manipulateAsync(
+        result.assets[0].uri,
+        [{ resize: { width: 800 } }],
+        { compress: 0.7, format: SaveFormat.JPEG }
+      );
+      setSelectedImage(compressedImage.uri);
+    }
+  };
+
   const handleSendMessage = () => {
-    if (messageText.trim() && currentUser && chat) {
-      sendMessage(chat.id, messageText.trim(), currentUser.id);
+    if ((messageText.trim() || selectedImage) && currentUser && chat) {
+      sendMessage(chat.id, messageText.trim(), currentUser.id, selectedImage);
       setMessageText('');
+      setSelectedImage(null);
     }
   };
 
@@ -106,6 +130,9 @@ export default function ChatRoomScreen() {
       />
 
       <ThemedView style={styles.inputContainer}>
+        <Pressable onPress={pickImage} style={styles.mediaButton}>
+          <IconSymbol name="photo" size={24} color="#007AFF" />
+        </Pressable>
         <TextInput
           style={styles.input}
           value={messageText}
@@ -114,13 +141,25 @@ export default function ChatRoomScreen() {
           multiline
         />
         <Pressable
-          style={[styles.sendButton, !messageText.trim() && styles.disabledButton]}
+          style={[styles.sendButton, (!messageText.trim() && !selectedImage) && styles.disabledButton]}
           onPress={handleSendMessage}
-          disabled={!messageText.trim()}
+          disabled={!messageText.trim() && !selectedImage}
         >
           <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />
         </Pressable>
       </ThemedView>
+
+      {selectedImage && (
+        <ThemedView style={styles.imagePreviewContainer}>
+          <Image source={{ uri: selectedImage }} style={styles.imagePreview} />
+          <Pressable 
+            style={styles.removeImageButton}
+            onPress={() => setSelectedImage(null)}
+          >
+            <IconSymbol name="xmark.circle.fill" size={24} color="#FF3B30" />
+          </Pressable>
+        </ThemedView>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -171,5 +210,27 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.5,
+  },
+  mediaButton: {
+    marginRight: 10,
+    marginBottom: 5,
+  },
+  imagePreviewContainer: {
+    position: 'relative',
+    margin: 10,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  imagePreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 10,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'white',
+    borderRadius: 12,
   },
 }); 

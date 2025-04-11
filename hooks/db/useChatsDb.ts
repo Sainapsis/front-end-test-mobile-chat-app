@@ -7,6 +7,7 @@ export interface Message {
   id: string;
   senderId: string;
   text: string;
+  imageUrl?: string;
   timestamp: number;
 }
 
@@ -76,6 +77,7 @@ export function useChatsDb(currentUserId: string | null) {
             id: m.id,
             senderId: m.senderId,
             text: m.text,
+            imageUrl: m.imageUrl || undefined,
             timestamp: m.timestamp,
           }));
           
@@ -139,8 +141,8 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, [currentUserId]);
 
-  const sendMessage = useCallback(async (chatId: string, text: string, senderId: string) => {
-    if (!text.trim()) return false;
+  const sendMessage = useCallback(async (chatId: string, text: string, senderId: string, imageUrl?: string) => {
+    if (!text.trim() && !imageUrl) return false;
     
     try {
       const messageId = `msg${Date.now()}`;
@@ -152,6 +154,7 @@ export function useChatsDb(currentUserId: string | null) {
         chatId: chatId,
         senderId: senderId,
         text: text,
+        imageUrl: imageUrl,
         timestamp: timestamp,
       });
       
@@ -159,6 +162,7 @@ export function useChatsDb(currentUserId: string | null) {
         id: messageId,
         senderId,
         text,
+        imageUrl,
         timestamp,
       };
       

@@ -7,25 +7,25 @@ const mockUsers = [
     id: '1',
     name: 'John Doe',
     avatar: 'https://i.pravatar.cc/150?img=1',
-    status: 'online' as const,
+    status: 'online',
   },
   {
     id: '2',
     name: 'Jane Smith',
     avatar: 'https://i.pravatar.cc/150?img=2',
-    status: 'offline' as const,
+    status: 'offline',
   },
   {
     id: '3',
     name: 'Mike Johnson',
     avatar: 'https://i.pravatar.cc/150?img=3',
-    status: 'away' as const,
+    status: 'away',
   },
   {
     id: '4',
     name: 'Sarah Williams',
     avatar: 'https://i.pravatar.cc/150?img=4',
-    status: 'online' as const,
+    status: 'online',
   },
 ];
 
@@ -88,7 +88,17 @@ export async function seedDatabase() {
     // Insert users
     console.log('Seeding users...');
     for (const user of mockUsers) {
-      await db.insert(users).values(user).onConflictDoNothing();
+      try {
+        await db.insert(users).values({
+          id: user.id,
+          name: user.name,
+          avatar: user.avatar,
+          status: user.status,
+        });
+        console.log(`User ${user.name} seeded successfully`);
+      } catch (error) {
+        console.error(`Error seeding user ${user.name}:`, error);
+      }
     }
     
     // Insert chats and their relationships
