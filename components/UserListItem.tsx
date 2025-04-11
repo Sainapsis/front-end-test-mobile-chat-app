@@ -42,7 +42,9 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E1E1E1',
   },
   selectedContainer: {
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    borderWidth: 2,
+    borderColor: 'black',
+    borderRadius: 8,
   },
   infoContainer: {
     marginLeft: 12,

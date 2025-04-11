@@ -186,7 +186,6 @@ export function useChatsDb(currentUserId: string | null) {
     updates: Partial<Message>
 
   ): Promise<boolean> => {
-      console.log('Updates recibidos:', updates);
     try {
       setUserChats(prevChats => {
         return prevChats.map(chat => {
@@ -232,7 +231,6 @@ export function useChatsDb(currentUserId: string | null) {
         .where(eq(messages.id, messageId));
 
       const updated = await db.select().from(messages).where(eq(messages.id, messageId));
-      console.log('Mensaje desde DB:', updated);
 
       return true;
     } catch (error) {

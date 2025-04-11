@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FlatList, StyleSheet, Pressable, Modal } from 'react-native';
+import { FlatList, StyleSheet, Pressable, Modal, Image } from 'react-native';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -11,21 +11,22 @@ export default function ChatsScreen() {
   const { currentUser, users, chats, createChat } = useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const toggleUserSelection = (userId: string) => {
-    if (selectedUsers.includes(userId)) {
-      setSelectedUsers(selectedUsers.filter(id => id !== userId));
+    if (selectedUserId === userId) {
+      setSelectedUserId(null);
     } else {
-      setSelectedUsers([...selectedUsers, userId]);
+      setSelectedUserId(userId);
     }
   };
 
   const handleCreateChat = () => {
-    if (currentUser && selectedUsers.length > 0) {
-      const participants = [currentUser.id, ...selectedUsers];
+    if (currentUser && selectedUserId) {
+      const participants = [currentUser.id, selectedUserId];
       createChat(participants);
       setModalVisible(false);
-      setSelectedUsers([]);
+      setSelectedUserId(null);
     }
   };
 
@@ -36,6 +37,18 @@ export default function ChatsScreen() {
     </ThemedView>
   );
 
+  const doesChatExist = () => {
+    if (!currentUser || !selectedUserId) return false;
+
+    const selectedSet = new Set([currentUser.id, selectedUserId]);
+
+    return chats.some(chat => {
+      const chatSet = new Set(chat.participants);
+      return chatSet.size === selectedSet.size &&
+             [...chatSet].every(id => selectedSet.has(id));
+    });
+  };
+
   return (
     <ThemedView style={styles.container}>
       <ThemedView style={styles.header}>
@@ -44,7 +57,11 @@ export default function ChatsScreen() {
           style={styles.newChatButton}
           onPress={() => setModalVisible(true)}
         >
-          <IconSymbol name="plus" size={24} color="#007AFF" />
+          <Image
+            source={require('@/assets/images/addIcon.png')}
+            style={styles.addIcon}
+            resizeMode="contain"
+          />
         </Pressable>
       </ThemedView>
 
@@ -94,7 +111,7 @@ export default function ChatsScreen() {
                 <UserListItem
                   user={item}
                   onSelect={() => toggleUserSelection(item.id)}
-                  isSelected={selectedUsers.includes(item.id)}
+                  isSelected={selectedUserId === item.id}
                 />
               )}
               style={styles.userList}
@@ -103,14 +120,23 @@ export default function ChatsScreen() {
             <Pressable
               style={[
                 styles.createButton,
-                selectedUsers.length === 0 && styles.disabledButton
+                (!selectedUserId || doesChatExist()) && styles.disabledButton
               ]}
               onPress={handleCreateChat}
-              disabled={selectedUsers.length === 0}
+              disabled={!selectedUserId || doesChatExist()}
             >
               <ThemedText style={styles.createButtonText}>
-                Create Chat
+                {doesChatExist() ? 'Chat Already Exists' : 'Create Chat'}
               </ThemedText>
+            </Pressable>
+            <Pressable
+              style={styles.cancelButton}
+              onPress={() => {
+                setModalVisible(false);
+                setSelectedUserId(null);
+              }}
+            >
+              <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
             </Pressable>
           </ThemedView>
         </ThemedView>
@@ -139,6 +165,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0, 122, 255, 0.1)',
   },
+  addIcon: {
+      width: 40,
+      height: 40,
+    },
   listContainer: {
     flexGrow: 1,
   },
@@ -184,7 +214,7 @@ const styles = StyleSheet.create({
     maxHeight: 400,
   },
   createButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#000000',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
@@ -194,7 +224,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#CCCCCC',
   },
   createButtonText: {
-    color: 'white',
+    color: '#fff',
     fontWeight: 'bold',
   },
+  cancelButton: {
+    backgroundColor: '#FFFFFF',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#000000',
+  },
+  cancelButtonText: {
+    color: '#000000',
+    fontWeight: 'bold',
+  },
+
 });
