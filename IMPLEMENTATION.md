@@ -86,6 +86,20 @@
   - En `MessageBubble.tsx`, se añadieron estilos para el menú contextual (`emojiPickerInline`), el botón de reacción (`reactionButton`) y las acciones (`actionButton`).
 - **Razón**: Mejorar la apariencia y usabilidad de las nuevas funcionalidades.
 
+### 8. Mejora en la creación de chats desde la pantalla principal
+- **Descripción**: Se mejoró la funcionalidad para iniciar nuevas conversaciones desde la pantalla principal de chats, permitiendo seleccionar múltiples usuarios y mostrando un modal con la lista de usuarios disponibles.
+- **Detalles técnicos**:
+  - En ChatsScreen (index.tsx):
+    - Se añadió un modal que permite seleccionar usuarios para iniciar una nueva conversación grupal.
+    - Se agregó el estado modalVisible para controlar la visibilidad del modal.
+    - Se implementó selectedUsers como estado para rastrear los usuarios seleccionados.
+    - Se añadió la función toggleUserSelection para alternar la selección de usuarios.
+    - Se implementó handleCreateChat para crear un nuevo chat con los participantes seleccionados usando createChat del contexto.
+    - Se actualizó el botón de acción en la cabecera para mostrar el modal al presionar "+".
+    - Se reutilizó el componente UserListItem para mostrar la lista de usuarios disponibles dentro del modal.
+    - Se mantuvo el diseño modular utilizando FlatList, ThemedView, ThemedText y IconSymbol.
+- **Razón**: Facilitar la creación de nuevos chats desde la pantalla principal, mejorando la experiencia del usuario y la navegación de la app.
+
 ## Decisiones de diseño
 - **Simplicidad**: Se priorizó mantener el código limpio y modular, utilizando funciones separadas para cada acción (enviar, editar, eliminar, reaccionar).
 - **Reutilización**: Se extendió el componente `MessageBubble` para manejar las nuevas funcionalidades sin duplicar lógica.
@@ -100,9 +114,3 @@
 - Verificación de la columna `reaction` en la base de datos.
 - Carga inicial de chats.
 - Verificación de la interfaz en diferentes dispositivos y tamaños de pantalla.
-
-## Posibles mejoras futuras
-- Implementar confirmaciones antes de eliminar mensajes.
-- Añadir soporte para deshacer la eliminación de mensajes.
-- Optimizar el rendimiento al manejar grandes cantidades de mensajes.
-- Permitir reacciones personalizadas con un selector completo de emojis.
