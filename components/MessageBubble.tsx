@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { Message } from '@/hooks/useChats';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useThemeColor } from '@/hooks/useThemeColor';
 
 interface MessageBubbleProps {
   message: Message;
@@ -12,6 +13,8 @@ interface MessageBubbleProps {
 export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const bubbleColor = useThemeColor({}, isCurrentUser ? 'selfBubble' : 'otherBubble');
+  const bubbleTextColor = useThemeColor({}, 'bubbleText');
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -25,13 +28,12 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
     ]}>
       <View style={[
         styles.bubble,
-        isCurrentUser 
-          ? [styles.selfBubble, { backgroundColor: isDark ? '#235A4A' : '#DCF8C6' }]
-          : [styles.otherBubble, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }]
+        isCurrentUser ? styles.selfBubble : styles.otherBubble,
+        { backgroundColor: bubbleColor }
       ]}>
         <ThemedText style={[
           styles.messageText,
-          isCurrentUser && !isDark && styles.selfMessageText
+          { color: bubbleTextColor }
         ]}>
           {message.text}
         </ThemedText>
@@ -73,9 +75,6 @@ const styles = StyleSheet.create({
   },
   messageText: {
     fontSize: 16,
-  },
-  selfMessageText: {
-    color: '#000000',
   },
   timeContainer: {
     flexDirection: 'row',

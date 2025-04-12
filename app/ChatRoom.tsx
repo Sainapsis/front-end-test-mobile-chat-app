@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { 
   View, 
   StyleSheet, 
@@ -8,7 +8,7 @@ import {
   KeyboardAvoidingView, 
   Platform
 } from 'react-native';
-import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
+import { useLocalSearchParams, Stack, useRouter, useNavigation } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
@@ -16,6 +16,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { MessageBubble } from '@/components/MessageBubble';
 import { Avatar } from '@/components/Avatar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { useThemeColor } from '@/hooks/useThemeColor';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
@@ -23,6 +24,15 @@ export default function ChatRoomScreen() {
   const [messageText, setMessageText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
+  const navigation = useNavigation();
+
+  const tintColor = useThemeColor({}, 'tint');
+  const iconColor = useThemeColor({}, 'icon');
+  const borderColor = useThemeColor({}, 'border');
+  const inputBgColor = useThemeColor({}, 'inputBackground');
+  const bgColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const placeholderColor = useThemeColor({}, 'placeholder');
   
   const chat = chats.find(c => c.id === chatId);
   
@@ -58,35 +68,34 @@ export default function ChatRoomScreen() {
     );
   }
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: () => (
+        <View style={styles.headerContainer}>
+          <Avatar 
+            user={chatParticipants[0]} 
+            size={32} 
+            showStatus={false}
+          />
+          <ThemedText type="defaultSemiBold" numberOfLines={1}>
+            {chatName}
+          </ThemedText>
+        </View>
+      ),
+      headerLeft: () => (
+        <Pressable onPress={() => {console.log('Going back'); router.back();}}>
+          <IconSymbol name="chevron.left" size={24} color={tintColor} />
+        </Pressable>
+      ),
+    });
+  }, [navigation]);
+
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: bgColor }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      <StatusBar style="auto" />
-      <Stack.Screen 
-        options={{
-          headerTitle: () => (
-            <View style={styles.headerContainer}>
-              <Avatar 
-                user={chatParticipants[0]} 
-                size={32} 
-                showStatus={false}
-              />
-              <ThemedText type="defaultSemiBold" numberOfLines={1}>
-                {chatName}
-              </ThemedText>
-            </View>
-          ),
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()}>
-              <IconSymbol name="chevron.left" size={24} color="#007AFF" />
-            </Pressable>
-          ),
-        }} 
-      />
-
       <FlatList
         ref={flatListRef}
         data={chat.messages}
@@ -105,9 +114,10 @@ export default function ChatRoomScreen() {
         )}
       />
 
-      <ThemedView style={styles.inputContainer}>
+      <ThemedView style={[styles.inputContainer, { borderTopColor: borderColor }]}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { borderColor: borderColor, backgroundColor: inputBgColor, color: textColor }]}
+          placeholderTextColor={placeholderColor}
           value={messageText}
           onChangeText={setMessageText}
           placeholder="Type a message..."
@@ -118,7 +128,7 @@ export default function ChatRoomScreen() {
           onPress={handleSendMessage}
           disabled={!messageText.trim()}
         >
-          <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />
+          <IconSymbol name="arrow.up.circle.fill" size={32} color={iconColor} />
         </Pressable>
       </ThemedView>
     </KeyboardAvoidingView>
@@ -154,20 +164,21 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: 'flex-end',
     borderTopWidth: 1,
-    borderTopColor: '#E1E1E1',
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#E1E1E1',
     borderRadius: 20,
     padding: 10,
     maxHeight: 100,
-    backgroundColor: '#F9F9F9',
   },
   sendButton: {
     marginLeft: 10,
     marginBottom: 5,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   disabledButton: {
     opacity: 0.5,
