@@ -465,14 +465,16 @@ export default function ChatRoomScreen() {
         }}
       />
 
-      {/* Componente de métricas - ahora directamente sin contenedor extra */}
-      <PerformanceMonitor
-        initiallyVisible={true}
-        screenName={`chat-${chatId}`}
-        itemCount={visibleMessages.length}
-        itemLabel="Mensajes"
-        absolutePosition={true}
-      />
+      {/* Contenedor para métricas con posición normal en el flujo */}
+      <ThemedView style={styles.metricsContainer}>
+        <PerformanceMonitor
+          initiallyVisible={true}
+          screenName={`chat-${chatId}`}
+          itemCount={visibleMessages.length}
+          itemLabel="Mensajes"
+          absolutePosition={false}
+        />
+      </ThemedView>
 
       <FlatList
         ref={flatListRef}
@@ -604,5 +606,10 @@ const styles = StyleSheet.create({
   buttonContainer: {
     padding: 5,
     alignItems: 'center',
+  },
+  metricsContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginVertical: 5,
   },
 }); 

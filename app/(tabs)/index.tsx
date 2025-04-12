@@ -160,14 +160,16 @@ export default function ChatsScreen() {
         </Pressable>
       </ThemedView>
 
-      {/* Performance Monitor integrado en el flujo normal */}
-      <PerformanceMonitor
-        initiallyVisible={true}
-        screenName="chats-list"
-        itemCount={chats.length}
-        itemLabel="Chats"
-        absolutePosition={true}
-      />
+      {/* Performance Monitor integrado en el flujo normal (no position absolute) */}
+      <ThemedView style={styles.performanceContainer}>
+        <PerformanceMonitor
+          initiallyVisible={true}
+          screenName="chats-list"
+          itemCount={chats.length}
+          itemLabel="Chats"
+          absolutePosition={false}
+        />
+      </ThemedView>
 
       {/* Botón para reinicializar la base de datos (posición absoluta) */}
       <DatabaseInitializer onComplete={() => {
@@ -343,5 +345,10 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 12,
+  },
+  performanceContainer: {
+    marginBottom: 10,
+    width: '100%',
+    alignItems: 'center',
   },
 });

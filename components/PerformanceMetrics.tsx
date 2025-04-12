@@ -51,24 +51,24 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
 
             <View style={styles.metricsContainer}>
                 <ThemedText style={styles.metricText}>
-                    FPS: {metrics.fps}
+                    FPS: <ThemedText style={styles.valueText}>{metrics.fps}</ThemedText>
                 </ThemedText>
 
                 <ThemedText style={styles.metricText}>
-                    Render: {metrics.renderTime.toFixed(2)}ms
+                    Render: <ThemedText style={styles.valueText}>{metrics.renderTime.toFixed(2)}ms</ThemedText>
                 </ThemedText>
 
                 <ThemedText style={styles.metricText}>
-                    {itemLabel}: {metrics.itemCount}
+                    {itemLabel}: <ThemedText style={styles.valueText}>{metrics.itemCount}</ThemedText>
                 </ThemedText>
 
                 <ThemedText style={styles.metricText}>
-                    Repaint/s: {metrics.repaintCount}
+                    Repaint/s: <ThemedText style={styles.valueText}>{metrics.repaintCount}</ThemedText>
                 </ThemedText>
 
                 {metrics.memoryUsage > 0 && (
                     <ThemedText style={styles.metricText}>
-                        Memoria: {metrics.memoryUsage}MB
+                        Mem: <ThemedText style={styles.valueText}>{metrics.memoryUsage}MB</ThemedText>
                     </ThemedText>
                 )}
             </View>
@@ -79,6 +79,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 8,
+        paddingVertical: 6,
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 8,
@@ -86,12 +87,14 @@ const styles = StyleSheet.create({
         width: '95%',
         zIndex: 9999,
         elevation: 9999,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.1)',
     },
     containerLight: {
-        backgroundColor: 'rgba(0, 122, 255, 0.2)',
+        backgroundColor: 'rgba(0, 122, 255, 0.25)',
     },
     containerDark: {
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
     },
     headerRow: {
         flexDirection: 'row',
@@ -99,23 +102,28 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         width: '100%',
         paddingHorizontal: 8,
-        marginBottom: 6,
+        marginBottom: 4,
     },
     title: {
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: '600',
     },
     refreshButton: {
-        padding: 5,
+        padding: 4,
     },
     metricsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'center',
-        gap: 10,
+        gap: 8,
     },
     metricText: {
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: '500',
+    },
+    valueText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#007AFF',
     }
 }); 
