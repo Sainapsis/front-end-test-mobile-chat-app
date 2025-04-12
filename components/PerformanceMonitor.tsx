@@ -25,7 +25,6 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = memo(({
     screenName = 'Unknown',
     absolutePosition = false
 }) => {
-    const [visible, setVisible] = useState(initiallyVisible);
     const [key, setKey] = useState(0); // Key para forzar la recreación de las métricas
 
     // Resetea las métricas al cambiar de pantalla
@@ -49,22 +48,6 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = memo(({
                 itemLabel={itemLabel}
                 onRefresh={resetMetrics}
             />
-            <View style={styles.contentContainer}>
-
-
-
-
-                <Pressable
-                    style={styles.toggleButton}
-                    onPress={() => setVisible(!visible)}
-                >
-                    <IconSymbol
-                        name={visible ? "minus.circle.fill" : "plus.circle.fill"}
-                        size={18}
-                        color="#007AFF"
-                    />
-                </Pressable>
-            </View>
         </View>
     );
 });
@@ -72,7 +55,8 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = memo(({
 const styles = StyleSheet.create({
     container: {
         width: '100%',
-        zIndex: 1000,
+        zIndex: 9999,
+        elevation: 9999,
         alignItems: 'center',
         marginTop: 10,
         marginBottom: 5,
@@ -83,7 +67,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         marginTop: 0,
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
         shadowColor: "#000",
         shadowOffset: {
             width: 0,
@@ -91,7 +75,8 @@ const styles = StyleSheet.create({
         },
         shadowOpacity: 0.25,
         shadowRadius: 3.84,
-        elevation: 5,
+        elevation: 9999,
+        zIndex: 9999,
     },
     contentContainer: {
         alignItems: 'center',

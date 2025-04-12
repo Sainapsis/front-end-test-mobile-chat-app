@@ -79,19 +79,19 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 8,
-
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 8,
         marginHorizontal: 10,
-
         width: '95%',
+        zIndex: 9999,
+        elevation: 9999,
     },
     containerLight: {
-        backgroundColor: 'rgba(0, 122, 255, 0.1)',
+        backgroundColor: 'rgba(0, 122, 255, 0.2)',
     },
     containerDark: {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
     },
     headerRow: {
         flexDirection: 'row',

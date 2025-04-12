@@ -9,7 +9,10 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "jest --watchAll",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "db:studio": "npx drizzle-kit studio",
+    "db:generate": "npx drizzle-kit generate:sqlite",
+    "db:push": "npx drizzle-kit push:sqlite"
   },
   "jest": {
     "preset": "jest-expo"
@@ -49,6 +52,8 @@
     "@types/jest": "^29.5.12",
     "@types/react": "~18.3.12",
     "@types/react-test-renderer": "^18.3.0",
+    "babel-plugin-module-resolver": "^5.0.2",
+    "expo-drizzle-studio-plugin": "^0.1.2",
     "jest": "^29.2.1",
     "jest-expo": "~52.0.6",
     "react-test-renderer": "18.3.1",
