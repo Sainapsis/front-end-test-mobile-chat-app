@@ -120,6 +120,21 @@ export default function ChatRoomScreen() {
         showsVerticalScrollIndicator={true}
         onContentSizeChange={scrollToBottom}
         onLayout={scrollToBottom}
+
+        // Performance optimizations
+        windowSize={10}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
+        removeClippedSubviews={true}
+        initialNumToRender={15}
+
+        // Estimate each message height to be about 80 points - this improves scrolling performance
+        getItemLayout={(data, index) => ({
+          length: 80,
+          offset: 80 * index,
+          index,
+        })}
+
         ListEmptyComponent={() => (
           <ThemedView style={styles.emptyContainer}>
             <ThemedText>No messages yet. Say hello!</ThemedText>

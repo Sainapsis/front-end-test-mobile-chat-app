@@ -60,6 +60,20 @@ export default function ChatsScreen() {
         )}
         ListEmptyComponent={renderEmptyComponent}
         contentContainerStyle={styles.listContainer}
+
+        // Performance optimizations
+        windowSize={5}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
+        removeClippedSubviews={true}
+        initialNumToRender={10}
+
+        // Estimate each chat row height to be about 76 points
+        getItemLayout={(data, index) => ({
+          length: 76,
+          offset: 76 * index,
+          index,
+        })}
       />
 
       <Modal
@@ -98,6 +112,20 @@ export default function ChatsScreen() {
                 />
               )}
               style={styles.userList}
+
+              // Performance optimizations
+              windowSize={5}
+              maxToRenderPerBatch={10}
+              updateCellsBatchingPeriod={50}
+              removeClippedSubviews={true}
+              initialNumToRender={10}
+
+              // Estimate each user row height to be about 60 points
+              getItemLayout={(data, index) => ({
+                length: 60,
+                offset: 60 * index,
+                index,
+              })}
             />
 
             <Pressable
