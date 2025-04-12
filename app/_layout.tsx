@@ -9,6 +9,7 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AppProvider, useAppContext } from '@/hooks/AppContext';
 import { DrizzleStudioDevTool } from '@/database/DrizzleStudio';
+import { DatabaseProvider } from '@/database/DatabaseProvider';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -74,10 +75,12 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AppProvider>
-        <RootLayoutNav />
-        <StatusBar style="auto" />
-      </AppProvider>
+      <DatabaseProvider>
+        <AppProvider>
+          <RootLayoutNav />
+          <StatusBar style="auto" />
+        </AppProvider>
+      </DatabaseProvider>
     </ThemeProvider>
   );
 }

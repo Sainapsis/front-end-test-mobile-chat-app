@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../database/db';
 import { chats, chatParticipants, messages } from '../../database/schema';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 
 export interface Message {
   id: string;
@@ -9,6 +9,8 @@ export interface Message {
   text: string;
   imageUrl?: string;
   timestamp: number;
+  delivery_status: 'sending' | 'sent' | 'delivered' | 'read';
+  is_read: boolean;
 }
 
 export interface Chat {
@@ -79,6 +81,8 @@ export function useChatsDb(currentUserId: string | null) {
             text: m.text,
             imageUrl: m.imageUrl || undefined,
             timestamp: m.timestamp,
+            delivery_status: m.deliveryStatus as Message['delivery_status'],
+            is_read: m.isRead === 1,
           }));
           
           // Determine last message
@@ -148,7 +152,7 @@ export function useChatsDb(currentUserId: string | null) {
       const messageId = `msg${Date.now()}`;
       const timestamp = Date.now();
       
-      // Insert new message
+      // Insert new message with initial delivery status
       await db.insert(messages).values({
         id: messageId,
         chatId: chatId,
@@ -156,6 +160,8 @@ export function useChatsDb(currentUserId: string | null) {
         text: text,
         imageUrl: imageUrl,
         timestamp: timestamp,
+        deliveryStatus: 'sending',
+        isRead: 0,
       });
       
       const newMessage: Message = {
@@ -164,6 +170,8 @@ export function useChatsDb(currentUserId: string | null) {
         text,
         imageUrl,
         timestamp,
+        delivery_status: 'sending',
+        is_read: false,
       };
       
       // Update state
@@ -179,6 +187,33 @@ export function useChatsDb(currentUserId: string | null) {
           return chat;
         });
       });
+
+      // Simulate message delivery
+      setTimeout(async () => {
+        await db.update(messages)
+          .set({ deliveryStatus: 'sent' })
+          .where(eq(messages.id, messageId));
+
+        setUserChats(prevChats => {
+          return prevChats.map(chat => {
+            if (chat.id === chatId) {
+              const updatedMessages = chat.messages.map(msg => 
+                msg.id === messageId 
+                  ? { ...msg, delivery_status: 'delivered' as const }
+                  : msg
+              );
+              return {
+                ...chat,
+                messages: updatedMessages,
+                lastMessage: chat.lastMessage?.id === messageId
+                  ? { ...chat.lastMessage, delivery_status: 'delivered' as const }
+                  : chat.lastMessage,
+              };
+            }
+            return chat;
+          });
+        });
+      }, 1000);
       
       return true;
     } catch (error) {
@@ -187,10 +222,61 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  const markMessagesAsRead = useCallback(async (chatId: string, userId: string) => {
+    try {
+      // Update all messages in the database that were sent by the other user
+      await db.update(messages)
+        .set({ 
+          isRead: 1,
+          deliveryStatus: 'read'
+        })
+        .where(
+          and(
+            eq(messages.chatId, chatId),
+            eq(messages.senderId, userId)
+          )
+        );
+
+      // Update the local state
+      setUserChats(prevChats => {
+        return prevChats.map(chat => {
+          if (chat.id === chatId) {
+            const updatedMessages = chat.messages.map(msg => {
+              if (msg.senderId === userId) {
+                return {
+                  ...msg,
+                  is_read: true,
+                  delivery_status: 'read' as const,
+                };
+              }
+              return msg;
+            });
+
+            return {
+              ...chat,
+              messages: updatedMessages,
+              lastMessage: chat.lastMessage?.senderId === userId
+                ? {
+                    ...chat.lastMessage,
+                    is_read: true,
+                    delivery_status: 'read' as const,
+                  }
+                : chat.lastMessage,
+            };
+          }
+          return chat;
+        });
+      });
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+    }
+  }, []);
+
   return {
     chats: userChats,
     createChat,
     sendMessage,
+    markMessagesAsRead,
     loading,
   };
 } 

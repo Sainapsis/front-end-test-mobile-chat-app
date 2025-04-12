@@ -3,19 +3,19 @@ import { useUser, User } from './useUser';
 import { useChats, Chat } from './useChats';
 import { DatabaseProvider } from '../database/DatabaseProvider';
 import { useDatabase } from './useDatabase';
+import { useChatsDb } from './db/useChatsDb';
 
-type AppContextType = {
-  users: User[];
+export interface AppContextType {
   currentUser: User | null;
+  users: User[];
+  chats: Chat[];
+  sendMessage: (chatId: string, text: string, senderId: string, imageUrl?: string) => Promise<boolean>;
+  markMessagesAsRead: (chatId: string, userId: string) => Promise<void>;
+  loading: boolean;
   isLoggedIn: boolean;
   login: (userId: string) => Promise<boolean>;
   logout: () => void;
-  chats: Chat[];
-  createChat: (participantIds: string[]) => Promise<Chat | null>;
-  sendMessage: (chatId: string, text: string, senderId: string) => Promise<boolean>;
-  loading: boolean;
-  dbInitialized: boolean;
-};
+}
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -37,10 +37,23 @@ function AppContent({ children }: { children: ReactNode }) {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const { currentUser, users, isLoggedIn, login, logout } = useUser();
+  const { chats, sendMessage, markMessagesAsRead, loading } = useChatsDb(currentUser?.id || null);
+
   return (
-    <DatabaseProvider>
-      <AppContent>{children}</AppContent>
-    </DatabaseProvider>
+    <AppContext.Provider value={{ 
+      currentUser, 
+      users, 
+      chats, 
+      sendMessage, 
+      markMessagesAsRead, 
+      loading,
+      isLoggedIn,
+      login,
+      logout
+    }}>
+      {children}
+    </AppContext.Provider>
   );
 }
 

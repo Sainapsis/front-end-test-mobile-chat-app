@@ -3,6 +3,7 @@ import { View, StyleSheet, Image } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { Message } from '@/hooks/useChats';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { IconSymbol } from './ui/IconSymbol';
 
 interface MessageBubbleProps {
   message: Message;
@@ -16,6 +17,34 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+  const getDeliveryStatusIcon = () => {
+    if (!isCurrentUser) return null;
+
+    if (message.is_read) {
+      return (
+        <View style={styles.doubleCheck}>
+          <IconSymbol name="checkmark" size={12} color="#34C759" />
+          <IconSymbol name="checkmark" size={12} color="#34C759" />
+        </View>
+      );
+    }
+    
+    switch (message.delivery_status) {
+      case 'sending':
+        return <IconSymbol name="clock" size={12} color={isDark ? '#8F8F8F' : '#666666'} />;
+      case 'sent':
+        return <IconSymbol name="checkmark" size={12} color={isDark ? '#8F8F8F' : '#666666'} />;
+      case 'delivered':
+        return (
+          <View style={styles.doubleCheck}>
+            <IconSymbol name="checkmark" size={12} color={isDark ? '#8F8F8F' : '#666666'} />
+            <IconSymbol name="checkmark" size={12} color={isDark ? '#8F8F8F' : '#666666'} />
+          </View>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -48,6 +77,11 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
           <ThemedText style={styles.timeText}>
             {formatTime(message.timestamp)}
           </ThemedText>
+          {isCurrentUser && (
+            <View style={styles.statusContainer}>
+              {getDeliveryStatusIcon()}
+            </View>
+          )}
         </View>
       </View>
     </View>
@@ -71,7 +105,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     elevation: 1,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
     shadowRadius: 1,
   },
   selfBubble: {
@@ -95,10 +128,19 @@ const styles = StyleSheet.create({
   timeContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    alignItems: 'center',
     marginTop: 2,
   },
   timeText: {
     fontSize: 11,
     opacity: 0.7,
+    marginRight: 4,
+  },
+  statusContainer: {
+    marginLeft: 4,
+  },
+  doubleCheck: {
+    flexDirection: 'row',
+    gap: 2,
   },
 }); 

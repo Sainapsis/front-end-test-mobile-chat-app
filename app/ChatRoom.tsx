@@ -22,14 +22,13 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, users, chats, sendMessage } = useAppContext();
+  const { currentUser, users, chats, sendMessage, markMessagesAsRead } = useAppContext();
   const [messageText, setMessageText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
   
   const chat = chats.find(c => c.id === chatId);
-  
   const chatParticipants = chat?.participants
     .filter(id => id !== currentUser?.id)
     .map(id => users.find(user => user.id === id))
@@ -38,6 +37,25 @@ export default function ChatRoomScreen() {
   const chatName = chatParticipants.length === 1 
     ? chatParticipants[0]?.name 
     : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
+
+  // Mark messages as read when chat is opened
+  useEffect(() => {
+    if (chat && currentUser) {
+      // Find messages that were sent by the other user and are not read
+      const unreadMessages = chat.messages.filter(
+        msg => msg.senderId !== currentUser.id && 
+        !msg.is_read && 
+        (msg.delivery_status === 'sent' || msg.delivery_status === 'delivered')
+      );
+      
+      // If there are unread messages, mark them as read
+      if (unreadMessages.length > 0) {
+        // Get the sender ID of the unread messages (should be the same for all)
+        const senderId = unreadMessages[0].senderId;
+        markMessagesAsRead(chat.id, senderId);
+      }
+    }
+  }, [chat, currentUser, markMessagesAsRead]);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -60,7 +78,7 @@ export default function ChatRoomScreen() {
 
   const handleSendMessage = () => {
     if ((messageText.trim() || selectedImage) && currentUser && chat) {
-      sendMessage(chat.id, messageText.trim(), currentUser.id, selectedImage);
+      sendMessage(chat.id, messageText.trim(), currentUser.id, selectedImage || undefined);
       setMessageText('');
       setSelectedImage(null);
     }
