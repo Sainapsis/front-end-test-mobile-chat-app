@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useAppContext } from '@/hooks/AppContext';
+import { useChatRoom } from '@/hooks/useChatRoom';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { MessageBubble } from '@/components/MessageBubble';
@@ -19,38 +19,27 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, users, chats, sendMessage } = useAppContext();
+  const {
+    messages,
+    otherParticipants,
+    chatName,
+    currentUser,
+    sendMessage,
+    isLoading
+  } = useChatRoom(chatId);
+
   const [messageText, setMessageText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
 
-  const chat = chats.find(c => c.id === chatId);
-
-  const chatParticipants = chat?.participants
-    .filter(id => id !== currentUser?.id)
-    .map(id => users.find(user => user.id === id))
-    .filter(Boolean) || [];
-
-  const chatName = chatParticipants.length === 1
-    ? chatParticipants[0]?.name
-    : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
-
-  const handleSendMessage = () => {
-    if (messageText.trim() && currentUser && chat) {
-      sendMessage(chat.id, messageText.trim(), currentUser.id);
+  const handleSendMessage = useCallback(() => {
+    if (messageText.trim() && currentUser) {
+      sendMessage(messageText.trim());
       setMessageText('');
       // Scroll to the bottom after sending a message
       setTimeout(scrollToBottom, 100);
     }
-  };
-
-  useEffect(() => {
-    if (chat?.messages.length && flatListRef.current) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }
-  }, [chat?.messages.length]);
+  }, [messageText, currentUser, sendMessage]);
 
   // Scroll to bottom when a new message is added
   const scrollToBottom = useCallback(() => {
@@ -61,14 +50,61 @@ export default function ChatRoomScreen() {
 
   // Scroll when messages update
   useEffect(() => {
-    if (chat?.messages.length) {
+    if (messages.length) {
       // Small delay to ensure the list is rendered
       const timer = setTimeout(scrollToBottom, 100);
       return () => clearTimeout(timer);
     }
-  }, [chat?.messages.length, scrollToBottom]);
+  }, [messages.length, scrollToBottom]);
 
-  if (!chat || !currentUser) {
+  // Memoize the empty component to prevent re-renders
+  const EmptyComponent = useCallback(() => (
+    <ThemedView style={styles.emptyContainer}>
+      <ThemedText>No messages yet. Say hello!</ThemedText>
+    </ThemedView>
+  ), []);
+
+  // Memoize the header component
+  const HeaderTitle = useCallback(() => (
+    <View style={styles.headerContainer}>
+      <Avatar
+        user={otherParticipants[0]}
+        size={32}
+        showStatus={false}
+      />
+      <ThemedText type="defaultSemiBold" numberOfLines={1}>
+        {chatName}
+      </ThemedText>
+    </View>
+  ), [otherParticipants, chatName]);
+
+  // Memoize the back button
+  const HeaderLeft = useCallback(() => (
+    <Pressable onPress={() => router.back()}>
+      <IconSymbol name="chevron.left" size={24} color="#007AFF" />
+    </Pressable>
+  ), [router]);
+
+  // Memoize the renderItem function
+  const renderMessage = useCallback(({ item }: { item: any }) => (
+    <MessageBubble
+      message={item}
+      isCurrentUser={item.senderId === currentUser?.id}
+    />
+  ), [currentUser?.id]);
+
+  // Optimize keyExtractor function
+  const keyExtractor = useCallback((item: any) => item.id, []);
+
+  if (isLoading || !currentUser) {
+    return (
+      <ThemedView style={styles.centerContainer}>
+        <ThemedText>Loading chat...</ThemedText>
+      </ThemedView>
+    );
+  }
+
+  if (!messages && !isLoading) {
     return (
       <ThemedView style={styles.centerContainer}>
         <ThemedText>Chat not found</ThemedText>
@@ -85,36 +121,16 @@ export default function ChatRoomScreen() {
       <StatusBar style="auto" />
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <View style={styles.headerContainer}>
-              <Avatar
-                user={chatParticipants[0]}
-                size={32}
-                showStatus={false}
-              />
-              <ThemedText type="defaultSemiBold" numberOfLines={1}>
-                {chatName}
-              </ThemedText>
-            </View>
-          ),
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()}>
-              <IconSymbol name="chevron.left" size={24} color="#007AFF" />
-            </Pressable>
-          ),
+          headerTitle: HeaderTitle,
+          headerLeft: HeaderLeft,
         }}
       />
 
       <FlatList
         ref={flatListRef}
-        data={chat.messages}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <MessageBubble
-            message={item}
-            isCurrentUser={item.senderId === currentUser.id}
-          />
-        )}
+        data={messages}
+        keyExtractor={keyExtractor}
+        renderItem={renderMessage}
         contentContainerStyle={styles.messagesContainer}
         inverted={false}
         showsVerticalScrollIndicator={true}
@@ -135,11 +151,7 @@ export default function ChatRoomScreen() {
           index,
         })}
 
-        ListEmptyComponent={() => (
-          <ThemedView style={styles.emptyContainer}>
-            <ThemedText>No messages yet. Say hello!</ThemedText>
-          </ThemedView>
-        )}
+        ListEmptyComponent={EmptyComponent}
       />
 
       <ThemedView style={styles.inputContainer}>
