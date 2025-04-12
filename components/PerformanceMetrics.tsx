@@ -35,7 +35,6 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
     return (
         <ThemedView style={containerStyle}>
             <View style={styles.headerRow}>
-                <ThemedText style={styles.title}>Métricas de Rendimiento</ThemedText>
                 {onRefresh && (
                     <Pressable
                         onPress={onRefresh}
@@ -80,13 +79,12 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 8,
-        paddingTop: 4,
-        paddingBottom: 12,
+
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 8,
         marginHorizontal: 10,
-        marginBottom: 10,
+
         width: '95%',
     },
     containerLight: {

@@ -9,6 +9,7 @@ interface PerformanceMonitorProps {
     itemCount: number;
     itemLabel?: string;
     screenName?: string;
+    absolutePosition?: boolean;
 }
 
 /**
@@ -21,7 +22,8 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = memo(({
     initiallyVisible = true,
     itemCount,
     itemLabel = 'Items',
-    screenName = 'Unknown'
+    screenName = 'Unknown',
+    absolutePosition = false
 }) => {
     const [visible, setVisible] = useState(initiallyVisible);
     const [key, setKey] = useState(0); // Key para forzar la recreación de las métricas
@@ -37,24 +39,20 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = memo(({
     }, []);
 
     return (
-        <View style={styles.container}>
+        <View style={[
+            styles.container,
+            absolutePosition && styles.absoluteContainer
+        ]}>
+            <PerformanceMetrics
+                key={key}
+                itemCount={itemCount}
+                itemLabel={itemLabel}
+                onRefresh={resetMetrics}
+            />
             <View style={styles.contentContainer}>
-                {visible ? (
-                    <PerformanceMetrics
-                        key={key}
-                        itemCount={itemCount}
-                        itemLabel={itemLabel}
-                        onRefresh={resetMetrics}
-                    />
-                ) : (
-                    <Pressable
-                        style={styles.minimizedState}
-                        onPress={() => setVisible(true)}
-                    >
-                        <IconSymbol name="chart.bar.fill" size={16} color="#007AFF" />
-                        <ThemedText style={styles.minimizedText}>Ver métricas</ThemedText>
-                    </Pressable>
-                )}
+
+
+
 
                 <Pressable
                     style={styles.toggleButton}
@@ -78,6 +76,22 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 10,
         marginBottom: 5,
+    },
+    absoluteContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        marginTop: 0,
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
     },
     contentContainer: {
         alignItems: 'center',

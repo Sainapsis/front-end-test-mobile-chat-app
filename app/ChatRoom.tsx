@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { StyleSheet, FlatList, Pressable, TextInput, View, Platform, KeyboardAvoidingView } from 'react-native';
+import { StyleSheet, FlatList, Pressable, TextInput, View, Platform, KeyboardAvoidingView, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useAppContext } from '@/hooks/AppContext';
@@ -9,6 +9,7 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Avatar } from '@/components/Avatar';
 import { MessageBubble } from '@/components/MessageBubble';
 import { PerformanceMonitor } from '@/components/PerformanceMonitor';
+import { setStatusBarHidden } from 'expo-status-bar';
 
 // Componente de entrada de mensaje memoizado
 const MessageInput = React.memo(({
@@ -46,15 +47,6 @@ const MessageInput = React.memo(({
   </View>
 ));
 
-// Componente memoizado para botón de generación de mensajes masivos
-const BulkMessageGenerator = React.memo(({ onGenerate }: { onGenerate: () => void }) => (
-  <Pressable
-    onPress={onGenerate}
-    style={styles.bulkGeneratorButton}
-  >
-    <ThemedText style={styles.bulkGeneratorText}>Generar 1000 mensajes</ThemedText>
-  </Pressable>
-));
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
@@ -66,14 +58,59 @@ export default function ChatRoomScreen() {
   const [userScrolling, setUserScrolling] = useState(false);
   const lastMessagesLength = useRef(0);
   const messageSentRef = useRef(false);
+  const initialScrollRef = useRef(true);
+  const lastScrollY = useRef(0);
+  const isScrollingUp = useRef(false);
+
+  // Estado para la paginación estilo WhatsApp
+  const [visibleMessages, setVisibleMessages] = useState<any[]>([]);
+  const [messagesPerPage] = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [allLoaded, setAllLoaded] = useState(false);
 
   // Memoizar los datos del chat actual
   const chat = useMemo(() => {
     return chats.find(c => c.id === chatId) || null;
   }, [chats, chatId]);
 
-  // Memoizar los mensajes
-  const messages = useMemo(() => chat?.messages || [], [chat?.messages]);
+  // Memoizar todos los mensajes disponibles
+  const allMessages = useMemo(() => chat?.messages || [], [chat?.messages]);
+
+  // Cargar mensajes iniciales y cuando cambia la página (estilo WhatsApp)
+  useEffect(() => {
+    if (allMessages.length === 0) {
+      setVisibleMessages([]);
+      setAllLoaded(true);
+      return;
+    }
+
+    // Calcular el rango de mensajes a mostrar (los más recientes primero)
+    const totalMessages = allMessages.length;
+    const messagesToLoad = currentPage * messagesPerPage;
+
+    // Para ordenar como WhatsApp (recientes abajo):
+    // 1. Extraer los últimos 'messagesToLoad' mensajes
+    // 2. No invertir el orden para que los más antiguos estén arriba y los más recientes abajo
+    const startIndex = Math.max(0, totalMessages - messagesToLoad);
+    const paginatedMessages = allMessages.slice(startIndex);
+
+    setVisibleMessages(paginatedMessages);
+    setAllLoaded(startIndex === 0);
+  }, [allMessages, currentPage, messagesPerPage]);
+
+  // Cargar más mensajes antiguos al hacer scroll hacia arriba
+  const loadMoreMessages = useCallback(() => {
+    if (allLoaded || loadingMore) return;
+
+    setLoadingMore(true);
+
+    // Simular latencia para mostrar el indicador de carga
+    setTimeout(() => {
+      setCurrentPage(prev => prev + 1);
+      setLoadingMore(false);
+    }, 300);
+  }, [allLoaded, loadingMore]);
 
   // Memoizar la información de participantes
   const otherParticipants = useMemo(() => {
@@ -95,39 +132,57 @@ export default function ChatRoomScreen() {
     }
   }, [otherParticipants]);
 
-  // Función para desplazarse al final de la lista
+  // Función para desplazarse al final de la lista (mensajes más recientes)
+  // En una lista normal (no invertida), el final está al final
   const scrollToBottom = useCallback(() => {
-    if (flatListRef.current && messages.length > 0) {
-      flatListRef.current.scrollToEnd({ animated: true });
+    if (flatListRef.current && visibleMessages.length > 0) {
+      // Añadir un pequeño retraso para asegurar que los elementos se hayan renderizado completamente
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: false });
+        // Doble scroll para asegurar que llegue al final incluso con mensajes de altura variable
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: false });
+          // Tercer scroll con más espacio por si acaso
+          setTimeout(() => {
+            // Añadir 50 puntos adicionales al final para asegurar llegar al último mensaje
+            if (flatListRef.current) {
+              const offset = visibleMessages.length * 80 + 50; // Asumiendo altura promedio de 80
+              flatListRef.current.scrollToOffset({ offset, animated: true });
+            }
+          }, 100);
+        }, 100);
+      }, 200);
     }
-  }, [messages.length]);
+  }, [visibleMessages.length]);
 
   useEffect(() => {
     // Simular carga
     const timer = setTimeout(() => {
       setIsLoading(false);
+      // Realizar un scroll al final después de que termine la carga
+      setTimeout(scrollToBottom, 300);
     }, 500);
     return () => clearTimeout(timer);
-  }, []);
+  }, [scrollToBottom]);
 
-  // Verificar si el usuario ha mandado un mensaje, o si es carga inicial
+  // Verificar si hay nuevos mensajes
   useEffect(() => {
     // Si la cantidad de mensajes aumentó y hay nuevos mensajes...
-    if (messages.length > lastMessagesLength.current) {
+    if (allMessages.length > lastMessagesLength.current) {
       // Si el mensaje lo acaba de enviar el usuario actual, debemos desplazar al final
       if (messageSentRef.current) {
-        setTimeout(scrollToBottom, 100);
+        setTimeout(scrollToBottom, 200);
         messageSentRef.current = false;
       }
       // Si es carga inicial, también desplazamos al final
       else if (lastMessagesLength.current === 0) {
-        setTimeout(scrollToBottom, 100);
+        setTimeout(scrollToBottom, 300);
       }
     }
 
     // Actualizar referencia
-    lastMessagesLength.current = messages.length;
-  }, [messages.length, scrollToBottom]);
+    lastMessagesLength.current = allMessages.length;
+  }, [allMessages.length, scrollToBottom]);
 
   const handleSend = useCallback(() => {
     if (!message.trim() || !currentUser || !chatId) return;
@@ -137,20 +192,21 @@ export default function ChatRoomScreen() {
 
     sendMessage(chatId, message.trim(), currentUser.id);
     setMessage('');
-
-    // El scroll al final ahora lo maneja el useEffect que monitorea cambios en messages
   }, [message, currentUser, chatId, sendMessage]);
 
   // Manejadores de scroll del usuario
   const handleScrollBeginDrag = useCallback(() => {
     setUserScrolling(true);
+    initialScrollRef.current = false;
   }, []);
 
   const handleScrollEndDrag = useCallback(() => {
-    // No reseteamos inmediatamente para permitir momentum scrolling
+    // Mantener userScrolling activo durante más tiempo para evitar scrolls automáticos
     setTimeout(() => {
-      setUserScrolling(false);
-    }, 1500);
+      if (!initialScrollRef.current) {
+        setUserScrolling(false);
+      }
+    }, 2000);  // Mayor tiempo para evitar rebotes
   }, []);
 
   // Memoize the empty component to prevent re-renders
@@ -246,6 +302,21 @@ export default function ChatRoomScreen() {
     alert('¡1000 mensajes generados con éxito!');
   }, [chatId, currentUser, otherParticipants, sendMessage, scrollToBottom]);
 
+  // Detectar scroll hacia arriba y cargar más mensajes
+  const handleScroll = useCallback((event: any) => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+
+    // Determinar si el usuario está scrolleando hacia arriba
+    isScrollingUp.current = scrollY < lastScrollY.current;
+
+    // Si está scrolleando hacia arriba y llegó cerca del inicio, cargar más mensajes
+    if (isScrollingUp.current && scrollY < 100 && !loadingMore && !allLoaded) {
+      loadMoreMessages();
+    }
+
+    lastScrollY.current = scrollY;
+  }, [loadingMore, allLoaded, loadMoreMessages]);
+
   if (isLoading || !currentUser) {
     return (
       <ThemedView style={styles.centerContainer}>
@@ -254,7 +325,7 @@ export default function ChatRoomScreen() {
     );
   }
 
-  if (!messages && !isLoading) {
+  if (!visibleMessages && !isLoading) {
     return (
       <ThemedView style={styles.centerContainer}>
         <ThemedText>Chat not found</ThemedText>
@@ -279,31 +350,46 @@ export default function ChatRoomScreen() {
       <PerformanceMonitor
         initiallyVisible={true}
         screenName={`chat-${chatId}`}
-        itemCount={messages.length}
+        itemCount={visibleMessages.length}
         itemLabel="Mensajes"
+        absolutePosition={true}
       />
 
-      <BulkMessageGenerator onGenerate={generateBulkMessages} />
+      {/* Botón para generar mensajes masivos */}
+      <Pressable
+        onPress={generateBulkMessages}
+        style={styles.bulkGeneratorButton}
+      >
+        <ThemedText style={styles.bulkGeneratorText}>Generar 1000 mensajes</ThemedText>
+      </Pressable>
+
+      {loadingMore && (
+        <View style={styles.loadingMoreContainer}>
+          <ActivityIndicator size="small" color="#007AFF" />
+        </View>
+      )}
 
       <FlatList
         ref={flatListRef}
-        data={messages}
+        data={visibleMessages}
         keyExtractor={keyExtractor}
         renderItem={renderMessage}
         contentContainerStyle={styles.messagesContainer}
+
+        // Lista NO invertida para que los mensajes más recientes estén abajo (como WhatsApp)
         inverted={false}
         showsVerticalScrollIndicator={true}
 
         // Solo ejecutar scroll al final si no hay interacción de usuario
         onContentSizeChange={() => {
-          if (!userScrolling && messageSentRef.current) {
+          if (initialScrollRef.current) {
             scrollToBottom();
           }
         }}
 
-        // Solo scroll inicial
+        // Scroll inicial solo la primera vez
         onLayout={() => {
-          if (lastMessagesLength.current === 0) {
+          if (initialScrollRef.current) {
             scrollToBottom();
           }
         }}
@@ -311,16 +397,27 @@ export default function ChatRoomScreen() {
         // Detectar interacción manual con el scroll
         onScrollBeginDrag={handleScrollBeginDrag}
         onScrollEndDrag={handleScrollEndDrag}
+        onScroll={handleScroll}
+        scrollEventThrottle={16} // Para un scroll fluido
         onMomentumScrollEnd={() => {
-          setTimeout(() => setUserScrolling(false), 1000);
+          // No reactivar userScrolling=false tan rápido para evitar rebotes
+          if (!initialScrollRef.current) {
+            setTimeout(() => setUserScrolling(false), 1500);
+          }
+        }}
+
+        // Mantener posición de scroll estable
+        maintainVisibleContentPosition={{
+          minIndexForVisible: 0,
+          autoscrollToTopThreshold: 10,
         }}
 
         // Performance optimizations
-        windowSize={10}
-        maxToRenderPerBatch={10}
+        windowSize={21}           // Aumentado para que cargue más elementos alrededor
+        maxToRenderPerBatch={15}  // Aumentado para renderizar más elementos de una vez
         updateCellsBatchingPeriod={50}
-        removeClippedSubviews={true}
-        initialNumToRender={15}
+        removeClippedSubviews={false} // Desactivado para evitar problemas con elementos que desaparecen
+        initialNumToRender={20}   // Aumentado para mostrar más mensajes inicialmente
         getItemLayout={getItemLayout}
         ListEmptyComponent={EmptyComponent}
       />
@@ -353,6 +450,7 @@ const styles = StyleSheet.create({
     padding: 10,
     flexGrow: 1,
     justifyContent: 'flex-end',
+    paddingBottom: 40,
   },
   emptyContainer: {
     flex: 1,
@@ -398,5 +496,17 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 12,
+  },
+  messageCountText: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 4,
+    opacity: 0.7,
+  },
+
+  loadingMoreContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
   },
 }); 

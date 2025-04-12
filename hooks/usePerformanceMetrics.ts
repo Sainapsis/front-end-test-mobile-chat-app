@@ -27,69 +27,59 @@ export function usePerformanceMetrics(
     const lastUpdateTimeRef = useRef(Date.now());
     const renderStartTimeRef = useRef(0);
     const repaintCountRef = useRef(0);
-    const lastRepaintResetTimeRef = useRef(Date.now());
+    const renderCountInSecondRef = useRef(0);
+    const lastSecondTimestampRef = useRef(Date.now());
 
-    // Incrementar el contador de repintados y reportar repintados por segundo
-    useEffect(() => {
-        repaintCountRef.current += 1;
-
-        const now = Date.now();
-        const timeSinceLastReset = now - lastRepaintResetTimeRef.current;
-
-        // Actualizar el contador de repintados cada segundo
-        if (timeSinceLastReset >= 1000) {
-            setRepaintCount(repaintCountRef.current);
-            repaintCountRef.current = 0;
-            lastRepaintResetTimeRef.current = now;
-        }
-
-        // Cleanup
-        return () => {
-            // Si el componente se desmonta, aseguramos que el último valor sea visible
-            if (repaintCountRef.current > 0) {
-                setRepaintCount(repaintCountRef.current);
-            }
-        };
-    });
-
-    // Resetear el contador cuando cambia el número de elementos
-    useEffect(() => {
-        repaintCountRef.current = 0;
-        lastRepaintResetTimeRef.current = Date.now();
-        setRepaintCount(0);
-    }, [itemCount]);
-
-    // Medir FPS
+    // Usar un único efecto para medir FPS y repintados con requestAnimationFrame
     useEffect(() => {
         let frameId: number;
         let active = true;
 
-        const calculateFps = () => {
+        // Incrementar contador de repintados (una vez por renderizado)
+        renderCountInSecondRef.current += 1;
+
+        const runAnimationLoop = () => {
             frameCountRef.current += 1;
             const now = Date.now();
             const delta = now - lastUpdateTimeRef.current;
+            const repaintDelta = now - lastSecondTimestampRef.current;
 
-            // Actualizar FPS cada segundo
+            // Actualizar FPS y repintados cada segundo
             if (delta > 1000) {
                 if (active) {
+                    // Actualizar FPS
                     setFps(Math.round((frameCountRef.current * 1000) / delta));
                     frameCountRef.current = 0;
                     lastUpdateTimeRef.current = now;
+
+                    // Actualizar conteo de repintados por segundo
+                    setRepaintCount(renderCountInSecondRef.current);
+                    renderCountInSecondRef.current = 0;
+                    lastSecondTimestampRef.current = now;
                 }
             }
 
             if (active) {
-                frameId = requestAnimationFrame(calculateFps);
+                frameId = requestAnimationFrame(runAnimationLoop);
             }
         };
 
-        frameId = requestAnimationFrame(calculateFps);
+        // Iniciar el loop de animación
+        frameId = requestAnimationFrame(runAnimationLoop);
 
+        // Cleanup
         return () => {
             active = false;
             cancelAnimationFrame(frameId);
         };
-    }, []);
+    }, []);  // Solo ejecutar una vez al montar
+
+    // Resetear el contador cuando cambia el número de elementos
+    useEffect(() => {
+        renderCountInSecondRef.current = 0;
+        lastSecondTimestampRef.current = Date.now();
+        setRepaintCount(0);
+    }, [itemCount]);
 
     // Medir tiempo de renderizado
     useEffect(() => {

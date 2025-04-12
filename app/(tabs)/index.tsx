@@ -7,16 +7,8 @@ import { ChatListItem } from '@/components/ChatListItem';
 import { UserListItem } from '@/components/UserListItem';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { PerformanceMonitor } from '@/components/PerformanceMonitor';
+import DatabaseInitializer from '../../components/DatabaseInitializer';
 
-// Componente del botón para generar chats de prueba
-const BulkChatGenerator = React.memo(({ onGenerate }: { onGenerate: () => void }) => (
-  <Pressable
-    onPress={onGenerate}
-    style={styles.bulkGeneratorButton}
-  >
-    <ThemedText style={styles.bulkGeneratorText}>Generar 50 chats</ThemedText>
-  </Pressable>
-));
 
 export default function ChatsScreen() {
   const { currentUser, users, chats, createChat, sendMessage } = useAppContext();
@@ -174,9 +166,14 @@ export default function ChatsScreen() {
         screenName="chats-list"
         itemCount={chats.length}
         itemLabel="Chats"
+        absolutePosition={true}
       />
 
-      <BulkChatGenerator onGenerate={generateBulkChats} />
+      {/* Botón para reinicializar la base de datos (posición absoluta) */}
+      <DatabaseInitializer onComplete={() => {
+        // Recargar datos o reiniciar la visualización
+        alert('Base de datos reinicializada. Para ver los cambios, reinicia la aplicación.');
+      }} />
 
       <FlatList
         data={chats}
