@@ -46,6 +46,16 @@ const MessageInput = React.memo(({
   </View>
 ));
 
+// Componente memoizado para botón de generación de mensajes masivos
+const BulkMessageGenerator = React.memo(({ onGenerate }: { onGenerate: () => void }) => (
+  <Pressable
+    onPress={onGenerate}
+    style={styles.bulkGeneratorButton}
+  >
+    <ThemedText style={styles.bulkGeneratorText}>Generar 1000 mensajes</ThemedText>
+  </Pressable>
+));
+
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const [message, setMessage] = useState('');
@@ -53,6 +63,9 @@ export default function ChatRoomScreen() {
   const flatListRef = useRef<FlatList>(null);
   const { currentUser, users, chats, sendMessage } = useAppContext();
   const [isLoading, setIsLoading] = useState(true);
+  const [userScrolling, setUserScrolling] = useState(false);
+  const lastMessagesLength = useRef(0);
+  const messageSentRef = useRef(false);
 
   // Memoizar los datos del chat actual
   const chat = useMemo(() => {
@@ -82,6 +95,13 @@ export default function ChatRoomScreen() {
     }
   }, [otherParticipants]);
 
+  // Función para desplazarse al final de la lista
+  const scrollToBottom = useCallback(() => {
+    if (flatListRef.current && messages.length > 0) {
+      flatListRef.current.scrollToEnd({ animated: true });
+    }
+  }, [messages.length]);
+
   useEffect(() => {
     // Simular carga
     const timer = setTimeout(() => {
@@ -90,23 +110,48 @@ export default function ChatRoomScreen() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Verificar si el usuario ha mandado un mensaje, o si es carga inicial
+  useEffect(() => {
+    // Si la cantidad de mensajes aumentó y hay nuevos mensajes...
+    if (messages.length > lastMessagesLength.current) {
+      // Si el mensaje lo acaba de enviar el usuario actual, debemos desplazar al final
+      if (messageSentRef.current) {
+        setTimeout(scrollToBottom, 100);
+        messageSentRef.current = false;
+      }
+      // Si es carga inicial, también desplazamos al final
+      else if (lastMessagesLength.current === 0) {
+        setTimeout(scrollToBottom, 100);
+      }
+    }
+
+    // Actualizar referencia
+    lastMessagesLength.current = messages.length;
+  }, [messages.length, scrollToBottom]);
+
   const handleSend = useCallback(() => {
     if (!message.trim() || !currentUser || !chatId) return;
+
+    // Marcar que un mensaje acaba de ser enviado por el usuario
+    messageSentRef.current = true;
 
     sendMessage(chatId, message.trim(), currentUser.id);
     setMessage('');
 
-    // Dar tiempo para que se actualice la lista antes de desplazarse
-    setTimeout(() => {
-      scrollToBottom();
-    }, 100);
+    // El scroll al final ahora lo maneja el useEffect que monitorea cambios en messages
   }, [message, currentUser, chatId, sendMessage]);
 
-  const scrollToBottom = useCallback(() => {
-    if (flatListRef.current && messages.length > 0) {
-      flatListRef.current.scrollToEnd({ animated: true });
-    }
-  }, [messages.length]);
+  // Manejadores de scroll del usuario
+  const handleScrollBeginDrag = useCallback(() => {
+    setUserScrolling(true);
+  }, []);
+
+  const handleScrollEndDrag = useCallback(() => {
+    // No reseteamos inmediatamente para permitir momentum scrolling
+    setTimeout(() => {
+      setUserScrolling(false);
+    }, 1500);
+  }, []);
 
   // Memoize the empty component to prevent re-renders
   const EmptyComponent = useCallback(() => (
@@ -154,6 +199,53 @@ export default function ChatRoomScreen() {
     index,
   }), []);
 
+  // Función para generar mensajes masivos para pruebas de rendimiento
+  const generateBulkMessages = useCallback(async () => {
+    if (!currentUser || !chatId) return;
+
+    // Mostrar algún tipo de feedback
+    alert('Generando 1000 mensajes de prueba...');
+
+    const messageTexts = [
+      "Hola, ¿cómo estás?",
+      "¿Qué tal tu día?",
+      "Este es un mensaje de prueba para testing de rendimiento",
+      "React Native es genial para desarrollo móvil multiplataforma",
+      "La optimización de rendimiento es crucial para una buena UX",
+      "Los componentes memoizados ayudan a reducir rerenderizados",
+      "FlatList es eficiente para manejar grandes cantidades de datos",
+      "Los mensajes largos también deberían renderizarse correctamente sin problemas",
+      "El scroll debería mantenerse fluido incluso con miles de mensajes",
+      "Es importante implementar técnicas de virtualización para listas grandes"
+    ];
+
+    // Alternar entre usuario actual y otro participante
+    const otherUserId = otherParticipants[0]?.id || 'unknown-user';
+
+    // Crear y enviar mensajes en lotes para no bloquear la UI
+    const batchSize = 50;
+    for (let batch = 0; batch < 20; batch++) {
+      for (let i = 0; i < batchSize; i++) {
+        const index = (batch * batchSize) + i;
+        const messageText = `${messageTexts[index % messageTexts.length]} (${index + 1})`;
+        const senderId = index % 2 === 0 ? currentUser.id : otherUserId;
+
+        // Añadir pequeño delay entre envíos para evitar bloquear el hilo
+        await new Promise(resolve => setTimeout(resolve, 10));
+
+        await sendMessage(chatId, messageText, senderId);
+      }
+
+      // Pequeña pausa entre lotes para permitir actualizaciones de UI
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    // Desplazar al final cuando termine
+    setTimeout(scrollToBottom, 500);
+
+    alert('¡1000 mensajes generados con éxito!');
+  }, [chatId, currentUser, otherParticipants, sendMessage, scrollToBottom]);
+
   if (isLoading || !currentUser) {
     return (
       <ThemedView style={styles.centerContainer}>
@@ -191,6 +283,8 @@ export default function ChatRoomScreen() {
         itemLabel="Mensajes"
       />
 
+      <BulkMessageGenerator onGenerate={generateBulkMessages} />
+
       <FlatList
         ref={flatListRef}
         data={messages}
@@ -199,8 +293,27 @@ export default function ChatRoomScreen() {
         contentContainerStyle={styles.messagesContainer}
         inverted={false}
         showsVerticalScrollIndicator={true}
-        onContentSizeChange={scrollToBottom}
-        onLayout={scrollToBottom}
+
+        // Solo ejecutar scroll al final si no hay interacción de usuario
+        onContentSizeChange={() => {
+          if (!userScrolling && messageSentRef.current) {
+            scrollToBottom();
+          }
+        }}
+
+        // Solo scroll inicial
+        onLayout={() => {
+          if (lastMessagesLength.current === 0) {
+            scrollToBottom();
+          }
+        }}
+
+        // Detectar interacción manual con el scroll
+        onScrollBeginDrag={handleScrollBeginDrag}
+        onScrollEndDrag={handleScrollEndDrag}
+        onMomentumScrollEnd={() => {
+          setTimeout(() => setUserScrolling(false), 1000);
+        }}
 
         // Performance optimizations
         windowSize={10}
@@ -272,5 +385,18 @@ const styles = StyleSheet.create({
   },
   disabledSendButton: {
     opacity: 0.5,
+  },
+  bulkGeneratorButton: {
+    backgroundColor: '#FF9500',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignSelf: 'center',
+    marginBottom: 8,
+  },
+  bulkGeneratorText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 12,
   },
 }); 

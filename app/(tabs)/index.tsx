@@ -8,8 +8,18 @@ import { UserListItem } from '@/components/UserListItem';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { PerformanceMonitor } from '@/components/PerformanceMonitor';
 
+// Componente del botón para generar chats de prueba
+const BulkChatGenerator = React.memo(({ onGenerate }: { onGenerate: () => void }) => (
+  <Pressable
+    onPress={onGenerate}
+    style={styles.bulkGeneratorButton}
+  >
+    <ThemedText style={styles.bulkGeneratorText}>Generar 50 chats</ThemedText>
+  </Pressable>
+));
+
 export default function ChatsScreen() {
-  const { currentUser, users, chats, createChat } = useAppContext();
+  const { currentUser, users, chats, createChat, sendMessage } = useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
@@ -81,6 +91,71 @@ export default function ChatsScreen() {
     setSelectedUsers([]);
   }, []);
 
+  // Función para generar chats de prueba masivos
+  const generateBulkChats = useCallback(async () => {
+    if (!currentUser) return;
+
+    // Mostrar feedback
+    alert('Generando 50 chats de prueba...');
+
+    // Obtener todos los usuarios disponibles excepto el actual
+    const otherUsers = users.filter(user => user.id !== currentUser.id);
+
+    if (otherUsers.length === 0) {
+      alert('No hay otros usuarios disponibles para crear chats.');
+      return;
+    }
+
+    // Generar chats con combinaciones aleatorias de usuarios
+    for (let i = 0; i < 50; i++) {
+      // Seleccionar entre 1 y 3 usuarios aleatorios para cada chat
+      const numUsers = Math.floor(Math.random() * 3) + 1;
+      const selectedUsers = [];
+
+      // Asegurarse de no seleccionar el mismo usuario más de una vez
+      const availableUsers = [...otherUsers];
+      for (let j = 0; j < numUsers && availableUsers.length > 0; j++) {
+        const randomIndex = Math.floor(Math.random() * availableUsers.length);
+        selectedUsers.push(availableUsers[randomIndex].id);
+        availableUsers.splice(randomIndex, 1);
+      }
+
+      // Crear el chat con el usuario actual y los seleccionados
+      const participants = [currentUser.id, ...selectedUsers];
+
+      try {
+        // Pequeña pausa para no bloquear la UI
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        const newChat = await createChat(participants);
+
+        // Generar algunos mensajes para este chat
+        if (newChat) {
+          const numMessages = Math.floor(Math.random() * 5) + 1;
+          const messages = [
+            "Hola, ¿cómo estás?",
+            "¿Qué tal todo?",
+            "Chat de prueba para rendimiento",
+            "Mensaje de test",
+            "¡Buen día!"
+          ];
+
+          for (let k = 0; k < numMessages; k++) {
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            const senderId = Math.random() > 0.5 ? currentUser.id : selectedUsers[0];
+
+            await new Promise(resolve => setTimeout(resolve, 20));
+            await sendMessage(newChat.id, `${randomMessage} (${i + 1}-${k + 1})`, senderId);
+          }
+        }
+      } catch (error) {
+        console.error("Error al crear chat de prueba:", error);
+      }
+    }
+
+    alert('¡50 chats de prueba generados con éxito!');
+  }, [currentUser, users, createChat, sendMessage]);
+
   return (
     <ThemedView style={styles.container}>
       <ThemedView style={styles.header}>
@@ -100,6 +175,8 @@ export default function ChatsScreen() {
         itemCount={chats.length}
         itemLabel="Chats"
       />
+
+      <BulkChatGenerator onGenerate={generateBulkChats} />
 
       <FlatList
         data={chats}
@@ -256,5 +333,18 @@ const styles = StyleSheet.create({
   createButtonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  bulkGeneratorButton: {
+    backgroundColor: '#FF9500',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignSelf: 'center',
+    marginBottom: 8,
+  },
+  bulkGeneratorText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 12,
   },
 });
