@@ -11,9 +11,14 @@ export default function LoginScreen() {
   const { users, login } = useAppContext();
   const router = useRouter();
 
-  const handleUserSelect = (userId: string) => {
-    if (login(userId)) {
-      router.replace('/(tabs)');
+  const handleUserSelect = async (userId: string) => {
+    try {
+      const success = await login(userId);
+      if (success) {
+        router.replace('/(tabs)');
+      }
+    } catch (error) {
+      console.error("Error al iniciar sesión:", error);
     }
   };
 

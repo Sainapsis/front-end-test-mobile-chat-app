@@ -1,61 +1,112 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import {
-  View,
-  StyleSheet,
-  FlatList,
-  TextInput,
-  Pressable,
-  KeyboardAvoidingView,
-  Platform
-} from 'react-native';
-import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { StyleSheet, FlatList, Pressable, TextInput, View, Platform, KeyboardAvoidingView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useChatRoom } from '@/hooks/useChatRoom';
-import { ThemedText } from '@/components/ThemedText';
+import { useLocalSearchParams, router, Stack } from 'expo-router';
+import { useAppContext } from '@/hooks/AppContext';
 import { ThemedView } from '@/components/ThemedView';
-import { MessageBubble } from '@/components/MessageBubble';
-import { Avatar } from '@/components/Avatar';
+import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { Avatar } from '@/components/Avatar';
+import { MessageBubble } from '@/components/MessageBubble';
+import { PerformanceMonitor } from '@/components/PerformanceMonitor';
+
+// Componente de entrada de mensaje memoizado
+const MessageInput = React.memo(({
+  message,
+  setMessage,
+  handleSend,
+  inputRef
+}: {
+  message: string;
+  setMessage: (text: string) => void;
+  handleSend: () => void;
+  inputRef: React.RefObject<TextInput>;
+}) => (
+  <View style={styles.inputContainer}>
+    <TextInput
+      ref={inputRef}
+      style={styles.input}
+      value={message}
+      onChangeText={setMessage}
+      placeholder="Type a message..."
+      placeholderTextColor="#8E8E93"
+      multiline
+    />
+    <Pressable
+      style={[styles.sendButton, !message.trim() && styles.disabledSendButton]}
+      onPress={handleSend}
+      disabled={!message.trim()}
+    >
+      <IconSymbol
+        name="arrow.up.circle.fill"
+        size={30}
+        color={message.trim() ? "#007AFF" : "#CCCCCC"}
+      />
+    </Pressable>
+  </View>
+));
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const {
-    messages,
-    otherParticipants,
-    chatName,
-    currentUser,
-    sendMessage,
-    isLoading
-  } = useChatRoom(chatId);
-
-  const [messageText, setMessageText] = useState('');
+  const [message, setMessage] = useState('');
+  const inputRef = useRef<TextInput>(null);
   const flatListRef = useRef<FlatList>(null);
-  const router = useRouter();
+  const { currentUser, users, chats, sendMessage } = useAppContext();
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleSendMessage = useCallback(() => {
-    if (messageText.trim() && currentUser) {
-      sendMessage(messageText.trim());
-      setMessageText('');
-      // Scroll to the bottom after sending a message
-      setTimeout(scrollToBottom, 100);
-    }
-  }, [messageText, currentUser, sendMessage]);
+  // Memoizar los datos del chat actual
+  const chat = useMemo(() => {
+    return chats.find(c => c.id === chatId) || null;
+  }, [chats, chatId]);
 
-  // Scroll to bottom when a new message is added
-  const scrollToBottom = useCallback(() => {
-    if (flatListRef.current) {
-      flatListRef.current.scrollToEnd({ animated: true });
+  // Memoizar los mensajes
+  const messages = useMemo(() => chat?.messages || [], [chat?.messages]);
+
+  // Memoizar la información de participantes
+  const otherParticipants = useMemo(() => {
+    if (!chat || !currentUser) return [];
+    return chat.participants
+      .filter(id => id !== currentUser.id)
+      .map(id => users.find(user => user.id === id))
+      .filter(Boolean as any);
+  }, [chat, currentUser, users]);
+
+  // Memoizar el nombre del chat
+  const chatName = useMemo(() => {
+    if (!otherParticipants.length) {
+      return 'No participants';
+    } else if (otherParticipants.length === 1) {
+      return otherParticipants[0]?.name || 'Unknown';
+    } else {
+      return `${otherParticipants[0]?.name || 'Unknown'} & ${otherParticipants.length - 1} other${otherParticipants.length > 2 ? 's' : ''}`;
     }
+  }, [otherParticipants]);
+
+  useEffect(() => {
+    // Simular carga
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 500);
+    return () => clearTimeout(timer);
   }, []);
 
-  // Scroll when messages update
-  useEffect(() => {
-    if (messages.length) {
-      // Small delay to ensure the list is rendered
-      const timer = setTimeout(scrollToBottom, 100);
-      return () => clearTimeout(timer);
+  const handleSend = useCallback(() => {
+    if (!message.trim() || !currentUser || !chatId) return;
+
+    sendMessage(chatId, message.trim(), currentUser.id);
+    setMessage('');
+
+    // Dar tiempo para que se actualice la lista antes de desplazarse
+    setTimeout(() => {
+      scrollToBottom();
+    }, 100);
+  }, [message, currentUser, chatId, sendMessage]);
+
+  const scrollToBottom = useCallback(() => {
+    if (flatListRef.current && messages.length > 0) {
+      flatListRef.current.scrollToEnd({ animated: true });
     }
-  }, [messages.length, scrollToBottom]);
+  }, [messages.length]);
 
   // Memoize the empty component to prevent re-renders
   const EmptyComponent = useCallback(() => (
@@ -96,6 +147,13 @@ export default function ChatRoomScreen() {
   // Optimize keyExtractor function
   const keyExtractor = useCallback((item: any) => item.id, []);
 
+  // Memoizar getItemLayout para evitar recálculos
+  const getItemLayout = useCallback((data: any, index: number) => ({
+    length: 80,
+    offset: 80 * index,
+    index,
+  }), []);
+
   if (isLoading || !currentUser) {
     return (
       <ThemedView style={styles.centerContainer}>
@@ -126,6 +184,13 @@ export default function ChatRoomScreen() {
         }}
       />
 
+      <PerformanceMonitor
+        initiallyVisible={true}
+        screenName={`chat-${chatId}`}
+        itemCount={messages.length}
+        itemLabel="Mensajes"
+      />
+
       <FlatList
         ref={flatListRef}
         data={messages}
@@ -143,33 +208,16 @@ export default function ChatRoomScreen() {
         updateCellsBatchingPeriod={50}
         removeClippedSubviews={true}
         initialNumToRender={15}
-
-        // Estimate each message height to be about 80 points - this improves scrolling performance
-        getItemLayout={(data, index) => ({
-          length: 80,
-          offset: 80 * index,
-          index,
-        })}
-
+        getItemLayout={getItemLayout}
         ListEmptyComponent={EmptyComponent}
       />
 
-      <ThemedView style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          value={messageText}
-          onChangeText={setMessageText}
-          placeholder="Type a message..."
-          multiline
-        />
-        <Pressable
-          style={[styles.sendButton, !messageText.trim() && styles.disabledButton]}
-          onPress={handleSendMessage}
-          disabled={!messageText.trim()}
-        >
-          <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />
-        </Pressable>
-      </ThemedView>
+      <MessageInput
+        message={message}
+        setMessage={setMessage}
+        handleSend={handleSend}
+        inputRef={inputRef}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -220,6 +268,9 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   disabledButton: {
+    opacity: 0.5,
+  },
+  disabledSendButton: {
     opacity: 0.5,
   },
 }); 

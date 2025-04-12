@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { ThemedText } from './ThemedText';
+import { ThemedView } from './ThemedView';
 import { Message } from '@/hooks/useChats';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -9,11 +10,11 @@ interface MessageBubbleProps {
   isCurrentUser: boolean;
 }
 
-function MessageBubbleComponent({ message, isCurrentUser }: MessageBubbleProps) {
+export const MessageBubble = React.memo(function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  const formattedTime = useMemo(() => {
+  const timeString = useMemo(() => {
     const date = new Date(message.timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }, [message.timestamp]);
@@ -35,26 +36,15 @@ function MessageBubbleComponent({ message, isCurrentUser }: MessageBubbleProps) 
       styles.container,
       isCurrentUser ? styles.selfContainer : styles.otherContainer
     ]}>
-      <View style={bubbleStyle}>
+      <ThemedView style={bubbleStyle}>
         <ThemedText style={messageTextStyle}>
           {message.text}
         </ThemedText>
-        <View style={styles.timeContainer}>
-          <ThemedText style={styles.timeText}>
-            {formattedTime}
-          </ThemedText>
-        </View>
-      </View>
+      </ThemedView>
+      <ThemedText style={styles.timeText}>
+        {timeString}
+      </ThemedText>
     </View>
-  );
-}
-
-export const MessageBubble = React.memo(MessageBubbleComponent, (prevProps, nextProps) => {
-  return (
-    prevProps.message.id === nextProps.message.id &&
-    prevProps.message.timestamp === nextProps.message.timestamp &&
-    prevProps.message.text === nextProps.message.text &&
-    prevProps.isCurrentUser === nextProps.isCurrentUser
   );
 });
 
@@ -89,11 +79,6 @@ const styles = StyleSheet.create({
   },
   selfMessageText: {
     color: '#000000',
-  },
-  timeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 2,
   },
   timeText: {
     fontSize: 11,
