@@ -1,11 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { 
-  View, 
-  StyleSheet, 
-  FlatList, 
-  TextInput, 
-  Pressable, 
-  KeyboardAvoidingView, 
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  View,
+  StyleSheet,
+  FlatList,
+  TextInput,
+  Pressable,
+  KeyboardAvoidingView,
   Platform
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
@@ -23,22 +23,24 @@ export default function ChatRoomScreen() {
   const [messageText, setMessageText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
-  
+
   const chat = chats.find(c => c.id === chatId);
-  
+
   const chatParticipants = chat?.participants
     .filter(id => id !== currentUser?.id)
     .map(id => users.find(user => user.id === id))
     .filter(Boolean) || [];
-  
-  const chatName = chatParticipants.length === 1 
-    ? chatParticipants[0]?.name 
+
+  const chatName = chatParticipants.length === 1
+    ? chatParticipants[0]?.name
     : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
 
   const handleSendMessage = () => {
     if (messageText.trim() && currentUser && chat) {
       sendMessage(chat.id, messageText.trim(), currentUser.id);
       setMessageText('');
+      // Scroll to the bottom after sending a message
+      setTimeout(scrollToBottom, 100);
     }
   };
 
@@ -49,6 +51,22 @@ export default function ChatRoomScreen() {
       }, 100);
     }
   }, [chat?.messages.length]);
+
+  // Scroll to bottom when a new message is added
+  const scrollToBottom = useCallback(() => {
+    if (flatListRef.current) {
+      flatListRef.current.scrollToEnd({ animated: true });
+    }
+  }, []);
+
+  // Scroll when messages update
+  useEffect(() => {
+    if (chat?.messages.length) {
+      // Small delay to ensure the list is rendered
+      const timer = setTimeout(scrollToBottom, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [chat?.messages.length, scrollToBottom]);
 
   if (!chat || !currentUser) {
     return (
@@ -65,13 +83,13 @@ export default function ChatRoomScreen() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <StatusBar style="auto" />
-      <Stack.Screen 
+      <Stack.Screen
         options={{
           headerTitle: () => (
             <View style={styles.headerContainer}>
-              <Avatar 
-                user={chatParticipants[0]} 
-                size={32} 
+              <Avatar
+                user={chatParticipants[0]}
+                size={32}
                 showStatus={false}
               />
               <ThemedText type="defaultSemiBold" numberOfLines={1}>
@@ -84,7 +102,7 @@ export default function ChatRoomScreen() {
               <IconSymbol name="chevron.left" size={24} color="#007AFF" />
             </Pressable>
           ),
-        }} 
+        }}
       />
 
       <FlatList
@@ -98,6 +116,10 @@ export default function ChatRoomScreen() {
           />
         )}
         contentContainerStyle={styles.messagesContainer}
+        inverted={false}
+        showsVerticalScrollIndicator={true}
+        onContentSizeChange={scrollToBottom}
+        onLayout={scrollToBottom}
         ListEmptyComponent={() => (
           <ThemedView style={styles.emptyContainer}>
             <ThemedText>No messages yet. Say hello!</ThemedText>
@@ -142,6 +164,7 @@ const styles = StyleSheet.create({
   messagesContainer: {
     padding: 10,
     flexGrow: 1,
+    justifyContent: 'flex-end',
   },
   emptyContainer: {
     flex: 1,
