@@ -10,6 +10,8 @@ export const users = sqliteTable('users', {
 
 export const chats = sqliteTable('chats', {
     id: text('id').primaryKey(),
+    isGroup: integer('is_group').notNull().default(0),
+    groupName: text('group_name'),
 });
 
 export const chatParticipants = sqliteTable('chat_participants', {
@@ -30,5 +32,4 @@ export const messages = sqliteTable('messages', {
     deliveryStatus: text('delivery_status').notNull().default('sending'),
     reactions: text('reactions').default('{}'),
     timestamp: integer('timestamp').notNull(),
-    foreignKey: (fk) => fk.references(() => chats.id),
 }); 

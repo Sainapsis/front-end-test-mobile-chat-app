@@ -24,7 +24,9 @@ export async function initializeDatabase() {
     console.log('Creating chats table...');
     await sqlite.execAsync(`
       CREATE TABLE IF NOT EXISTS chats (
-        id TEXT PRIMARY KEY
+        id TEXT PRIMARY KEY,
+        is_group INTEGER NOT NULL DEFAULT 0,
+        group_name TEXT
       );
     `);
     

@@ -10,7 +10,6 @@ import { UserListItem } from '@/components/UserListItem';
 export default function LoginScreen() {
   const { users, login } = useAppContext();
   const router = useRouter();
-
   const handleUserSelect = (userId: string) => {
     if (login(userId)) {
       router.replace('/(tabs)');
