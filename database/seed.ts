@@ -95,17 +95,7 @@ function generateJohnJaneMessages() {
     "¿Viste las noticias?",
     "¿Te parece si nos reunimos mañana?",
     "Tengo una duda sobre el documento",
-    "Ya terminé mi parte del proyecto",
-    "¿Qué opinas de la nueva política?",
-    "Feliz día, espero que estés bien",
-    "¿Has probado la nueva actualización?",
-    "Necesito tu opinión sobre algo",
-    "¿Vamos a almorzar juntos?",
-    "El cliente está muy contento con el trabajo",
-    "¿Podemos revisar el calendario?",
-    "Acabo de leer tu propuesta, es excelente",
-    "Estoy disponible esta tarde si quieres hablar",
-    "¿Puedes enviarme ese archivo cuando tengas tiempo?"
+    "Ya terminé mi parte del proyecto"
   ];
 
   const janeMessages = [
@@ -118,21 +108,12 @@ function generateJohnJaneMessages() {
     "Ya revisé el documento, tengo algunos comentarios",
     "La nueva actualización tiene algunos bugs",
     "Esa política parece interesante, pero hay que analizarla más",
-    "Podemos almorzar juntos, ¿dónde quieres ir?",
-    "El calendario está bastante ocupado este mes",
-    "Gracias por tu comentario sobre mi propuesta",
-    "Esta tarde tengo una reunión, ¿podemos hablar mañana?",
-    "Te enviaré el archivo en cuanto lo tenga listo",
-    "Estoy trabajando en ello ahora mismo",
-    "¿Qué piensas de la presentación?",
-    "Acabo de hablar con el equipo, están de acuerdo",
-    "Necesito más información para completar mi parte",
-    "¿Has visto el nuevo diseño?",
-    "Me encantaría escuchar tus ideas para el proyecto"
+    "Podemos almorzar juntos, ¿dónde quieres ir?"
   ];
 
   // Generamos mensajes alternados con timestamps progresivos
-  for (let i = 0; i < 250; i++) {
+  // Reducimos de 250 a 25 iteraciones para generar 50 mensajes en total
+  for (let i = 0; i < 25; i++) {
     // Calculamos la fecha y hora para este mensaje
     const messageDate = new Date(startDate);
     // Añadimos progresivamente tiempo para simular una conversación real
@@ -165,10 +146,10 @@ function generateJohnJaneMessages() {
 function generateChatMessages(senderId: string, receiverId: string, count = 500) {
   const messages = [];
   const startDate = new Date();
-  startDate.setDate(startDate.getDate() - 90); // Empezamos hace 90 días para más mensajes
+  startDate.setDate(startDate.getDate() - 30); // Reducido de 90 a 30 días
 
-  // No limitamos la cantidad de mensajes generados
-  const actualCount = count;
+  // Limitamos al count especificado
+  const actualCount = Math.min(count, 20); // Añadimos límite máximo de 20 mensajes
 
   const senderMessages = [
     "Hola, ¿cómo va todo?",
@@ -180,22 +161,7 @@ function generateChatMessages(senderId: string, receiverId: string, count = 500)
     "Necesito tu feedback para avanzar",
     "Quería preguntarte sobre la reunión de ayer",
     "¿Te parece bien el enfoque que tomamos?",
-    "¿Estás disponible esta semana?",
-    "¿Pudiste solucionar ese problema?",
-    "¿Te llegó mi email?",
-    "¿Qué te pareció la presentación?",
-    "Deberíamos hablar de los próximos pasos",
-    "¿Has tenido algún avance con el cliente?",
-    "El equipo está trabajando en esa funcionalidad",
-    "Me encanta como avanza el proyecto",
-    "¿Hay algo en lo que te pueda ayudar?",
-    "Acabo de terminar la tarea que me asignaste",
-    "¿Te parece si hacemos una llamada mañana?",
-    "Recibí buenos comentarios del cliente",
-    "Creo que deberíamos revisar el presupuesto",
-    "¿Has hablado con el equipo de marketing?",
-    "Tenemos que terminar esto para el lunes",
-    "No estoy seguro si entendí bien el requerimiento"
+    "¿Estás disponible esta semana?"
   ];
 
   const receiverMessages = [
@@ -208,45 +174,30 @@ function generateChatMessages(senderId: string, receiverId: string, count = 500)
     "Te envío mis comentarios mañana",
     "La reunión fue muy productiva",
     "El enfoque me parece adecuado",
-    "Estoy disponible el jueves",
-    "Sí, logré solucionar el problema",
-    "Recibí tu email, te respondo pronto",
-    "La presentación estuvo excelente",
-    "De acuerdo, definamos los próximos pasos",
-    "El cliente está satisfecho con el avance",
-    "Ya terminé mi parte del desarrollo",
-    "Me parece perfecto",
-    "Voy a revisar eso ahora mismo",
-    "Necesito un poco más de tiempo",
-    "¿Podríamos ajustar el alcance?",
-    "El equipo está trabajando a toda velocidad",
-    "Deberíamos consultar con el departamento técnico",
-    "¿Qué piensas de la nueva estrategia?",
-    "Excelente trabajo con la presentación",
-    "Hablé con los stakeholders y están contentos"
+    "Estoy disponible el jueves"
   ];
 
   // Generamos mensajes alternados
   for (let i = 0; i < actualCount; i++) {
+    // Calculamos la fecha y hora para este mensaje
     const messageDate = new Date(startDate);
-    messageDate.setHours(messageDate.getHours() + i * 4); // Más frecuentes
+    // Espaciamos los mensajes en un período de tiempo para simular conversación real
+    messageDate.setHours(messageDate.getHours() + i * 6); // Cada mensaje separado por 6 horas aprox
 
-    // Mensaje del remitente
-    messages.push({
-      id: `msg_${senderId}_${receiverId}_${i * 2 + 1}`,
-      senderId: senderId,
-      text: `${senderMessages[i % senderMessages.length]} (Chat ${receiverId} - Msg ${i + 1})`,
-      timestamp: messageDate.getTime(),
-    });
-
-    // Respuesta del receptor (80% de probabilidad para simular conversaciones reales)
-    // Aumentamos la probabilidad para que haya más mensajes
-    if (Math.random() > 0.2) {
-      messageDate.setMinutes(messageDate.getMinutes() + 15 + Math.floor(Math.random() * 60));
+    // Alternamos entre mensajes del remitente y el receptor
+    if (i % 2 === 0) {
       messages.push({
-        id: `msg_${receiverId}_${senderId}_${i * 2 + 2}`,
+        id: `msg_${senderId}_${receiverId}_${i}`,
+        senderId,
+        text: `${senderMessages[i % senderMessages.length]} (${i + 1})`,
+        timestamp: messageDate.getTime(),
+      });
+    } else {
+      messageDate.setMinutes(messageDate.getMinutes() + 10 + Math.floor(Math.random() * 30));
+      messages.push({
+        id: `msg_${receiverId}_${senderId}_${i}`,
         senderId: receiverId,
-        text: `${receiverMessages[i % receiverMessages.length]} (Respuesta ${i + 1})`,
+        text: `${receiverMessages[i % receiverMessages.length]} (${i + 1})`,
         timestamp: messageDate.getTime(),
       });
     }
@@ -259,12 +210,12 @@ function generateChatMessages(senderId: string, receiverId: string, count = 500)
 function generateAdditionalChats() {
   const additionalChats = [];
 
-  // Crear 300 conversaciones entre Jane y otros usuarios
+  // Crear 20 conversaciones entre Jane y otros usuarios (reducido de 300)
   // Usamos los usuarios existentes y, si son pocos, generamos conversaciones grupales
   const availableUserIds = mockUsers.map(user => user.id).filter(id => id !== '2'); // Todos menos Jane
 
   // Número total de chats a generar
-  const totalChats = 300; // Aumentado de 100 a 300
+  const totalChats = 20; // Reducido de 300 a 20
 
   for (let i = 0; i < totalChats; i++) {
     // Usamos un ID basado en el índice para asegurar unicidad
@@ -298,7 +249,7 @@ function generateAdditionalChats() {
 
     if (isGroup) {
       // En grupos, cada participante envía mensajes
-      const messagesPerParticipant = 250; // 250 mensajes por participante = aproximadamente 500-1000 mensajes por chat grupal
+      const messagesPerParticipant = 10; // Reducido de 250 a 10 mensajes por participante
       participants.forEach((participantId) => {
         // Cada participante interactúa principalmente con Jane
         if (participantId !== '2') { // No es Jane
@@ -309,7 +260,7 @@ function generateAdditionalChats() {
     } else {
       // Chat individual entre Jane y el otro participante
       const otherUserId = participants.find(id => id !== '2')!;
-      chatMessages = generateChatMessages('2', otherUserId, 500); // 500 mensajes por chat individual
+      chatMessages = generateChatMessages('2', otherUserId, 20); // Reducido de 500 a 20 mensajes por chat individual
     }
 
     // Ordenar mensajes por timestamp
@@ -360,76 +311,100 @@ async function isDataSeeded() {
 }
 
 export async function seedDatabase() {
+  console.log("Verificando si la base de datos ya está poblada...");
+
   try {
-    // Check if database already has data
-    const alreadySeeded = await isDataSeeded();
-    if (alreadySeeded) {
-      console.log('Database already seeded, skipping...');
+    const existingUsers = await db.select().from(users);
+    if (existingUsers.length > 0) {
+      console.log("La base de datos ya contiene datos. Omitiendo la población.");
       return;
     }
+  } catch (e) {
+    console.error("Error al verificar la base de datos:", e);
+  }
 
-    console.log('Seeding database...');
+  console.log("Poblando la base de datos con datos de prueba...");
 
-    // Insert users
-    console.log('Seeding users...');
-    for (const user of mockUsers) {
-      await db.insert(users).values(user).onConflictDoNothing();
-    }
-    console.log(`Added ${mockUsers.length} users successfully`);
+  // Insertar usuarios
+  try {
+    await db.insert(users).values(mockUsers);
+    console.log(`${mockUsers.length} usuarios insertados.`);
+  } catch (e) {
+    console.error("Error al insertar usuarios:", e);
+  }
 
-    // Insert chats and their relationships
-    console.log(`Seeding ${initialChats.length} chats...`);
+  // Generar chats entre John y Jane
+  const chat1 = {
+    id: 'chat1',
+    participants: ['1', '2'], // John y Jane
+    messages: generateJohnJaneMessages(),
+  };
 
-    // Procesar en lotes para evitar saturar la BD
-    const BATCH_SIZE = 20;
-    const totalBatches = Math.ceil(initialChats.length / BATCH_SIZE);
+  // Generar chat grupal con John, Jane y Alice
+  const chat2 = {
+    id: 'chat2',
+    participants: ['1', '2', '3'], // John, Jane y Alice
+    messages: [
+      ...generateChatMessages('1', '2', 10), // John a Jane
+      ...generateChatMessages('3', '2', 10), // Alice a Jane
+      ...generateChatMessages('1', '3', 5),  // John a Alice
+    ],
+  };
 
-    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
-      const start = batchIndex * BATCH_SIZE;
-      const end = Math.min((batchIndex + 1) * BATCH_SIZE, initialChats.length);
-      const currentBatch = initialChats.slice(start, end);
+  // Generar chats adicionales para Jane
+  const additionalChats = generateAdditionalChats();
 
-      console.log(`Processing batch ${batchIndex + 1}/${totalBatches} (chats ${start + 1}-${end})...`);
+  // Combinar todos los chats
+  const allChats = [chat1, chat2, ...additionalChats];
 
-      for (const chat of currentBatch) {
-        // Insert chat
-        await db.insert(chats).values({ id: chat.id }).onConflictDoNothing();
+  // Insertar chats en la base de datos de forma eficiente
+  try {
+    // Procesar chats en lotes para evitar sobrecargar el navegador
+    const BATCH_SIZE = 5; // Reducido de 20 a 5 chats por lote
 
-        // Insert participants
-        for (const userId of chat.participants) {
-          await db.insert(chatParticipants).values({
-            id: `cp-${chat.id}-${userId}`,
-            chatId: chat.id,
-            userId,
-          }).onConflictDoNothing();
-        }
+    for (let i = 0; i < allChats.length; i += BATCH_SIZE) {
+      const chatBatch = allChats.slice(i, i + BATCH_SIZE);
 
-        // Insert messages
-        if (chat.messages.length > 0) {
-          // Insertar mensajes en batch para mayor eficiencia
-          const messageChunks = [];
-          for (let i = 0; i < chat.messages.length; i += 50) {
-            messageChunks.push(chat.messages.slice(i, i + 50));
-          }
+      // Insertar chats
+      await db.insert(chats).values(
+        chatBatch.map(chat => ({
+          id: chat.id
+        }))
+      );
 
-          for (const messageChunk of messageChunks) {
-            await Promise.all(messageChunk.map(message =>
-              db.insert(messages).values({
-                id: message.id,
-                chatId: chat.id,
-                senderId: message.senderId,
-                text: message.text,
-                timestamp: message.timestamp,
-              }).onConflictDoNothing()
-            ));
-          }
-        }
+      // Insertar participantes de los chats
+      const allParticipants = chatBatch.flatMap(chat =>
+        chat.participants.map(userId => ({
+          id: `${chat.id}_${userId}`,
+          chatId: chat.id,
+          userId: userId
+        }))
+      );
+
+      await db.insert(chatParticipants).values(allParticipants);
+
+      // Insertar mensajes asociados a los chats
+      const allMessages = chatBatch.flatMap(chat =>
+        chat.messages.map(msg => ({
+          ...msg,
+          chatId: chat.id
+        }))
+      );
+
+      // Procesar mensajes en lotes más pequeños si hay muchos
+      const MESSAGE_BATCH_SIZE = 100; // Reducido de 500 a 100 mensajes por lote
+
+      for (let j = 0; j < allMessages.length; j += MESSAGE_BATCH_SIZE) {
+        const messageBatch = allMessages.slice(j, j + MESSAGE_BATCH_SIZE);
+        await db.insert(messages).values(messageBatch);
+        console.log(`${messageBatch.length} mensajes insertados (lote ${Math.floor(j / MESSAGE_BATCH_SIZE) + 1} de ${Math.ceil(allMessages.length / MESSAGE_BATCH_SIZE)}).`);
       }
+
+      console.log(`${chatBatch.length} chats procesados (lote ${Math.floor(i / BATCH_SIZE) + 1} de ${Math.ceil(allChats.length / BATCH_SIZE)}).`);
     }
 
-    console.log('Database seeded successfully');
-  } catch (error) {
-    console.error('Error seeding database:', error);
-    throw error;
+    console.log(`Total: ${allChats.length} chats insertados con sus mensajes.`);
+  } catch (e) {
+    console.error("Error al insertar chats y mensajes:", e);
   }
 } 

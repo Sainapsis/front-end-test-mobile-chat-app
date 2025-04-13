@@ -1,8 +1,9 @@
 import React, { useState, useEffect, memo, useCallback } from 'react';
-import { StyleSheet, Pressable, View } from 'react-native';
+import { StyleSheet, Pressable, View, TouchableOpacity } from 'react-native';
 import { PerformanceMetrics } from './PerformanceMetrics';
 import { ThemedText } from './ThemedText';
 import { IconSymbol } from './ui/IconSymbol';
+import { usePerformanceMetrics } from '../hooks/usePerformanceMetrics';
 
 interface PerformanceMonitorProps {
     initiallyVisible?: boolean;
@@ -102,5 +103,61 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '500',
         marginLeft: 5,
-    }
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 5,
+    },
+    headerButtons: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    advancedButton: {
+        marginRight: 10,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 4,
+        backgroundColor: 'rgba(100, 100, 100, 0.1)',
+    },
+    title: {
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
+    closeButton: {
+        fontSize: 22,
+        marginLeft: 5,
+        fontWeight: 'bold',
+    },
+    metricsContainer: {
+        marginTop: 5,
+    },
+    metricRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginVertical: 2,
+    },
+    metric: {
+        fontSize: 12,
+    },
+    minimizedContainer: {
+        padding: 5,
+        margin: 5,
+        borderRadius: 5,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        alignSelf: 'flex-start',
+    },
+    absolutePositioning: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1000,
+    },
+    divider: {
+        height: 1,
+        backgroundColor: 'rgba(150, 150, 150, 0.2)',
+        marginVertical: 5,
+    },
 }); 
