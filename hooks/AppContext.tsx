@@ -11,6 +11,8 @@ export interface AppContextType {
   chats: Chat[];
   sendMessage: (chatId: string, text: string, senderId: string, imageUrl?: string) => Promise<boolean>;
   markMessagesAsRead: (chatId: string, userId: string) => Promise<void>;
+  addReaction: (messageId: string, userId: string, reaction: string) => Promise<void>;
+  removeReaction: (messageId: string, userId: string) => Promise<void>;
   loading: boolean;
   isLoggedIn: boolean;
   login: (userId: string) => Promise<boolean>;
@@ -38,7 +40,7 @@ function AppContent({ children }: { children: ReactNode }) {
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const { currentUser, users, isLoggedIn, login, logout } = useUser();
-  const { chats, sendMessage, markMessagesAsRead, loading } = useChatsDb(currentUser?.id || null);
+  const { chats, sendMessage, markMessagesAsRead, addReaction, removeReaction, loading } = useChatsDb(currentUser?.id || null);
 
   return (
     <AppContext.Provider value={{ 
@@ -46,7 +48,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       users, 
       chats, 
       sendMessage, 
-      markMessagesAsRead, 
+      markMessagesAsRead,
+      addReaction,
+      removeReaction,
       loading,
       isLoggedIn,
       login,

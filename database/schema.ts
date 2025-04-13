@@ -28,6 +28,7 @@ export const messages = sqliteTable('messages', {
     messageType: text('message_type').notNull().default('text'),
     isRead: integer('is_read').notNull().default(0),
     deliveryStatus: text('delivery_status').notNull().default('sending'),
-    reactions: text('reactions'),
+    reactions: text('reactions').default('{}'),
     timestamp: integer('timestamp').notNull(),
+    foreignKey: (fk) => fk.references(() => chats.id),
 }); 

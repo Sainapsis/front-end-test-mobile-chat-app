@@ -11,6 +11,7 @@ export interface Message {
   timestamp: number;
   delivery_status: 'sending' | 'sent' | 'delivered' | 'read';
   is_read: boolean;
+  reactions?: Record<string, string>;
 }
 
 export interface Chat {
@@ -83,6 +84,7 @@ export function useChatsDb(currentUserId: string | null) {
             timestamp: m.timestamp,
             delivery_status: m.deliveryStatus as Message['delivery_status'],
             is_read: m.isRead === 1,
+            reactions: m.reactions ? JSON.parse(m.reactions) : undefined,
           }));
           
           // Determine last message
@@ -172,6 +174,7 @@ export function useChatsDb(currentUserId: string | null) {
         timestamp,
         delivery_status: 'sending',
         is_read: false,
+        reactions: undefined,
       };
       
       // Update state
@@ -272,11 +275,115 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  const addReaction = useCallback(async (messageId: string, userId: string, reaction: string) => {
+    try {
+      // Get the current message
+      const messageResult = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.id, messageId));
+        
+      if (messageResult.length === 0) return;
+      
+      const message = messageResult[0];
+      const currentReactions = message.reactions ? JSON.parse(message.reactions) : {};
+      
+      // Add or update the reaction
+      currentReactions[userId] = reaction;
+      
+      // Update the message in the database
+      await db.update(messages)
+        .set({ reactions: JSON.stringify(currentReactions) })
+        .where(eq(messages.id, messageId));
+        
+      // Update the local state
+      setUserChats(prevChats => {
+        return prevChats.map(chat => {
+          const updatedMessages = chat.messages.map(msg => {
+            if (msg.id === messageId) {
+              return {
+                ...msg,
+                reactions: currentReactions,
+              };
+            }
+            return msg;
+          });
+          
+          return {
+            ...chat,
+            messages: updatedMessages,
+            lastMessage: chat.lastMessage?.id === messageId
+              ? {
+                  ...chat.lastMessage,
+                  reactions: currentReactions,
+                }
+              : chat.lastMessage,
+          };
+        });
+      });
+    } catch (error) {
+      console.error('Error adding reaction:', error);
+    }
+  }, []);
+
+  const removeReaction = useCallback(async (messageId: string, userId: string) => {
+    try {
+      // Get the current message
+      const messageResult = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.id, messageId));
+        
+      if (messageResult.length === 0) return;
+      
+      const message = messageResult[0];
+      const currentReactions = message.reactions ? JSON.parse(message.reactions) : {};
+      
+      // Remove the user's reaction
+      delete currentReactions[userId];
+      
+      // Update the message in the database
+      await db.update(messages)
+        .set({ reactions: JSON.stringify(currentReactions) })
+        .where(eq(messages.id, messageId));
+        
+      // Update the local state
+      setUserChats(prevChats => {
+        return prevChats.map(chat => {
+          const updatedMessages = chat.messages.map(msg => {
+            if (msg.id === messageId) {
+              return {
+                ...msg,
+                reactions: currentReactions,
+              };
+            }
+            return msg;
+          });
+          
+          return {
+            ...chat,
+            messages: updatedMessages,
+            lastMessage: chat.lastMessage?.id === messageId
+              ? {
+                  ...chat.lastMessage,
+                  reactions: currentReactions,
+                }
+              : chat.lastMessage,
+          };
+        });
+      });
+    } catch (error) {
+      console.error('Error removing reaction:', error);
+    }
+  }, []);
+
   return {
     chats: userChats,
     createChat,
     sendMessage,
     markMessagesAsRead,
+    addReaction,
+    removeReaction,
     loading,
   };
 } 

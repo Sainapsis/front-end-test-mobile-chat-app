@@ -22,7 +22,7 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, users, chats, sendMessage, markMessagesAsRead } = useAppContext();
+  const { currentUser, users, chats, sendMessage, markMessagesAsRead, addReaction, removeReaction } = useAppContext();
   const [messageText, setMessageText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
@@ -84,6 +84,18 @@ export default function ChatRoomScreen() {
     }
   };
 
+  const handleReactionPress = (messageId: string, reaction: string) => {
+    if (currentUser) {
+      addReaction(messageId, currentUser.id, reaction);
+    }
+  };
+
+  const handleRemoveReaction = (messageId: string) => {
+    if (currentUser) {
+      removeReaction(messageId, currentUser.id);
+    }
+  };
+
   useEffect(() => {
     if (chat?.messages.length && flatListRef.current) {
       setTimeout(() => {
@@ -136,7 +148,9 @@ export default function ChatRoomScreen() {
         renderItem={({ item }) => (
           <MessageBubble
             message={item}
-            isCurrentUser={item.senderId === currentUser.id}
+            isCurrentUser={item.senderId === currentUser?.id}
+            onReactionPress={handleReactionPress}
+            onRemoveReaction={handleRemoveReaction}
           />
         )}
         contentContainerStyle={styles.messagesContainer}
