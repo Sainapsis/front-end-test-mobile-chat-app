@@ -15,6 +15,7 @@ type AppContextType = {
   sendMessage: (chatId: string, text: string, senderId: string) => Promise<boolean>;
   loading: boolean;
   dbInitialized: boolean;
+  updateMessageStatus: (chatId: string, messageId: string, status: 'delivered' | 'read', userId?: string) => Promise<boolean>;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -29,6 +30,7 @@ function AppContent({ children }: { children: ReactNode }) {
   const value = {
     ...userContext,
     ...chatContext,
+    updateMessageStatus: chatContext.updateMessageStatus,
     loading,
     dbInitialized: isInitialized,
   };

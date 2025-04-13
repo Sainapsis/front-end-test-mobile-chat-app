@@ -20,7 +20,7 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, users, chats, sendMessage } = useAppContext();
+  const { currentUser, users, chats, sendMessage, updateMessageStatus } = useAppContext();
   const [messageText, setMessageText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
@@ -45,12 +45,21 @@ export default function ChatRoomScreen() {
     ? chatParticipants[0]?.name 
     : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
 
-  const handleSendMessage = () => {
-    if (messageText.trim() && currentUser && chat) {
-      sendMessage(chat.id, messageText.trim(), currentUser.id);
-      setMessageText('');
-    }
-  };
+    const handleSendMessage = async () => {
+      if (messageText.trim() && currentUser && chat) {
+        const success = await sendMessage(chat.id, messageText.trim(), currentUser.id);
+        
+        if (success) {
+          setMessageText('');
+          const newMessages = chats.find(c => c.id === chat.id)?.messages || [];
+          const lastMessage = newMessages[newMessages.length - 1];
+          
+          if (lastMessage) {
+            await updateMessageStatus(chat.id, lastMessage.id, 'delivered');
+          }
+        }
+      }
+    };
 
   useEffect(() => {
     if (chat?.messages.length && flatListRef.current) {
@@ -67,6 +76,23 @@ export default function ChatRoomScreen() {
       </ThemedView>
     );
   }
+
+  useEffect(() => {
+    const markAsRead = async () => {
+      if (!currentUser || !chat) return;
+      
+      const unreadMessages = chat.messages.filter(
+        msg => msg.senderId !== currentUser.id && 
+              (!msg.readBy || !msg.readBy.includes(currentUser.id))
+      );
+      
+      for (const msg of unreadMessages) {
+        await updateMessageStatus(chat.id, msg.id, 'read', currentUser.id);
+      }
+    };
+    
+    markAsRead();
+  }, [chat, currentUser]);
 
   useLayoutEffect(() => {
     navigation.setOptions({

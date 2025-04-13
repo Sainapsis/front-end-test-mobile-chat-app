@@ -8,6 +8,8 @@ export interface Message {
   senderId: string;
   text: string;
   timestamp: number;
+  status: 'sent'|'delivered'|'read';
+  readBy?: string[]; // For group chat, not implemented yet :)
 }
 
 export interface Chat {
@@ -77,6 +79,8 @@ export function useChatsDb(currentUserId: string | null) {
             senderId: m.senderId,
             text: m.text,
             timestamp: m.timestamp,
+            status: m.status || 'sent', // Default
+            readBy: m.readBy ? JSON.parse(m.readBy.toString()) : []
           }));
           
           // Determine last message
@@ -153,6 +157,8 @@ export function useChatsDb(currentUserId: string | null) {
         senderId: senderId,
         text: text,
         timestamp: timestamp,
+        status: 'sent',
+        readBy: [JSON.stringify([senderId])]
       });
       
       const newMessage: Message = {
@@ -160,6 +166,8 @@ export function useChatsDb(currentUserId: string | null) {
         senderId,
         text,
         timestamp,
+        status: 'sent',
+        readBy: [senderId]
       };
       
       // Update state
@@ -183,10 +191,100 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  // TODO: Fix possible carreer conditions
+  const updateMessageStatus = useCallback(async (
+    chatId: string,
+    messageId: string,
+    status: 'delivered' | 'read',
+    userId?: string
+  ) => {
+    try {
+      const lastMessage = await db.select()
+        .from(messages)
+        .where(
+          eq(messages.chatId, chatId)
+        )
+        .orderBy(
+          desc(messages.timestamp)
+        )
+        .limit(1);
+
+      if (lastMessage[0]?.id !== messageId) {
+        console.log('Not the last message, skipping update');
+        return false;
+      }
+
+      // Obtener el mensaje actual
+      const [currentMessage] = await db
+        .select()
+        .from(messages)
+        .where(and(
+          eq(messages.chatId, chatId),
+          eq(messages.id, messageId)
+        ))
+  
+      // Preparar datos de actualización
+      const updateData: Record<string, any> = { status };
+      
+      // Manejar readBy como string JSON
+      if (status === 'read' && userId) {
+        const existingReadBy = currentMessage?.readBy 
+          ? JSON.parse(currentMessage.readBy.toString())
+          : [];
+        
+        if (!existingReadBy.includes(userId)) {
+          updateData.readBy = JSON.stringify([...existingReadBy, userId]);
+        }
+      }
+  
+      // Actualizar en la base de datos
+      await db.update(messages)
+        .set(updateData)
+        .where(and(
+          eq(messages.chatId, chatId),
+          eq(messages.id, messageId)
+        ));
+  
+      // Actualizar estado local
+      setUserChats(prevChats => prevChats.map(chat => {
+        if (chat.id !== chatId) return chat;
+        
+        const updatedMessages = chat.messages.map(msg => {
+          if (msg.id !== messageId) return msg;
+          
+          // Mantener todas las propiedades existentes del mensaje
+          const updatedMsg = {
+            ...msg,
+            status,
+            readBy: status === 'read' && userId 
+              ? [...(msg.readBy || []), userId]
+              : msg.readBy
+          };
+          
+          return updatedMsg;
+        });
+        
+        return {
+          ...chat,
+          messages: updatedMessages,
+          lastMessage: chat.lastMessage?.id === messageId
+            ? updatedMessages.find(m => m.id === messageId)
+            : chat.lastMessage
+        };
+      }));
+  
+      return true;
+    } catch (error) {
+      console.error('Error updating message status:', error);
+      return false;
+    }
+  }, []);
+
   return {
     chats: userChats,
     createChat,
     sendMessage,
+    updateMessageStatus,
     loading,
   };
 } 

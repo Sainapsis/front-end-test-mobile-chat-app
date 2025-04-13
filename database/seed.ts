@@ -40,12 +40,16 @@ const initialChats = [
         senderId: '2',
         text: 'Hey, how are you?',
         timestamp: Date.now() - 3600000,
+        status: 'read' as const,
+        readBy: ['1', '2'] // Both users have read the message
       },
       {
         id: 'msg2',
         senderId: '1',
         text: 'I\'m good, thanks for asking!',
         timestamp: Date.now() - 1800000,
+        status: 'read' as const,
+        readBy: ['2'] // Only jane has read the message
       },
     ],
   },
@@ -58,6 +62,8 @@ const initialChats = [
         senderId: '3',
         text: 'Did you check the project?',
         timestamp: Date.now() - 86400000,
+        status: 'delivered' as const,
+        readBy: [] // No one has read the message yet
       },
     ],
   },
@@ -116,6 +122,8 @@ export async function seedDatabase() {
           senderId: message.senderId,
           text: message.text,
           timestamp: message.timestamp,
+          status: message.status,
+          readBy: [JSON.stringify(message.readBy || [])]
         }).onConflictDoNothing();
       }
     }
