@@ -13,6 +13,7 @@ export interface AppContextType {
   addReaction: (messageId: string, userId: string, reaction: string) => Promise<void>;
   removeReaction: (messageId: string, userId: string) => Promise<void>;
   createChat: (participants: string[], isGroup: boolean, groupName?: string) => Promise<Chat | null>;
+  editMessage: (messageId: string, newText: string) => Promise<void>;
   loading: boolean;
   isLoggedIn: boolean;
   login: (userId: string) => Promise<boolean>;
@@ -30,6 +31,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addReaction,
     removeReaction,
     createChat,
+    editMessage,
     loading
   } = useChatsDb(currentUser?.id || null);
 
@@ -44,6 +46,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addReaction,
         removeReaction,
         createChat,
+        editMessage,
         loading,
         isLoggedIn,
         login,

@@ -21,6 +21,11 @@ const MAPPING = {
   'clock': 'access-time',
   'checkmark.circle': 'check-circle',
   'checkmark.circle.fill': 'home',
+  'magnifyingglass': 'search',
+  'xmark': 'close',
+  'face.smiling': 'add-reaction',
+  'trash': 'delete',
+  'pencil': 'edit',
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],

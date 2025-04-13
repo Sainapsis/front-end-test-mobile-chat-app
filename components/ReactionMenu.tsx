@@ -57,7 +57,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 4,
-        //marginBottom: 8,
     },
     reactionButton: {
         padding: 4,

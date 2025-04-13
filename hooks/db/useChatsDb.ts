@@ -12,6 +12,7 @@ export interface Message {
   delivery_status: 'sending' | 'sent' | 'delivered' | 'read';
   is_read: boolean;
   reactions?: Record<string, string>;
+  is_edited: boolean;
 }
 
 export interface Chat {
@@ -87,6 +88,7 @@ export function useChatsDb(currentUserId: string | null) {
             delivery_status: m.deliveryStatus as Message['delivery_status'],
             is_read: m.isRead === 1,
             reactions: m.reactions ? JSON.parse(m.reactions as string) : undefined,
+            is_edited: m.isEdited === 1,
           }));
 
           // Determine last message
@@ -172,6 +174,7 @@ export function useChatsDb(currentUserId: string | null) {
         timestamp: timestamp,
         deliveryStatus: 'sending',
         isRead: 0,
+        isEdited: 0
       });
 
       const newMessage: Message = {
@@ -183,6 +186,7 @@ export function useChatsDb(currentUserId: string | null) {
         delivery_status: 'sending',
         is_read: false,
         reactions: undefined,
+        is_edited: false
       };
 
       // Update state
@@ -385,6 +389,48 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  const editMessage = useCallback(async (messageId: string, newText: string) => {
+    try {
+      // Update the message in the database
+      await db.update(messages)
+        .set({ 
+          text: newText,
+          isEdited: 1
+        })
+        .where(eq(messages.id, messageId));
+
+      // Update the local state
+      setUserChats(prevChats => {
+        return prevChats.map(chat => {
+          const updatedMessages = chat.messages.map(msg => {
+            if (msg.id === messageId) {
+              return {
+                ...msg,
+                text: newText,
+                is_edited: true
+              };
+            }
+            return msg;
+          });
+
+          return {
+            ...chat,
+            messages: updatedMessages,
+            lastMessage: chat.lastMessage?.id === messageId
+              ? {
+                ...chat.lastMessage,
+                text: newText,
+                is_edited: true
+              }
+              : chat.lastMessage,
+          };
+        });
+      });
+    } catch (error) {
+      console.error('Error editing message:', error);
+    }
+  }, []);
+
   return {
     chats: userChats,
     createChat,
@@ -392,6 +438,7 @@ export function useChatsDb(currentUserId: string | null) {
     markMessagesAsRead,
     addReaction,
     removeReaction,
+    editMessage,
     loading,
   };
 } 

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Image, Pressable, Modal, Dimensions } from 'react-native';
+import { View, StyleSheet, Image, Pressable, Modal, Dimensions, TextInput } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
 import { IconSymbol } from './ui/IconSymbol';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { MessageReactions } from './MessageReactions';
 import { ReactionMenu } from './ReactionMenu';
+import { Colors } from '@/constants/Colors';
 
 interface MessageBubbleProps {
   message: {
@@ -17,18 +18,34 @@ interface MessageBubbleProps {
     delivery_status: 'sending' | 'sent' | 'delivered' | 'read';
     is_read: boolean;
     reactions?: Record<string, string>;
+    is_edited: boolean;
   };
   isCurrentUser: boolean;
+  isSelected?: boolean;
+  onSelect?: (messageId: string) => void;
   onReactionPress?: (messageId: string, reaction: string) => void;
   onRemoveReaction?: (messageId: string) => void;
+  onEdit?: (messageId: string, newText: string) => void;
+  onDelete?: (messageId: string) => void;
+  selectedMessages: { messageId: string; senderId: string }[];
 }
 
-export function MessageBubble({ message, isCurrentUser, onReactionPress, onRemoveReaction }: MessageBubbleProps) {
+export function MessageBubble({
+  message,
+  isCurrentUser,
+  isSelected,
+  onSelect,
+  onReactionPress,
+  onRemoveReaction,
+  onEdit,
+  selectedMessages
+}: MessageBubbleProps) {
   const isDark = useColorScheme() === 'dark';
   const [showReactionMenu, setShowReactionMenu] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedText, setEditedText] = useState(message.text);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
-  const screenWidth = Dimensions.get('window').width;
-
+  console.log(selectedMessages)
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -45,7 +62,7 @@ export function MessageBubble({ message, isCurrentUser, onReactionPress, onRemov
         </View>
       );
     }
-    
+
     switch (message.delivery_status) {
       case 'sending':
         return <IconSymbol name="clock" size={12} color={isDark ? '#8F8F8F' : '#666666'} />;
@@ -67,6 +84,24 @@ export function MessageBubble({ message, isCurrentUser, onReactionPress, onRemov
     const { pageX, pageY } = event.nativeEvent;
     setMenuPosition({ x: pageX, y: pageY });
     setShowReactionMenu(true);
+    setMenuPosition({ x: pageX, y: pageY });
+    onSelect?.(message.id);
+  };
+
+  const handlePress = () => {
+    if (selectedMessages.length >= 1) {
+      onSelect?.(message.id);
+    } else {
+      null
+    }
+  };
+
+
+  const handleSaveEdit = () => {
+    if (editedText.trim() && onEdit) {
+      onEdit(message.id, editedText.trim());
+    }
+    setIsEditing(false);
   };
 
   const handleReactionSelect = (reaction: string) => {
@@ -89,58 +124,109 @@ export function MessageBubble({ message, isCurrentUser, onReactionPress, onRemov
     return reaction || undefined;
   };
 
+  if (message.isDeleted) {
+    return (
+      <View style={[styles.container, isCurrentUser ? styles.selfContainer : styles.otherContainer]}>
+        <ThemedView style={[styles.bubble, styles.deletedMessage]}>
+          <ThemedText style={styles.deletedText}>Message deleted</ThemedText>
+        </ThemedView>
+      </View>
+    );
+  }
+  
+
   return (
     <>
-      <Pressable onLongPress={handleLongPress}>
-        <View style={[styles.container, isCurrentUser ? styles.selfContainer : styles.otherContainer]}>
-          <ThemedView style={[
-            styles.bubble,
-            isCurrentUser 
-              ? [styles.selfBubble, { backgroundColor: isDark ? '#235A4A' : '#DCF8C6' }]
-              : [styles.otherBubble, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }]
-          ]}>
-            {message.imageUrl && (
-              <Image 
-                source={{ uri: message.imageUrl }} 
-                style={styles.image}
-                resizeMode="cover"
+      <Pressable
+        onPress={handlePress}
+        onLongPress={handleLongPress}
+        style={[
+          styles.container,
+          isCurrentUser ? styles.selfContainer : styles.otherContainer,
+          isSelected && styles.selectedMessage
+        ]}
+      >
+        <ThemedView style={[
+          styles.bubble,
+          isCurrentUser
+            ? [styles.selfBubble, { backgroundColor: isDark ? '#235A4A' : '#DCF8C6' }]
+            : [styles.otherBubble, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }]
+        ]}>
+          {isEditing ? (
+            <View style={styles.editContainer}>
+              <TextInput
+                style={[
+                  styles.editInput,
+                  {
+                    backgroundColor: Colors[isDark ? 'dark' : 'light'].background,
+                    color: Colors[isDark ? 'dark' : 'light'].text,
+                    borderColor: Colors[isDark ? 'dark' : 'light'].icon
+                  }
+                ]}
+                value={editedText}
+                onChangeText={setEditedText}
+                multiline
+                autoFocus
               />
-            )}
-            {message.text && (
-              <ThemedText style={[
-                styles.messageText,
-                isCurrentUser && !isDark && styles.selfMessageText
-              ]}>
-                {message.text}
-              </ThemedText>
-            )}
-            <View style={styles.timeContainer}>
-              <ThemedText style={styles.timeText}>
-                {formatTime(message.timestamp)}
-              </ThemedText>
-              {isCurrentUser && (
-                <View style={styles.statusContainer}>
-                  {getDeliveryStatusIcon()}
-                </View>
-              )}
+              <View style={styles.editButtons}>
+                <Pressable onPress={handleSaveEdit} style={styles.editButton}>
+                  <IconSymbol name="checkmark" size={20} color={Colors[isDark ? 'dark' : 'light'].tint} />
+                </Pressable>
+                <Pressable onPress={() => setIsEditing(false)} style={styles.editButton}>
+                  <IconSymbol name="xmark" size={20} color={Colors[isDark ? 'dark' : 'light'].tint} />
+                </Pressable>
+              </View>
             </View>
-          </ThemedView>
-          {message.reactions && (
-            <MessageReactions
-              reactions={message.reactions}
-              onReactionPress={(reaction) => onReactionPress?.(message.id, reaction)}
-            />
+          ) : (
+            <>
+              {message.imageUrl && (
+                <Image
+                  source={{ uri: message.imageUrl }}
+                  style={styles.image}
+                  resizeMode="cover"
+                />
+              )}
+              {message.text && (
+                <ThemedText style={[
+                  styles.messageText,
+                  isCurrentUser && !isDark && styles.selfMessageText
+                ]}>
+                  {message.text}
+                </ThemedText>
+              )}
+              <View style={styles.timeContainer}>
+                <ThemedText style={styles.timeText}>
+                  {formatTime(message.timestamp)}
+                </ThemedText>
+                {message.is_edited && (
+                  <ThemedText style={styles.editedText}>
+                    Edited
+                  </ThemedText>
+                )}
+                {isCurrentUser && (
+                  <View style={styles.statusContainer}>
+                    {getDeliveryStatusIcon()}
+                  </View>
+                )}
+              </View>
+            </>
           )}
-        </View>
+        </ThemedView>
+        {message.reactions && (
+          <MessageReactions
+            reactions={message.reactions}
+            onReactionPress={(reaction) => onReactionPress?.(message.id, reaction)}
+          />
+        )}
       </Pressable>
 
       <Modal
-        visible={showReactionMenu}
+        visible={showReactionMenu && selectedMessages.length === 1 && selectedMessages[0].messageId === message.id}
         transparent
         animationType="fade"
         onRequestClose={() => setShowReactionMenu(false)}
       >
-        <Pressable 
+        <Pressable
           style={styles.modalOverlay}
           onPress={() => setShowReactionMenu(false)}
         >
@@ -208,13 +294,19 @@ const styles = StyleSheet.create({
   statusContainer: {
     marginLeft: 4,
   },
+  editedText: {
+    fontSize: 11,
+    opacity: 0.7,
+    marginRight: 4,
+    fontStyle: 'italic'
+  },
   doubleCheck: {
     flexDirection: 'row',
     gap: 2,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'transparent',
   },
   menuContainer: {
     position: 'absolute',
@@ -222,5 +314,49 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
     transform: [{ translateY: -50 }],
+    backgroundColor: 'transparent',
+  },
+  selectedMessage: {
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+  },
+  editContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 10,
+    marginRight: 10,
+  },
+  editButtons: {
+    flexDirection: 'row',
+  },
+  editButton: {
+    padding: 5,
+  },
+  optionsContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.light.background,
+    borderRadius: 10,
+    padding: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  optionButton: {
+    padding: 5,
+  },
+  deletedMessage: {
+    opacity: 0.5,
+    backgroundColor: '#E1E1E1',
+  },
+  deletedText: {
+    fontStyle: 'italic',
+    color: '#666666',
   },
 }); 

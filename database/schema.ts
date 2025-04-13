@@ -29,6 +29,7 @@ export const messages = sqliteTable('messages', {
     voiceUrl: text('voice_url'),
     messageType: text('message_type').notNull().default('text'),
     isRead: integer('is_read').notNull().default(0),
+    isEdited: integer('is_edited').notNull().default(0),
     deliveryStatus: text('delivery_status').notNull().default('sending'),
     reactions: text('reactions').default('{}'),
     timestamp: integer('timestamp').notNull(),

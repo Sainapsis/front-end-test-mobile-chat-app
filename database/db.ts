@@ -50,6 +50,7 @@ export async function initializeDatabase() {
         image_url TEXT,
         voice_url TEXT,
         message_type TEXT NOT NULL DEFAULT 'text', -- text, image, voice
+        is_edited INTEGER NOT NULL DEFAULT 0,
         is_read INTEGER NOT NULL DEFAULT 0, -- 0: unread, 1: read
         delivery_status TEXT NOT NULL DEFAULT 'sending', -- sending, sent, delivered, read
         reactions TEXT, -- JSON string of reactions {userId: reaction}
