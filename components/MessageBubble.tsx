@@ -1,20 +1,48 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { Message } from '@/hooks/useChats';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { IconSymbol, IconSymbolName } from './ui/IconSymbol';
 
 interface MessageBubbleProps {
   message: Message;
   isCurrentUser: boolean;
+  onReact?: (messageId: string, emoji: string) => void; // Prop opcional
 }
 
-export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
+export function MessageBubble({ message, isCurrentUser, onReact }: MessageBubbleProps) {
   const bubbleColor = useThemeColor({}, isCurrentUser ? 'selfBubble' : 'otherBubble');
   const bubbleTextColor = useThemeColor({}, 'bubbleText');
   const iconThemeColor = useThemeColor({}, 'icon');
+  const [showReactions, setShowReactions] = useState(false);
+  const reactionButtonColor = useThemeColor({}, 'text');
+
+  const EMOJIS = ['👍', '❤️', '😂', '😮', '😢'];
+  
+  const handleReactionPress = (emoji: string) => {
+    if (onReact) { // Verificación explícita
+      onReact(message.id, emoji);
+    }
+    setShowReactions(false);
+  };
+
+  const ReactionPicker = () => (
+    <View style={[
+      styles.reactionPicker,
+      isCurrentUser ? styles.reactionPickerRight : styles.reactionPickerLeft
+    ]}>
+      {EMOJIS.map(emoji => (
+        <TouchableOpacity
+          key={emoji}
+          onPress={() => handleReactionPress(emoji)}
+          style={styles.reactionOption}
+        >
+          <ThemedText style={styles.reactionEmoji}>{emoji}</ThemedText>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
 
   const getStatusIcon = () => {
     if (!isCurrentUser) return null;
@@ -64,7 +92,32 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
           </ThemedText>
           {getStatusIcon()}
         </View>
+      {/* Reacción actual */}
+      {message.reaction && (
+          <View style={[
+            styles.currentReaction,
+            isCurrentUser ? styles.selfReaction : styles.otherReaction
+          ]}>
+            <ThemedText style={styles.reactionEmoji}>{message.reaction}</ThemedText>
+          </View>
+        )}
       </View>
+    
+    {/* Botón de reacción */}
+    <TouchableOpacity 
+        onPress={() => setShowReactions(!showReactions)}
+        style={[
+          styles.reactionButton,
+          isCurrentUser ? styles.selfReactionButton : styles.otherReactionButton
+        ]}
+      >
+        <ThemedText style={[styles.reactionIcon, { color: reactionButtonColor }]}>
+          {message.reaction ? '🔄' : '➕'}
+        </ThemedText>
+      </TouchableOpacity>
+
+      {/* Selector de reacciones */}
+      {showReactions && <ReactionPicker />}
     </View>
   );
 }
@@ -114,5 +167,76 @@ const styles = StyleSheet.create({
   },
   statusIcon: {
     marginLeft: 2,
+  },
+  messageContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginVertical: 8,
+    maxWidth: '80%',
+  },
+  footerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+    alignItems: 'center',
+  },
+  reactionButton: {
+    padding: 6,
+    marginHorizontal: 4,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+  },
+  selfReactionButton: {
+    marginLeft: 8,
+  },
+  otherReactionButton: {
+    marginRight: 8,
+  },
+  reactionIcon: {
+    fontSize: 16,
+  },
+  reactionPicker: {
+    position: 'absolute',
+    flexDirection: 'row',
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    padding: 8,
+    gap: 6,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    zIndex: 1,
+  },
+  reactionPickerRight: {
+    bottom: -40,
+    right: 40,
+  },
+  reactionPickerLeft: {
+    bottom: -40,
+    left: 40,
+  },
+  reactionOption: {
+    padding: 4,
+  },
+  reactionEmoji: {
+    fontSize: 20,
+  },
+  currentReaction: {
+    position: 'absolute',
+    bottom: -8,
+    borderRadius: 12,
+    padding: 4,
+    minWidth: 24,
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    elevation: 1,
+  },
+  selfReaction: {
+    right: -8,
+  },
+  otherReaction: {
+    left: -8,
   },
 }); 

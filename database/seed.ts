@@ -41,7 +41,8 @@ const initialChats = [
         text: 'Hey, how are you?',
         timestamp: Date.now() - 3600000,
         status: 'read' as const,
-        readBy: ['1', '2'] // Both users have read the message
+        readBy: ['1', '2'],
+        reaction: '👍'
       },
       {
         id: 'msg2',
@@ -63,7 +64,7 @@ const initialChats = [
         text: 'Did you check the project?',
         timestamp: Date.now() - 86400000,
         status: 'delivered' as const,
-        readBy: [] // No one has read the message yet
+        readBy: []
       },
     ],
   },

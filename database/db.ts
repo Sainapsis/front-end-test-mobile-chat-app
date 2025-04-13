@@ -62,7 +62,6 @@ export async function initializeDatabase() {
       console.log('Column "status" already exists in messages table.');
     }
 
-    // Agregar columna 'read_by' si no existe
     if (!messagesColumns.some((column : any) => column.name === 'read_by')) {
       await sqlite.execAsync(`
         ALTER TABLE messages 
@@ -71,6 +70,16 @@ export async function initializeDatabase() {
       console.log('Column "read_by" added to messages table.');
     } else {
       console.log('Column "read_by" already exists in messages table.');
+    }
+
+    if (!messagesColumns.some((column : any) => column.name === 'reaction')) {
+      await sqlite.execAsync(`
+        ALTER TABLE messages 
+        ADD COLUMN reaction TEXT;
+      `);
+      console.log('Column "reaction" added to messages table.');
+    } else {
+      console.log('Column "reaction" already exists in messages table.');
     }
     
     console.log('All tables created successfully!');

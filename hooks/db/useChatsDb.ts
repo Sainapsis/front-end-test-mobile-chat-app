@@ -10,6 +10,7 @@ export interface Message {
   timestamp: number;
   status: 'sent'|'delivered'|'read';
   readBy?: string[]; // For group chat, not implemented yet :)
+  reaction?: string;
 }
 
 export interface Chat {
@@ -80,7 +81,8 @@ export function useChatsDb(currentUserId: string | null) {
             text: m.text,
             timestamp: m.timestamp,
             status: m.status || 'sent', // Default
-            readBy: m.readBy ? JSON.parse(m.readBy.toString()) : []
+            readBy: m.readBy ? JSON.parse(m.readBy.toString()) : [],
+            reaction: m.reaction || undefined
           }));
           
           // Determine last message
@@ -280,11 +282,50 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  const addReaction = useCallback(async (chatId: string, messageId: string, emoji: string) => {
+    try {
+      // Actualizar base de datos
+      await db.update(messages)
+        .set({ reaction: emoji })
+        .where(and(
+          eq(messages.chatId, chatId),
+          eq(messages.id, messageId)
+        ));
+
+        setUserChats(prevChats => prevChats.map(chat => {
+          if (chat.id !== chatId) return chat;
+          return {
+            ...chat,
+            messages: chat.messages.map(msg => 
+              msg.id === messageId ? { ...msg, reaction: emoji } : msg
+            )
+          };
+        }));
+  
+      // Actualizar el estado local
+      setUserChats(prevChats => prevChats.map(chat => {
+        if (chat.id !== chatId) return chat;
+        return {
+          ...chat,
+          messages: chat.messages.map(msg => 
+            msg.id === messageId ? { ...msg, reaction: emoji } : msg
+          )
+        };
+      }));
+  
+      return true;
+    } catch (error) {
+      console.error('Error adding reaction:', error);
+      return false;
+    }
+  }, []);
+
   return {
     chats: userChats,
     createChat,
     sendMessage,
     updateMessageStatus,
+    addReaction,
     loading,
   };
 } 

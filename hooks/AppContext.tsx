@@ -16,6 +16,7 @@ type AppContextType = {
   loading: boolean;
   dbInitialized: boolean;
   updateMessageStatus: (chatId: string, messageId: string, status: 'delivered' | 'read', userId?: string) => Promise<boolean>;
+  addReaction: (chatId: string, messageId: string, emoji: string) => Promise<boolean>;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -31,6 +32,7 @@ function AppContent({ children }: { children: ReactNode }) {
     ...userContext,
     ...chatContext,
     updateMessageStatus: chatContext.updateMessageStatus,
+    addReaction: chatContext.addReaction,
     loading,
     dbInitialized: isInitialized,
   };
