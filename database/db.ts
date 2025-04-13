@@ -52,6 +52,8 @@ export async function initializeDatabase() {
 
     const messagesColumns = await sqlite.getAllAsync('PRAGMA table_info(messages);');
 
+    // Add new columns if they don't exist
+
     if (!messagesColumns.some((column : any) => column.name === 'status')) {
       await sqlite.execAsync(`
         ALTER TABLE messages 
@@ -80,6 +82,26 @@ export async function initializeDatabase() {
       console.log('Column "reaction" added to messages table.');
     } else {
       console.log('Column "reaction" already exists in messages table.');
+    }
+
+    if (!messagesColumns.some((column : any) => column.name === 'is_deleted')) {
+      await sqlite.execAsync(`
+        ALTER TABLE messages 
+        ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0
+      `);
+      console.log('Column "is_deleted" added to messages table.');
+    } else {
+      console.log('Column "is_deleted" already exists in messages table.');
+    }
+
+    if (!messagesColumns.some((column : any) => column.name === 'edited_at')) {
+      await sqlite.execAsync(`
+        ALTER TABLE messages 
+        ADD COLUMN edited_at INTEGER
+      `);
+      console.log('Column "edited_at" added to messages table.');
+    } else {
+      console.log('Column "edited_at" already exists in messages table.');
     }
     
     console.log('All tables created successfully!');

@@ -8,9 +8,12 @@ export interface Message {
   senderId: string;
   text: string;
   timestamp: number;
+  // Added properties
   status: 'sent'|'delivered'|'read';
   readBy?: string[]; // For group chat, not implemented yet :)
   reaction?: string;
+  editedAt?: number;
+  isDeleted?: boolean;
 }
 
 export interface Chat {
@@ -320,12 +323,70 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  const deleteMessage = useCallback(async (chatId: string, messageId: string) => {
+    try {
+      await db.update(messages)
+        .set({ isDeleted: 1 })
+        .where(and(
+          eq(messages.chatId, chatId),
+          eq(messages.id, messageId)
+        ));
+  
+      setUserChats(prev => prev.map(chat => {
+        if (chat.id !== chatId) return chat;
+        return {
+          ...chat,
+          messages: chat.messages.filter(msg => msg.id !== messageId)
+        };
+      }));
+  
+      return true;
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      return false;
+    }
+  }, []);
+
+  const editMessage = useCallback(async (chatId: string, messageId: string, newText: string) => {
+    try {
+      await db.update(messages)
+        .set({ 
+          text: newText,
+          editedAt: Date.now() 
+        })
+        .where(and(
+          eq(messages.chatId, chatId),
+          eq(messages.id, messageId)
+        ));
+  
+      setUserChats(prev => prev.map(chat => {
+        if (chat.id !== chatId) return chat;
+        return {
+          ...chat,
+          messages: chat.messages.map(msg => 
+            msg.id === messageId 
+              ? { ...msg, text: newText, editedAt: Date.now() }
+              : msg
+          )
+        };
+      }));
+  
+      return true;
+    } catch (error) {
+      console.error("Error editing message:", error);
+      return false;
+    }
+  }, []);
+
   return {
     chats: userChats,
     createChat,
     sendMessage,
     updateMessageStatus,
+    // Added methods
     addReaction,
+    deleteMessage,
+    editMessage,
     loading,
   };
 } 
