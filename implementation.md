@@ -10,20 +10,35 @@
 - **Themed chat bubbles**: Messages now display colors based on the active theme, with distinct tones for sent/received messages.
 - **Themed links**: Links now dynamically adapt to the selected theme.
 - **Read receipts & status indicators**: Added message status icons (sent, read) inside chat bubbles for real-time feedback.
+- **Enhanced reaction interface**: Redesigned reactions for better visual clarity and interaction.
+- **User action feedback**: Added visual/audible cues (e.g., loading spinners, success toasts) during actions like editing/deleting messages.
+- **Improved menu animations**: Smoother transitions for context menus (message long-press).
+- **Adaptive context menus**: Menus now adjust position/size based on screen boundaries.
 
 ## Feature Additions
 
 - **Chat exit button**: Added functionality to leave the chat and return to the general chat list screen.
 - **Message status tracking**: Implemented logic to update and display message states (sent → read).
+- **Message editing & deletion** *(Beta)*:
+    - Users can edit or "delete" messages (soft delete: hidden from UI but retained in DB).
+    - *Disclaimer: Funcionalidad básica implementada; requiere mejoras en validaciones y UX.*
+- **Message reactions**: Users can add/remove reactions to messages.
+- **Edit timestamps**: Edited messages now display the last modification time.
 
 ## Database & Backend Changes
 
-- **Modified `db.ts`**: Added two new columns to the messages table to support read receipts.
-- **Updated `seed.ts`**: Ensured database initialization aligns with the new schema (consistent mock data for message states).
+- **Modified `db.ts`**:
+    - Added `is_deleted` (boolean) and `last_edited_at` (timestamp) columns to the messages table.
+    - New columns are added via SQLite migrations (schema verification before altering tables).
+- **Updated `seed.ts`**:
+    - Mock data now includes `is_deleted` and `last_edited_at` for testing consistency.
+- **Soft delete implementation**: Messages are flagged as `is_deleted` instead of permanent removal.
 
 ## Code Quality & Architecture
 
 - **Centralized repeated colors**: Extracted duplicate hex colors into shared variables for maintainability.
-- **Simplified theme usage**: Themes can now be applied by name (only implemented `"dark"` and `"light"`) without manual overrides; invalid names throw compilation errors.
+- **Simplified theme usage**: Themes can now be applied by name (for now just `"dark"` and `"light"` are available) without manual overrides; invalid names throw compilation errors.
 - **Removed unused CSS imports/parameters**: Cleaned up redundant code.
 - **Theme colors as constants**: Colors are now defined as constants that adapt to the selected theme.
+- **Refactored MessageBubble**: Improved component reusability.
+- **Code documentation**: Added inline comments.

@@ -38,8 +38,8 @@ Please make sure to **document your task selection, implementation details, and 
 ### Feature Additions
 
 - [ ] Add media sharing capabilities (photos preferably, with a optimized/compressed preview instead of the original image)
-- [ ] Add read receipts for messages along with status indicators (sent, read)
-- [ ] Implement message reactions (emoji responses, easy but still gets points)
+- [ ] ~~Add read receipts for messages along with status indicators (sent, read)~~
+- [ ] ~~Implement message reactions (emoji responses, easy but still gets points)~~
 - [ ] Create group chat creation and management
 - [ ] Implement message search functionality
 - [ ] Add message deletion and editing
@@ -56,7 +56,7 @@ Please make sure to **document your task selection, implementation details, and 
 ### Code Quality & Architecture
 
 - [ ] Implement comprehensive unit and integration tests
-- [ ] Refactor components for better reusability
+- [ ] ~~Refactor components for better reusability~~
 - [ ] Implement proper logging and monitoring
 
 ### Bug Fixes
@@ -66,12 +66,12 @@ Please make sure to **document your task selection, implementation details, and 
 
 ### UI/UX Enhancements
 
-- [ ] Implement dark mode support
+- [ ] ~~Implement dark mode support~~
 - [ ] Improve loading states and skeleton screens
 - [ ] Enhance accessibility features (screen reader support, contrast)
 - [ ] Add haptic feedback for important actions
 - [ ] Improve empty state designs (no messages, no chats)
-- [ ] Implement smoother animations and transitions
+- [ ] ~~Implement smoother animations and transitions~~
 
 ## Assessment Criteria
 
