@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -25,7 +25,7 @@ import { Colors } from '@/constants/Colors';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, users, chats, sendMessage, markMessagesAsRead, addReaction, removeReaction, editMessage } = useAppContext();
+  const { currentUser, users, chats, sendMessage, markMessagesAsRead, addReaction, removeReaction, editMessage, deleteMessage } = useAppContext();
   const colorScheme = useColorScheme() ?? 'light';
   const [messageText, setMessageText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -36,7 +36,7 @@ export default function ChatRoomScreen() {
   const [editText, setEditText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
-  
+  const [showDeleteMenu, setShowDeleteMenu] = useState(false);
   const chat = chats.find(c => c.id === chatId);
   const chatParticipants = chat?.participants
     .filter(id => id !== currentUser?.id)
@@ -130,25 +130,47 @@ export default function ChatRoomScreen() {
     }
   };
 
-  const handleDeleteMessage = (messageId: string) => {
-    if (chat && currentUser) {
-      // Aquí deberías implementar la lógica para eliminar el mensaje de la base de datos
-      console.log('Deleting message:', messageId);
-      setSelectedMessages(prev => prev.filter(selected => selected.messageId !== messageId));
-    }
-  };
+  const handleDeleteMessage = useCallback((messageId: string, deleteForEveryone: boolean) => {
+    if (!currentUser || !chat) return;
 
-  const handleReactionPress = (messageId: string, reaction: string) => {
-    if (currentUser) {
-      addReaction(messageId, currentUser.id, reaction);
-    }
-  };
+    const message = chat.messages.find(m => m.id === messageId);
+    if (!message) return;
 
-  const handleRemoveReaction = (messageId: string) => {
-    if (currentUser) {
-      removeReaction(messageId, currentUser.id);
+    if (deleteForEveryone) {
+      // Delete for everyone
+      deleteMessage(messageId, currentUser.id, true);
+    } else {
+      // Delete for me
+      deleteMessage(messageId, currentUser.id, false);
     }
-  };
+
+    setSelectedMessages(prev => prev.filter(msg => msg.messageId !== messageId));
+  }, [currentUser, chat, deleteMessage]);
+
+  const handleReactionPress = useCallback((messageId: string, reaction: string) => {
+    if (!currentUser || !chat) return;
+
+    const message = chat.messages.find(m => m.id === messageId);
+    if (!message) return;
+
+    // Add reaction to the message
+    message.reactions = {
+      ...message.reactions,
+      [currentUser.id]: reaction
+    };
+  }, [currentUser, chat]);
+
+  const handleRemoveReaction = useCallback((messageId: string) => {
+    if (!currentUser || !chat) return;
+
+    const message = chat.messages.find(m => m.id === messageId);
+    if (!message) return;
+
+    // Remove reaction from the message
+    if (message.reactions) {
+      delete message.reactions[currentUser.id];
+    }
+  }, [currentUser, chat]);
 
   useEffect(() => {
     if (chat?.messages.length && flatListRef.current) {
@@ -162,6 +184,24 @@ export default function ChatRoomScreen() {
     message.text.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
+  const handleDeletePress = () => {
+    setShowDeleteMenu(true);
+  };
+
+  const handleDeleteForMe = () => {
+    selectedMessages.forEach((msg) => {
+      handleDeleteMessage(msg.messageId, false);
+    });
+    setShowDeleteMenu(false);
+  };
+
+  const handleDeleteForEveryone = () => {
+    selectedMessages.forEach((msg) => {
+      handleDeleteMessage(msg.messageId, true);
+    });
+    setShowDeleteMenu(false);
+  };
+
   if (!chat || !currentUser) {
     return (
       <ThemedView style={styles.centerContainer}>
@@ -169,7 +209,7 @@ export default function ChatRoomScreen() {
       </ThemedView>
     );
   }
-  
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -192,7 +232,7 @@ export default function ChatRoomScreen() {
             </View>
           ),
           headerLeft: () => (
-            <Pressable onPress={() => router.back()}>
+            <Pressable  style={styles.backButton} onPress={() => router.back()}>
               <IconSymbol name="chevron.left" size={24} color="#007AFF" />
             </Pressable>
           ),
@@ -202,22 +242,19 @@ export default function ChatRoomScreen() {
                 <>
                   {selectedMessages.length === 1 && selectedMessages[0].senderId === currentUser?.id && (
                     <Pressable onPress={handleEditPress}>
-                      <IconSymbol name="pencil" size={24} color="#007AFF" />
+                      <IconSymbol name="pencil" size={24} color={Colors[colorScheme].icon} />
                     </Pressable>
                   )}
-                  <Pressable onPress={() => {
-                    selectedMessages.forEach(({ messageId }) => {
-                      handleDeleteMessage(messageId);
-                    });
-                  }}>
-                    <IconSymbol name="trash" size={24} color="#FF3B30" />
+                  <Pressable onPress={handleDeletePress}>
+                    <IconSymbol name="trash" size={24} color={Colors[colorScheme].icon} />
                   </Pressable>
                 </>
               ) : (
                 <Pressable onPress={() => setIsSearchVisible(true)}>
-                  <IconSymbol name="magnifyingglass" size={24} color="#007AFF" />
+                  <IconSymbol name="magnifyingglass" size={24} color={Colors[colorScheme].icon} />
                 </Pressable>
               )}
+
             </View>
           ),
         }}
@@ -230,7 +267,7 @@ export default function ChatRoomScreen() {
         onRequestClose={() => setIsSearchVisible(false)}
       >
         <ThemedView style={styles.searchModalContainer}>
-          <ThemedView style={styles.searchHeader}>
+          <ThemedView style={{ ...styles.searchHeader }}>
             <TextInput
               style={[
                 styles.searchInput,
@@ -297,7 +334,7 @@ export default function ChatRoomScreen() {
               autoFocus
             />
             <View style={styles.editModalButtons}>
-              <Pressable 
+              <Pressable
                 style={styles.editModalButton}
                 onPress={() => {
                   setEditingMessage(null);
@@ -306,7 +343,7 @@ export default function ChatRoomScreen() {
               >
                 <ThemedText style={styles.editModalButtonText}>Cancel</ThemedText>
               </Pressable>
-              <Pressable 
+              <Pressable
                 style={[styles.editModalButton, styles.saveButton]}
                 onPress={() => {
                   if (editingMessage) {
@@ -322,6 +359,25 @@ export default function ChatRoomScreen() {
           </ThemedView>
         </ThemedView>
       </Modal>
+      <Modal
+        visible={showDeleteMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDeleteMenu(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowDeleteMenu(false)}>
+          <View style={[styles.deleteMenu, { top: 20, right: 10 }]}>
+            <Pressable style={styles.deleteOption} onPress={handleDeleteForMe}>
+              <ThemedText style={styles.deleteOptionText}>Delete for me</ThemedText>
+            </Pressable>
+            {selectedMessages.filter(msg => msg.senderId !== currentUser?.id).length === 0 && (
+              <Pressable style={styles.deleteOption} onPress={handleDeleteForEveryone}>
+                <ThemedText style={styles.deleteOptionText}>Delete for everyone</ThemedText>
+              </Pressable>
+            )}
+          </View>
+        </Pressable>
+      </Modal>
 
       <FlatList
         ref={flatListRef}
@@ -331,15 +387,14 @@ export default function ChatRoomScreen() {
           <MessageBubble
             message={item}
             isCurrentUser={item.senderId === currentUser?.id}
+            onSelect={() => handleMessageSelect(item.id)}
             isSelected={selectedMessages.some(
               selected => selected.messageId === item.id && selected.senderId === item.senderId
             )}
-            onSelect={handleMessageSelect}
             onReactionPress={handleReactionPress}
             onRemoveReaction={handleRemoveReaction}
-            onEdit={handleEditMessage}
-            onDelete={handleDeleteMessage}
             selectedMessages={selectedMessages}
+            selectedCount={selectedMessages.length}
           />
         )}
         contentContainerStyle={styles.messagesContainer}
@@ -348,6 +403,8 @@ export default function ChatRoomScreen() {
             <ThemedText>No messages yet. Say hello!</ThemedText>
           </ThemedView>
         )}
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
+        onLayout={() => flatListRef.current?.scrollToEnd()}
       />
 
       <ThemedView style={styles.inputContainer}>
@@ -482,7 +539,6 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -521,4 +577,25 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: 'white',
   },
+  deleteMenu: {
+    position: 'absolute',
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 4,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  deleteOption: {
+    padding: 4,
+  },
+  deleteOptionText: {
+    fontSize: 16,
+    color: '#FF3B30',
+  },
+  backButton: {
+    padding: 8 
+  }
 }); 

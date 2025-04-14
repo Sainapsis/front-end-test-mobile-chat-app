@@ -1,4 +1,3 @@
-import { sql } from 'drizzle-orm';
 import { text, integer, sqliteTable } from 'drizzle-orm/sqlite-core';
 
 export const users = sqliteTable('users', {
@@ -30,6 +29,8 @@ export const messages = sqliteTable('messages', {
     messageType: text('message_type').notNull().default('text'),
     isRead: integer('is_read').notNull().default(0),
     isEdited: integer('is_edited').notNull().default(0),
+    isDeleted: integer('is_deleted').notNull().default(0),
+    deletedFor: text('deleted_for').default('[]'),
     deliveryStatus: text('delivery_status').notNull().default('sending'),
     reactions: text('reactions').default('{}'),
     timestamp: integer('timestamp').notNull(),

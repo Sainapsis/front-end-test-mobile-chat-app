@@ -13,6 +13,8 @@ export interface Message {
   is_read: boolean;
   reactions?: Record<string, string>;
   is_edited: boolean;
+  isDeleted: boolean;
+  deletedFor: string[];
 }
 
 export interface Chat {
@@ -79,22 +81,29 @@ export function useChatsDb(currentUserId: string | null) {
             .where(eq(messages.chatId, chatId))
             .orderBy(messages.timestamp);
 
-          const chatMessages: Message[] = messagesData.map(m => ({
-            id: m.id as string,
-            senderId: m.senderId as string,
-            text: m.text as string,
-            imageUrl: m.imageUrl as string | undefined,
-            timestamp: m.timestamp as number,
-            delivery_status: m.deliveryStatus as Message['delivery_status'],
-            is_read: m.isRead === 1,
-            reactions: m.reactions ? JSON.parse(m.reactions as string) : undefined,
-            is_edited: m.isEdited === 1,
-          }));
+          const chatMessages: Message[] = messagesData.map(m => {
+            const deletedFor = m.deletedFor ? JSON.parse(m.deletedFor as string) : [];
+            const isDeleted = m.isDeleted === 1 || deletedFor.includes('all') || deletedFor.includes(currentUserId);
 
-          // Determine last message
-          const lastMessage = chatMessages.length > 0
-            ? chatMessages[chatMessages.length - 1]
-            : undefined;
+            return {
+              id: m.id as string,
+              senderId: m.senderId as string,
+              text: m.text as string,
+              imageUrl: m.imageUrl as string | undefined,
+              timestamp: m.timestamp as number,
+              delivery_status: m.deliveryStatus as Message['delivery_status'],
+              is_read: m.isRead === 1,
+              reactions: m.reactions ? JSON.parse(m.reactions as string) : undefined,
+              is_edited: m.isEdited === 1,
+              isDeleted,
+              deletedFor,
+            };
+          });
+
+          // Determine last message (excluding deleted messages for the current user)
+          const lastMessage = chatMessages
+            .filter(msg => !msg.isDeleted)
+            .pop();
 
           loadedChats.push({
             id: chatId,
@@ -186,7 +195,9 @@ export function useChatsDb(currentUserId: string | null) {
         delivery_status: 'sending',
         is_read: false,
         reactions: undefined,
-        is_edited: false
+        is_edited: false,
+        isDeleted: false,
+        deletedFor: [],
       };
 
       // Update state
@@ -431,6 +442,68 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  const deleteMessage = useCallback(async (messageId: string, userId: string, deleteForEveryone: boolean = false) => {
+    try {
+      // Get the current message
+      const messageResult = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.id, messageId));
+
+      if (messageResult.length === 0) return;
+
+      const message = messageResult[0];
+      const currentDeletedFor = message.deletedFor ? JSON.parse(message.deletedFor as string) : [];
+
+      if (deleteForEveryone) {
+        // Delete for everyone
+        await db.update(messages)
+          .set({ 
+            isDeleted: 1,
+            deletedFor: JSON.stringify(['all'])
+          })
+          .where(eq(messages.id, messageId));
+      } else {
+        // Delete only for the user
+        await db.update(messages)
+          .set({ 
+            deletedFor: JSON.stringify([...currentDeletedFor, userId])
+          })
+          .where(eq(messages.id, messageId));
+      }
+
+      // Update the local state
+      setUserChats(prevChats => {
+        return prevChats.map(chat => {
+          const updatedMessages = chat.messages.map(msg => {
+            if (msg.id === messageId) {
+              return {
+                ...msg,
+                isDeleted: deleteForEveryone,
+                deletedFor: deleteForEveryone ? ['all'] : [...(msg.deletedFor || []), userId]
+              };
+            }
+            return msg;
+          });
+
+          return {
+            ...chat,
+            messages: updatedMessages,
+            lastMessage: chat.lastMessage?.id === messageId
+              ? {
+                ...chat.lastMessage,
+                isDeleted: deleteForEveryone,
+                deletedFor: deleteForEveryone ? ['all'] : [...(chat.lastMessage.deletedFor || []), userId]
+              }
+              : chat.lastMessage,
+          };
+        });
+      });
+    } catch (error) {
+      console.error('Error deleting message:', error);
+    }
+  }, []);
+
   return {
     chats: userChats,
     createChat,
@@ -439,6 +512,7 @@ export function useChatsDb(currentUserId: string | null) {
     addReaction,
     removeReaction,
     editMessage,
+    deleteMessage,
     loading,
   };
 } 

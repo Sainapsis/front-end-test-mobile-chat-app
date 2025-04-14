@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Image, Pressable, Modal, Dimensions, TextInput } from 'react-native';
+import { View, StyleSheet, Image, Pressable, Modal, TextInput } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
 import { IconSymbol } from './ui/IconSymbol';
@@ -7,6 +7,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { MessageReactions } from './MessageReactions';
 import { ReactionMenu } from './ReactionMenu';
 import { Colors } from '@/constants/Colors';
+import { useAppContext } from '@/hooks/AppContext';
 
 interface MessageBubbleProps {
   message: {
@@ -19,6 +20,8 @@ interface MessageBubbleProps {
     is_read: boolean;
     reactions?: Record<string, string>;
     is_edited: boolean;
+    isDeleted: boolean;
+    deletedFor?: string[];
   };
   isCurrentUser: boolean;
   isSelected?: boolean;
@@ -26,8 +29,8 @@ interface MessageBubbleProps {
   onReactionPress?: (messageId: string, reaction: string) => void;
   onRemoveReaction?: (messageId: string) => void;
   onEdit?: (messageId: string, newText: string) => void;
-  onDelete?: (messageId: string) => void;
   selectedMessages: { messageId: string; senderId: string }[];
+  selectedCount?: number;
 }
 
 export function MessageBubble({
@@ -38,14 +41,15 @@ export function MessageBubble({
   onReactionPress,
   onRemoveReaction,
   onEdit,
-  selectedMessages
+  selectedMessages,
 }: MessageBubbleProps) {
   const isDark = useColorScheme() === 'dark';
   const [showReactionMenu, setShowReactionMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState(message.text);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
-  console.log(selectedMessages)
+  const { currentUser} = useAppContext();
+  
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -84,18 +88,14 @@ export function MessageBubble({
     const { pageX, pageY } = event.nativeEvent;
     setMenuPosition({ x: pageX, y: pageY });
     setShowReactionMenu(true);
-    setMenuPosition({ x: pageX, y: pageY });
     onSelect?.(message.id);
   };
 
   const handlePress = () => {
     if (selectedMessages.length >= 1) {
       onSelect?.(message.id);
-    } else {
-      null
     }
   };
-
 
   const handleSaveEdit = () => {
     if (editedText.trim() && onEdit) {
@@ -124,16 +124,26 @@ export function MessageBubble({
     return reaction || undefined;
   };
 
+  
+  if (currentUser && message.deletedFor?.includes(currentUser.id)) {
+    return (null);
+  }
+
   if (message.isDeleted) {
     return (
-      <View style={[styles.container, isCurrentUser ? styles.selfContainer : styles.otherContainer]}>
-        <ThemedView style={[styles.bubble, styles.deletedMessage]}>
-          <ThemedText style={styles.deletedText}>Message deleted</ThemedText>
+      <View style={[styles.container]}>
+        <ThemedView style={[
+          styles.bubble,
+          styles.deletedMessage,
+          styles.bubbleWidth,
+          isCurrentUser ? styles.selfContainer : styles.otherContainer,
+          { backgroundColor: isDark ? '#999999' : '#E1E1E1' }
+        ]}>
+          <ThemedText style={{...styles.deletedText, color: Colors[isDark ? 'dark' : 'light'].text}}>Message deleted</ThemedText>
         </ThemedView>
       </View>
     );
   }
-  
 
   return (
     <>
@@ -148,9 +158,11 @@ export function MessageBubble({
       >
         <ThemedView style={[
           styles.bubble,
+          styles.bubbleWidth,
           isCurrentUser
             ? [styles.selfBubble, { backgroundColor: isDark ? '#235A4A' : '#DCF8C6' }]
-            : [styles.otherBubble, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }]
+            : [styles.otherBubble, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }],
+            styles.bubbleWidth, isCurrentUser ? styles.selfContainer : styles.otherContainer
         ]}>
           {isEditing ? (
             <View style={styles.editContainer}>
@@ -213,10 +225,12 @@ export function MessageBubble({
           )}
         </ThemedView>
         {message.reactions && (
-          <MessageReactions
-            reactions={message.reactions}
-            onReactionPress={(reaction) => onReactionPress?.(message.id, reaction)}
-          />
+          <View style={isCurrentUser? styles.reactionsContainerSelf : styles.reactionsContainerOther}>
+            <MessageReactions
+              reactions={message.reactions}
+              onReactionPress={(reaction) => onReactionPress?.(message.id, reaction)}
+            />
+          </View>
         )}
       </Pressable>
 
@@ -246,7 +260,10 @@ export function MessageBubble({
 const styles = StyleSheet.create({
   container: {
     marginVertical: 4,
-    maxWidth: '80%',
+    width: '100%',
+  },
+  bubbleWidth: {
+    width: '80%',
   },
   selfContainer: {
     alignSelf: 'flex-end',
@@ -317,7 +334,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   selectedMessage: {
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    backgroundColor: 'rgba(128, 128, 255, 0.2)',
   },
   editContainer: {
     flex: 1,
@@ -353,10 +370,17 @@ const styles = StyleSheet.create({
   },
   deletedMessage: {
     opacity: 0.5,
-    backgroundColor: '#E1E1E1',
   },
   deletedText: {
     fontStyle: 'italic',
     color: '#666666',
+  },
+  reactionsContainerSelf: {
+    alignSelf: 'flex-end',
+    marginTop: -4,
+  },
+  reactionsContainerOther: {
+    alignSelf: 'flex-start',
+    marginTop: -4,
   },
 }); 
