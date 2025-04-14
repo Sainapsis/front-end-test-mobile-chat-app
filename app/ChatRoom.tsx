@@ -1,15 +1,6 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { 
-  View, 
-  StyleSheet, 
-  FlatList, 
-  TextInput, 
-  Pressable, 
-  KeyboardAvoidingView, 
-  Platform
-} from 'react-native';
-import { useLocalSearchParams, Stack, useRouter, useNavigation } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { View, StyleSheet, FlatList, TextInput, Pressable, KeyboardAvoidingView, Platform, Image, ScrollView, TouchableOpacity } from 'react-native';
+import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -17,6 +8,9 @@ import { MessageBubble } from '@/components/MessageBubble';
 import { Avatar } from '@/components/Avatar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useThemeColor } from '@/hooks/useThemeColor';
+import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { MediaAttachment, Chat, Message, User } from '@/types/types';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
@@ -37,29 +31,62 @@ export default function ChatRoomScreen() {
   const chat = chats.find(c => c.id === chatId);
   
   const chatParticipants = chat?.participants
-    .filter(id => id !== currentUser?.id)
-    .map(id => users.find(user => user.id === id))
-    .filter(Boolean) || [];
+    .filter((id: String) => id !== currentUser?.id)
+    .map((id: String) => users.find(user => user.id === id))
+    .filter(Boolean) as User[] || [];
   
   const chatName = chatParticipants.length === 1 
     ? chatParticipants[0]?.name 
     : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
 
-    const handleSendMessage = async () => {
-      if (messageText.trim() && currentUser && chat) {
-        const success = await sendMessage(chat.id, messageText.trim(), currentUser.id);
-        
-        if (success) {
-          setMessageText('');
-          const newMessages = chats.find(c => c.id === chat.id)?.messages || [];
-          const lastMessage = newMessages[newMessages.length - 1];
+  const [mediaAttachments, setMediaAttachments] = useState<MediaAttachment[]>([]);
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.7,
+      allowsMultipleSelection: true,
+    });
+  
+    if (!result.canceled) {
+      const processedImages = await Promise.all(
+        result.assets.map(async (asset) => {
+          const compressedImage = await ImageManipulator.manipulateAsync(
+            asset.uri,
+            [{ resize: { width: 800 } }],
+            { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+          );
           
-          if (lastMessage) {
-            await updateMessageStatus(chat.id, lastMessage.id, 'delivered');
-          }
+          return {
+            uri: compressedImage.uri,
+            previewUri: compressedImage.uri,
+            type: 'image' as const
+          };
+        })
+      );
+      
+      setMediaAttachments(prev => [...prev, ...processedImages]);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if ((messageText.trim() || mediaAttachments.length > 0) && currentUser && chat) {
+      const success = await sendMessage(chat.id, messageText.trim(), currentUser.id, mediaAttachments);
+      
+      if (success) {
+        setMessageText('');
+        setMediaAttachments([]);
+        const newMessages = chats.find(c => c.id === chat.id)?.messages || [];
+        const lastMessage = newMessages[newMessages.length - 1];
+        
+        if (lastMessage) {
+          await updateMessageStatus(chat.id, lastMessage.id, 'delivered');
         }
       }
-    };
+    }
+  };
 
   useEffect(() => {
     if (chat?.messages.length && flatListRef.current) {
@@ -82,7 +109,7 @@ export default function ChatRoomScreen() {
       if (!currentUser || !chat) return;
       
       const unreadMessages = chat.messages.filter(
-        msg => msg.senderId !== currentUser.id && 
+        (msg: Message) => msg.senderId !== currentUser.id && 
               (!msg.readBy || !msg.readBy.includes(currentUser.id))
       );
       
@@ -145,12 +172,33 @@ export default function ChatRoomScreen() {
         contentContainerStyle={styles.messagesContainer}
         ListEmptyComponent={() => (
           <ThemedView style={styles.emptyContainer}>
-            <ThemedText>No messages yet. Say hello!</ThemedText>
+            <ThemedText>Say hello!</ThemedText>
           </ThemedView>
         )}
       />
-
+      {mediaAttachments.length > 0 && (
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.mediaPreviewContainer}
+        >
+          {mediaAttachments.map((media, index) => (
+            <Image
+              key={`preview-${index}`}
+              source={{ uri: media.uri }}
+              style={styles.mediaThumbnail}
+              resizeMode="cover"
+            />
+          ))}
+        </ScrollView>
+      )}
       <ThemedView style={[styles.inputContainer, { borderTopColor: borderColor }]}>
+        <TouchableOpacity 
+            onPress={pickImage} 
+            style={styles.mediaButton}
+          >
+            <IconSymbol name="camera.fill" size={24} color={iconColor} />
+        </TouchableOpacity>
         <TextInput
           style={[styles.input, { borderColor: borderColor, backgroundColor: inputBgColor, color: textColor }]}
           placeholderTextColor={placeholderColor}
@@ -160,9 +208,9 @@ export default function ChatRoomScreen() {
           multiline
         />
         <Pressable
-          style={[styles.sendButton, !messageText.trim() && styles.disabledButton]}
+          style={[styles.sendButton, (!messageText.trim() && mediaAttachments.length === 0) && styles.disabledButton]}
           onPress={handleSendMessage}
-          disabled={!messageText.trim()}
+          disabled={!messageText.trim() && mediaAttachments.length === 0}
         >
           <IconSymbol name="arrow.up.circle.fill" size={32} color={iconColor} />
         </Pressable>
@@ -219,4 +267,23 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.5,
   },
-}); 
+  mediaButton: {
+    marginRight: 10,
+    marginBottom: 5,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mediaPreviewContainer: {
+    maxHeight: 100,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+  },
+  mediaThumbnail: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+});

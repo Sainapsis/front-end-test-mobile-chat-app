@@ -1,10 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput, Alert, Modal, Pressable, Text} from 'react-native';
+import { View, StyleSheet, TouchableOpacity, TextInput, Alert, Modal, Pressable, Text, Image, ScrollView} from 'react-native';
 import { ThemedText } from './ThemedText';
 import { Message } from '@/hooks/useChats';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { IconSymbol, IconSymbolName } from './ui/IconSymbol';
 import * as Haptics from 'expo-haptics';
+import { MediaAttachment } from '@/types/types';
 
 interface MessageBubbleProps {
   message: Message;
@@ -155,6 +156,22 @@ export function MessageBubble({ message, isCurrentUser, chatId, onReact, onDelet
               isCurrentUser ? styles.selfBubble : styles.otherBubble,
               { backgroundColor: bubbleColor }
             ]}>
+              {message.media && message.media.length > 0 && (
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.mediaContainer}
+                >
+                  {message.media.map((media: MediaAttachment, index: number) => (
+                    <Image
+                      key={`media-${index}`}
+                      source={{ uri: media.previewUri }}
+                      style={styles.mediaPreview}
+                      resizeMode="cover"
+                    />
+                  ))}
+                </ScrollView>
+              )}
               <ThemedText style={[
                 styles.messageText,
                 { color: bubbleTextColor }
@@ -415,5 +432,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.9)',
     borderRadius: 30,
     padding: 10,
-  }
+  },
+  mediaContainer: {
+    marginBottom: 8,
+  },
+  mediaPreview: {
+    width: 200,
+    height: 200,
+    borderRadius: 8,
+    marginRight: 8,
+  },
 });

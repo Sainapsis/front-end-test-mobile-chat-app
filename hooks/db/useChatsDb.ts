@@ -2,26 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../database/db';
 import { chats, chatParticipants, messages } from '../../database/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
-
-export interface Message {
-  id: string;
-  senderId: string;
-  text: string;
-  timestamp: number;
-  // Added properties
-  status: 'sent'|'delivered'|'read';
-  readBy?: string[]; // For group chat, not implemented yet :)
-  reaction?: string;
-  editedAt?: number;
-  isDeleted?: boolean;
-}
-
-export interface Chat {
-  id: string;
-  participants: string[];
-  messages: Message[];
-  lastMessage?: Message;
-}
+import { MediaAttachment, Message, Chat } from '@/types/types';
 
 export function useChatsDb(currentUserId: string | null) {
   const [userChats, setUserChats] = useState<Chat[]>([]);
@@ -85,7 +66,8 @@ export function useChatsDb(currentUserId: string | null) {
             timestamp: m.timestamp,
             status: m.status || 'sent', // Default
             readBy: m.readBy ? JSON.parse(m.readBy.toString()) : [],
-            reaction: m.reaction || undefined
+            reaction: m.reaction || undefined,
+            media: m.media ? JSON.parse(m.media.toString()) : undefined
           }));
           
           // Determine last message
@@ -148,7 +130,7 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, [currentUserId]);
 
-  const sendMessage = useCallback(async (chatId: string, text: string, senderId: string) => {
+  const sendMessage = useCallback(async (chatId: string, text: string, senderId: string, media: MediaAttachment[] = []) => {
     if (!text.trim()) return false;
     
     try {
@@ -163,7 +145,8 @@ export function useChatsDb(currentUserId: string | null) {
         text: text,
         timestamp: timestamp,
         status: 'sent',
-        readBy: [JSON.stringify([senderId])]
+        readBy: [JSON.stringify([senderId])],
+        media: JSON.stringify(media)
       });
       
       const newMessage: Message = {
@@ -172,7 +155,8 @@ export function useChatsDb(currentUserId: string | null) {
         text,
         timestamp,
         status: 'sent',
-        readBy: [senderId]
+        readBy: [senderId],
+        media: media
       };
       
       // Update state

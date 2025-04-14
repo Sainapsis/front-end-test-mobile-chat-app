@@ -37,12 +37,12 @@ Please make sure to **document your task selection, implementation details, and 
 
 ### Feature Additions
 
-- [ ] Add media sharing capabilities (photos preferably, with a optimized/compressed preview instead of the original image)
+- [ ] ~~Add media sharing capabilities (photos preferably, with a optimized/compressed preview instead of the original image)~~
 - [ ] ~~Add read receipts for messages along with status indicators (sent, read)~~
 - [ ] ~~Implement message reactions (emoji responses, easy but still gets points)~~
 - [ ] Create group chat creation and management
 - [ ] Implement message search functionality
-- [ ] Add message deletion and editing
+- [ ] ~~Add message deletion and editing~~
 - [ ] Add voice messages (recording/playing)
 - [ ] Implement message forwarding
 

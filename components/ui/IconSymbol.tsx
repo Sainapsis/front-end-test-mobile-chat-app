@@ -18,6 +18,7 @@ const MAPPING = {
   'checkmark': 'check',
   'checkmark.diamond': 'done-all',
   'eye.fill': 'visibility',
+  'camera.fill': 'camera-alt',
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],

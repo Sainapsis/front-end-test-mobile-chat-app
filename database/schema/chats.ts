@@ -20,7 +20,8 @@ export const messages = sqliteTable("messages", {
   status: text("status").notNull().default("sent"),
   readBy: text("read_by").default("[]").$type<string[]>(),
   reaction: text("reaction"),
-  // Added columns for deleted and edited status and 0 = false, 1 = true
+  // Added columns for deleted and edited status
   isDeleted: integer("is_deleted").notNull().default(0), 
   editedAt: integer("edited_at"),
+  media: text("media"),
 });

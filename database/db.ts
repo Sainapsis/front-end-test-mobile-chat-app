@@ -103,6 +103,16 @@ export async function initializeDatabase() {
     } else {
       console.log('Column "edited_at" already exists in messages table.');
     }
+
+    if (!messagesColumns.some((column : any) => column.name === 'media')) {
+      await sqlite.execAsync(`
+        ALTER TABLE messages 
+        ADD COLUMN media TEXT
+      `);
+      console.log('Column "media" added to messages table.');
+    } else {
+      console.log('Column "media" already exists in messages table.');
+    }
     
     console.log('All tables created successfully!');
   } catch (error) {
