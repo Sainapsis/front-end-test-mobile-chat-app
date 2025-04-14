@@ -11,19 +11,18 @@
 - **Themed links**: Links now dynamically adapt to the selected theme.
 - **Read receipts & status indicators**: Added message status icons (sent, read) inside chat bubbles for real-time feedback.
 - **Enhanced reaction interface**: Redesigned reactions for better visual clarity and interaction.
-- **User action feedback**: Added visual/audible cues (e.g., loading spinners, success toasts) during actions like editing/deleting messages.
 - **Improved menu animations**: Smoother transitions for context menus (message long-press).
 - **Adaptive context menus**: Menus now adjust position/size based on screen boundaries.
+- **Message deletion and editing**: Users can now delete or edit messages directly from the chat interface.
+- **Haptic feedback**: Added tactile responses for message long-press and reaction selection.
 
 ## Feature Additions
 
 - **Chat exit button**: Added functionality to leave the chat and return to the general chat list screen.
 - **Message status tracking**: Implemented logic to update and display message states (sent → read).
-- **Message editing & deletion** *(Beta)*:
-    - Users can edit or "delete" messages (soft delete: hidden from UI but retained in DB).
-    - *Disclaimer: Funcionalidad básica implementada; requiere mejoras en validaciones y UX.*
-- **Message reactions**: Users can add/remove reactions to messages.
+- **Message reactions**: Users can add reactions to messages.
 - **Edit timestamps**: Edited messages now display the last modification time.
+- **Multimedia support groundwork**: Installed required packages for future media uploads (images, files).
 
 ## Database & Backend Changes
 
@@ -37,8 +36,9 @@
 ## Code Quality & Architecture
 
 - **Centralized repeated colors**: Extracted duplicate hex colors into shared variables for maintainability.
-- **Simplified theme usage**: Themes can now be applied by name (for now just `"dark"` and `"light"` are available) without manual overrides; invalid names throw compilation errors.
+- **Simplified theme usage**: Themes can now be applied by name (for now only `"dark"` and `"light"` are implemented) without manual overrides; invalid names throw compilation errors.
 - **Removed unused CSS imports/parameters**: Cleaned up redundant code.
 - **Theme colors as constants**: Colors are now defined as constants that adapt to the selected theme.
-- **Refactored MessageBubble**: Improved component reusability.
-- **Code documentation**: Added inline comments.
+- **Refactored MessageBubble**: Improved component reusability (separated logic for reactions, menus, and status indicators).
+- **Code documentation**: Added inline comments for better documentation.
+- **Dependency management**: Installed packages for haptic feedback (`react-native-haptic-feedback`) and multimedia handling.

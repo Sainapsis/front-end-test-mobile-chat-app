@@ -69,7 +69,7 @@ Please make sure to **document your task selection, implementation details, and 
 - [ ] ~~Implement dark mode support~~
 - [ ] Improve loading states and skeleton screens
 - [ ] Enhance accessibility features (screen reader support, contrast)
-- [ ] Add haptic feedback for important actions
+- [ ] ~~Add haptic feedback for important actions~~
 - [ ] Improve empty state designs (no messages, no chats)
 - [ ] ~~Implement smoother animations and transitions~~
 

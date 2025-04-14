@@ -20,7 +20,7 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, users, chats, sendMessage, updateMessageStatus, addReaction } = useAppContext();
+  const { currentUser, users, chats, sendMessage, updateMessageStatus, addReaction, deleteMessage, editMessage } = useAppContext();
   const [messageText, setMessageText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
@@ -130,8 +130,15 @@ export default function ChatRoomScreen() {
           <MessageBubble
             message={item}
             isCurrentUser={item.senderId === currentUser.id}
+            chatId={chatId}
             onReact={(messageId, emoji) => {
               addReaction(chatId, messageId, emoji);
+            }}
+            onDelete={(messageId) => {
+              deleteMessage(chatId, messageId);
+            }}
+            onEdit={(messageId, newText) => {
+              editMessage(chatId, messageId, newText);
             }}
           />
         )}

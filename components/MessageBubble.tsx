@@ -4,10 +4,12 @@ import { ThemedText } from './ThemedText';
 import { Message } from '@/hooks/useChats';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { IconSymbol, IconSymbolName } from './ui/IconSymbol';
+import * as Haptics from 'expo-haptics';
 
 interface MessageBubbleProps {
   message: Message;
   isCurrentUser: boolean;
+  chatId: string;
   // Additional props for handling reactions, deletion, and editing
   onReact?: (messageId: string, emoji: string) => void;
   onDelete?: (messageId: string) => void;
@@ -15,7 +17,7 @@ interface MessageBubbleProps {
   scrollViewRef?: React.RefObject<any>;
 }
 
-export function MessageBubble({ message, isCurrentUser, onReact, onDelete, onEdit }: MessageBubbleProps) {
+export function MessageBubble({ message, isCurrentUser, chatId, onReact, onDelete, onEdit }: MessageBubbleProps) {
   const bubbleColor = useThemeColor({}, isCurrentUser ? 'selfBubble' : 'otherBubble');
   const bubbleTextColor = useThemeColor({}, 'bubbleText');
   const iconThemeColor = useThemeColor({}, 'icon');
@@ -25,8 +27,7 @@ export function MessageBubble({ message, isCurrentUser, onReact, onDelete, onEdi
   const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState(message.text);
   const anchorRef = useRef(null);
-  
-  // Funciones simplificadas
+
   const handleDelete = () => {
     if (onDelete) {
       // For debugging purposes
@@ -141,7 +142,12 @@ export function MessageBubble({ message, isCurrentUser, onReact, onDelete, onEdi
         <>
           <TouchableOpacity
             ref={anchorRef}
-            onLongPress={() => isCurrentUser && setShowContextMenu(true)}
+            onLongPress={() => {
+              if (isCurrentUser) {
+                setShowContextMenu(true);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+              }
+            }}
             activeOpacity={0.8}
           >
             <View style={[
@@ -183,7 +189,7 @@ export function MessageBubble({ message, isCurrentUser, onReact, onDelete, onEdi
     
           {/* Botón de reacción */}
           <TouchableOpacity 
-            onPress={() => setShowReactions(!showReactions)}
+            onPress={() => {setShowReactions(!showReactions), Haptics.selectionAsync();}}
             style={[
               styles.reactionButton,
               isCurrentUser ? styles.selfReactionButton : styles.otherReactionButton
@@ -242,7 +248,7 @@ export function MessageBubble({ message, isCurrentUser, onReact, onDelete, onEdi
             {EMOJIS.map(emoji => (
               <TouchableOpacity
                 key={emoji}
-                onPress={() => handleReactionSelect(emoji)}
+                onPress={() => {handleReactionSelect(emoji); Haptics.selectionAsync();}}
                 style={styles.reactionOption}
               >
                 <Text style={styles.reactionEmoji}>{emoji}</Text>
