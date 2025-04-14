@@ -8,7 +8,7 @@ export interface AppContextType {
   currentUser: User | null;
   users: User[];
   chats: Chat[];
-  sendMessage: (chatId: string, text: string, senderId: string, imageUrl?: string) => Promise<boolean>;
+  sendMessage: (chatId: string, text: string, senderId: string, imageUrl?: string, voiceUrl?: string) => Promise<boolean>;
   markMessagesAsRead: (chatId: string, userId: string) => Promise<void>;
   addReaction: (messageId: string, userId: string, reaction: string) => Promise<void>;
   removeReaction: (messageId: string, userId: string) => Promise<void>;

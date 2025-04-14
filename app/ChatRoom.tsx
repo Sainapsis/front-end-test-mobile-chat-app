@@ -8,7 +8,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
-  Modal
+  Modal,
+  Alert,
+  Keyboard
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -22,17 +24,20 @@ import { Avatar } from '@/components/Avatar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
+import { Audio } from 'expo-av';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, users, chats, sendMessage, markMessagesAsRead, addReaction, removeReaction, editMessage, deleteMessage } = useAppContext();
+  const { currentUser, users, chats, sendMessage, markMessagesAsRead, editMessage, deleteMessage } = useAppContext();
   const colorScheme = useColorScheme() ?? 'light';
   const [messageText, setMessageText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
-  const [selectedMessages, setSelectedMessages] = useState<{ messageId: string; senderId: string }[]>([]);
+  const [selectedMessages, setSelectedMessages] = useState<{ messageId: string; senderId: string, audio: boolean }[]>([]);
   const [editingMessage, setEditingMessage] = useState<{ id: string; text: string } | null>(null);
+  const [messageToEdit, setMessageToEdit] = useState<any>(null);
+
   const [editText, setEditText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
@@ -46,6 +51,13 @@ export default function ChatRoomScreen() {
   const chatName = chatParticipants.length === 1
     ? chatParticipants[0]?.name
     : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const recordingTimer = useRef<NodeJS.Timeout | null>(null);
+  const [voiceUrl, setVoiceUrl] = useState<string | undefined>(undefined);
+  const editInputRef = useRef<TextInput>(null);
 
   // Mark messages as read when chat is opened
   useEffect(() => {
@@ -65,6 +77,16 @@ export default function ChatRoomScreen() {
       }
     }
   }, [chat, currentUser, markMessagesAsRead]);
+
+  useEffect(() => {
+    if (editingMessage) {
+      // Small delay to ensure the modal is fully rendered
+      const timer = setTimeout(() => {
+        editInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [editingMessage]);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -86,10 +108,11 @@ export default function ChatRoomScreen() {
   };
 
   const handleSendMessage = () => {
-    if ((messageText.trim() || selectedImage) && currentUser && chat) {
-      sendMessage(chat.id, messageText.trim(), currentUser.id, selectedImage || undefined);
+    if ((messageText.trim() || selectedImage || voiceUrl) && currentUser && chat) {
+      sendMessage(chat.id, messageText.trim(), currentUser.id, selectedImage || undefined, voiceUrl || undefined);
       setMessageText('');
       setSelectedImage(null);
+      setVoiceUrl(undefined);
     }
   };
 
@@ -107,7 +130,7 @@ export default function ChatRoomScreen() {
           selected => !(selected.messageId === messageId && selected.senderId === message.senderId)
         );
       } else {
-        return [...prev, { messageId, senderId: message.senderId }];
+        return [...prev, { messageId, senderId: message.senderId, audio: message.voiceUrl ? true : false }];
       }
     });
   };
@@ -125,6 +148,7 @@ export default function ChatRoomScreen() {
     const selected = selectedMessages[0];
     const message = chat?.messages.find(m => m.id === selected.messageId);
     if (message) {
+      setMessageToEdit(message);
       setEditingMessage({ id: message.id, text: message.text });
       setEditText(message.text);
     }
@@ -146,7 +170,6 @@ export default function ChatRoomScreen() {
 
     setSelectedMessages(prev => prev.filter(msg => msg.messageId !== messageId));
   }, [currentUser, chat, deleteMessage]);
-
   const handleReactionPress = useCallback((messageId: string, reaction: string) => {
     if (!currentUser || !chat) return;
 
@@ -202,6 +225,85 @@ export default function ChatRoomScreen() {
     setShowDeleteMenu(false);
   };
 
+  const startRecording = async () => {
+    try {
+      // Stop any existing recording first
+      if (recording) {
+        await recording.stopAndUnloadAsync();
+        setRecording(null);
+      }
+
+      await Audio.requestPermissionsAsync();
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording: newRecording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      setRecording(newRecording);
+      setIsRecording(true);
+
+      // Start timer
+      setRecordingDuration(0);
+      recordingTimer.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('Error starting recording:', err);
+      Alert.alert('Error', 'Failed to start recording');
+    }
+  };
+
+  const stopRecording = async () => {
+    if (!recording) return;
+    try {
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      setRecording(null);
+      setIsRecording(false);
+
+      // Clear timer
+      if (recordingTimer.current) {
+        clearInterval(recordingTimer.current);
+      }
+
+      if (uri && currentUser && chat) {
+        sendMessage(chat.id, '', currentUser.id, '', uri);
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Failed to stop recording');
+    }
+  };
+
+  const cancelRecording = async () => {
+    if (!recording) return;
+    try {
+      await recording.stopAndUnloadAsync();
+      setRecording(null);
+      setIsRecording(false);
+      setRecordingDuration(0);
+
+      // Clear timer
+      if (recordingTimer.current) {
+        clearInterval(recordingTimer.current);
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Failed to cancel recording');
+    }
+  };
+
+  const cancelImage = () => {
+    setSelectedImage(null);
+  };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   if (!chat || !currentUser) {
     return (
       <ThemedView style={styles.centerContainer}>
@@ -209,7 +311,6 @@ export default function ChatRoomScreen() {
       </ThemedView>
     );
   }
-
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -232,7 +333,7 @@ export default function ChatRoomScreen() {
             </View>
           ),
           headerLeft: () => (
-            <Pressable  style={styles.backButton} onPress={() => router.back()}>
+            <Pressable style={styles.backButton} onPress={() => router.back()}>
               <IconSymbol name="chevron.left" size={24} color="#007AFF" />
             </Pressable>
           ),
@@ -240,7 +341,7 @@ export default function ChatRoomScreen() {
             <View style={styles.headerRight}>
               {selectedMessages.length > 0 ? (
                 <>
-                  {selectedMessages.length === 1 && selectedMessages[0].senderId === currentUser?.id && (
+                  {selectedMessages.length === 1 && selectedMessages[0].senderId === currentUser?.id && !selectedMessages[0].audio && (
                     <Pressable onPress={handleEditPress}>
                       <IconSymbol name="pencil" size={24} color={Colors[colorScheme].icon} />
                     </Pressable>
@@ -312,52 +413,80 @@ export default function ChatRoomScreen() {
         onRequestClose={() => {
           setEditingMessage(null);
           setEditText('');
+          setMessageToEdit(null);
         }}
       >
-        <ThemedView style={styles.modalOverlay}>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => {
+            Keyboard.dismiss();
+            setEditingMessage(null);
+            setEditText('');
+            setMessageToEdit(null);
+          }}
+        >
           <ThemedView style={styles.editModalContainer}>
-            <ThemedText type="defaultSemiBold" style={styles.editModalTitle}>
-              Edit Message
-            </ThemedText>
-            <TextInput
-              style={[
-                styles.editInput,
-                {
-                  backgroundColor: Colors[colorScheme].background,
-                  color: Colors[colorScheme].text,
-                  borderColor: Colors[colorScheme].icon
-                }
-              ]}
-              value={editText}
-              onChangeText={setEditText}
-              multiline
-              autoFocus
-            />
-            <View style={styles.editModalButtons}>
+            <View style={styles.editModalHeader}>
+              <View>
+
+                <ThemedText type="defaultSemiBold" style={styles.editModalTitle}>
+                  Edit Message
+                </ThemedText>
+
+              </View>
               <Pressable
-                style={styles.editModalButton}
+                style={styles.closeButton}
                 onPress={() => {
+                  Keyboard.dismiss();
                   setEditingMessage(null);
                   setEditText('');
                 }}
               >
-                <ThemedText style={styles.editModalButtonText}>Cancel</ThemedText>
+                <IconSymbol name="xmark" size={20} color={Colors[colorScheme].icon} />
               </Pressable>
+            </View>
+            <MessageBubble
+              message={{
+                id: '-1',
+                senderId: '-1',
+                text: editText,
+                timestamp: messageToEdit?.timestamp,
+                delivery_status: messageToEdit?.delivery_status,
+                is_read: messageToEdit?.is_read,
+                is_edited: messageToEdit?.is_edited,
+                isDeleted: messageToEdit?.isDeleted,
+                deletedFor: messageToEdit?.deletedFor,
+                review: true,
+              }}
+              isCurrentUser={true}
+              selectedMessages={[]}
+            />
+            <View style={styles.editInputContainer}>
+              <TextInput
+                ref={editInputRef}
+                style={styles.input}
+                value={editText}
+                onChangeText={setEditText}
+                multiline
+                autoFocus
+                placeholder="Edit your message..."
+                placeholderTextColor={Colors[colorScheme].icon}
+              />
               <Pressable
-                style={[styles.editModalButton, styles.saveButton]}
+                style={[styles.editSendButton, !editText.trim() && styles.disabledButton]}
                 onPress={() => {
-                  if (editingMessage) {
+                  if (editingMessage && editText.trim()) {
+                    Keyboard.dismiss();
                     handleEditMessage(editingMessage.id, editText);
                   }
                 }}
+                disabled={!editText.trim()}
               >
-                <ThemedText style={[styles.editModalButtonText, styles.saveButtonText]}>
-                  Save
-                </ThemedText>
+                <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />
               </Pressable>
             </View>
           </ThemedView>
-        </ThemedView>
+        </Pressable>
       </Modal>
       <Modal
         visible={showDeleteMenu}
@@ -406,36 +535,58 @@ export default function ChatRoomScreen() {
         onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
         onLayout={() => flatListRef.current?.scrollToEnd()}
       />
-
       <ThemedView style={styles.inputContainer}>
-        <Pressable onPress={pickImage} style={styles.mediaButton}>
+        {!isRecording && <Pressable onPress={pickImage} style={styles.mediaButton}>
           <IconSymbol name="photo" size={24} color="#007AFF" />
-        </Pressable>
-        <TextInput
-          style={styles.input}
-          value={messageText}
-          onChangeText={setMessageText}
-          placeholder="Type a message..."
-          multiline
-        />
-        <Pressable
-          style={[styles.sendButton, (!messageText.trim() && !selectedImage) && styles.disabledButton]}
-          onPress={handleSendMessage}
-          disabled={!messageText.trim() && !selectedImage}
-        >
-          <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />
-        </Pressable>
+        </Pressable>}
+        {isRecording ? (
+          <View style={styles.recordingContainer}>
+            <Pressable style={[styles.deleteOption, styles.cancelButton]} onPress={cancelRecording}>
+              <ThemedText style={styles.deleteOptionText}>cancel</ThemedText>
+            </Pressable>
+            <ThemedText style={styles.recordingDuration}>
+              {formatDuration(recordingDuration)}
+            </ThemedText>
+            <Pressable onPress={stopRecording} style={styles.stopButton}>
+              <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />
+            </Pressable>
+          </View>
+        ) : (
+          <>
+            <TextInput
+              style={styles.input}
+              value={messageText}
+              onChangeText={setMessageText}
+              placeholder="Type a message..."
+              multiline
+            />
+            {(!messageText.trim() && !selectedImage) ?
+              <Pressable onPress={startRecording} style={styles.sendButton}>
+                <IconSymbol name="mic" size={28} color="#007AFF" />
+              </Pressable> :
+              <Pressable
+                style={[styles.sendButton, (!messageText.trim() && !selectedImage) && styles.disabledButton]}
+                onPress={handleSendMessage}
+                disabled={!messageText.trim() && !selectedImage}
+              >
+                <IconSymbol name="arrow.up.circle.fill" size={28} color="#007AFF" />
+              </Pressable>
+            }
+          </>
+        )}
       </ThemedView>
 
       {selectedImage && (
         <ThemedView style={styles.imagePreviewContainer}>
           <Image source={{ uri: selectedImage }} style={styles.imagePreview} />
-          <Pressable
-            style={styles.removeImageButton}
-            onPress={() => setSelectedImage(null)}
-          >
-            <IconSymbol name="xmark.circle.fill" size={24} color="#FF3B30" />
-          </Pressable>
+          <View style={styles.imageActionsContainer}>
+            <Pressable
+              style={styles.removeImageButton}
+              onPress={cancelImage}
+            >
+              <IconSymbol name="xmark.circle.fill" size={24} color="#FF3B30" />
+            </Pressable>
+          </View>
         </ThemedView>
       )}
     </KeyboardAvoidingView>
@@ -504,10 +655,14 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 10,
   },
-  removeImageButton: {
+  imageActionsContainer: {
     position: 'absolute',
     top: 10,
     right: 10,
+    flexDirection: 'row',
+    gap: 10,
+  },
+  removeImageButton: {
     backgroundColor: 'white',
     borderRadius: 12,
   },
@@ -539,43 +694,56 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
   editModalContainer: {
-    width: '90%',
-    padding: 20,
-    borderRadius: 10,
-    gap: 15,
+    width: '100%',
+    backgroundColor: Colors.light.background,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  editModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.icon,
   },
   editModalTitle: {
     fontSize: 18,
-    marginBottom: 10,
+    fontWeight: '600',
+  },
+  closeButton: {
+    padding: 8,
+    borderRadius: 20,
+  },
+  editInputContainer: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
   },
   editInput: {
+    flex: 1,
     borderWidth: 1,
-    borderRadius: 8,
+    borderColor: '#E1E1E1',
+    borderRadius: 20,
     padding: 10,
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  editModalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 10,
-  },
-  editModalButton: {
-    padding: 10,
-    borderRadius: 8,
-  },
-  editModalButtonText: {
+    maxHeight: 100,
+    backgroundColor: '#F9F9F9',
     fontSize: 16,
   },
-  saveButton: {
-    backgroundColor: '#007AFF',
-  },
-  saveButtonText: {
-    color: 'white',
+  editSendButton: {
+    marginBottom: 5,
   },
   deleteMenu: {
     position: 'absolute',
@@ -596,6 +764,26 @@ const styles = StyleSheet.create({
     color: '#FF3B30',
   },
   backButton: {
-    padding: 8 
-  }
+    padding: 8
+  },
+  recordingContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  recordingDuration: {
+    fontSize: 16,
+    color: '#007AFF',
+  },
+  stopButton: {
+    padding: 5,
+  },
+  cancelButton: {
+    backgroundColor: 'rgba(255, 59, 48, 0.1)',
+    padding: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
 }); 

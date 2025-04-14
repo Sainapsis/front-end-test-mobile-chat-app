@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../database/db';
 import { chats, chatParticipants, messages } from '../../database/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 export interface Message {
   id: string;
   senderId: string;
   text: string;
   imageUrl?: string;
+  voiceUrl?: string;
   timestamp: number;
   delivery_status: 'sending' | 'sent' | 'delivered' | 'read';
   is_read: boolean;
@@ -90,6 +91,7 @@ export function useChatsDb(currentUserId: string | null) {
               senderId: m.senderId as string,
               text: m.text as string,
               imageUrl: m.imageUrl as string | undefined,
+              voiceUrl: m.voiceUrl as string | undefined,
               timestamp: m.timestamp as number,
               delivery_status: m.deliveryStatus as Message['delivery_status'],
               is_read: m.isRead === 1,
@@ -166,8 +168,8 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, [currentUserId]);
 
-  const sendMessage = useCallback(async (chatId: string, text: string, senderId: string, imageUrl?: string) => {
-    if (!text.trim() && !imageUrl) return false;
+  const sendMessage = useCallback(async (chatId: string, text: string, senderId: string, imageUrl?: string, voiceUrl?: string) => {
+    if (!text.trim() && !imageUrl && !voiceUrl) return false;
 
     try {
       const messageId = `msg${Date.now()}`;
@@ -180,6 +182,7 @@ export function useChatsDb(currentUserId: string | null) {
         senderId: senderId,
         text: text,
         imageUrl: imageUrl,
+        voiceUrl: voiceUrl,
         timestamp: timestamp,
         deliveryStatus: 'sending',
         isRead: 0,
@@ -191,6 +194,7 @@ export function useChatsDb(currentUserId: string | null) {
         senderId,
         text,
         imageUrl,
+        voiceUrl,
         timestamp,
         delivery_status: 'sending',
         is_read: false,

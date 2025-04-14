@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Image, Pressable, Modal, TextInput } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
@@ -8,6 +8,7 @@ import { MessageReactions } from './MessageReactions';
 import { ReactionMenu } from './ReactionMenu';
 import { Colors } from '@/constants/Colors';
 import { useAppContext } from '@/hooks/AppContext';
+import { Audio, AVPlaybackStatus } from 'expo-av';
 
 interface MessageBubbleProps {
   message: {
@@ -15,13 +16,15 @@ interface MessageBubbleProps {
     senderId: string;
     text: string;
     imageUrl?: string;
-    timestamp: number;
-    delivery_status: 'sending' | 'sent' | 'delivered' | 'read';
-    is_read: boolean;
+    voiceUrl?: string;
+    timestamp?: number;
+    delivery_status?: 'sending' | 'sent' | 'delivered' | 'read';
+    is_read?: boolean;
     reactions?: Record<string, string>;
-    is_edited: boolean;
-    isDeleted: boolean;
+    is_edited?: boolean;
+    isDeleted?: boolean;
     deletedFor?: string[];
+    review?: boolean;
   };
   isCurrentUser: boolean;
   isSelected?: boolean;
@@ -48,11 +51,51 @@ export function MessageBubble({
   const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState(message.text);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
-  const { currentUser} = useAppContext();
-  
+  const { currentUser } = useAppContext();
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(0);
+
+  useEffect(() => {
+    const loadAudioDuration = async () => {
+      if (!message.voiceUrl) return;
+
+      try {
+        const { sound: newSound } = await Audio.Sound.createAsync(
+          { uri: message.voiceUrl },
+          { shouldPlay: false }
+        );
+
+        newSound.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
+          if (status.isLoaded && status.durationMillis) {
+            setTotalDuration(status.durationMillis);
+            newSound.unloadAsync();
+          }
+        });
+      } catch (error) {
+        console.error('Error loading audio duration:', error);
+      }
+    };
+
+    loadAudioDuration();
+
+    return () => {
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
+  }, [message.voiceUrl]);
+
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const getDeliveryStatusIcon = () => {
@@ -124,7 +167,44 @@ export function MessageBubble({
     return reaction || undefined;
   };
 
-  
+  const playSound = async () => {
+    if (!message.voiceUrl) return;
+
+    try {
+      if (sound) {
+        await sound.unloadAsync();
+      }
+
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri: message.voiceUrl },
+        { shouldPlay: true }
+      );
+      setSound(newSound);
+
+      newSound.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
+        if (status.isLoaded && status.durationMillis) {
+          setIsPlaying(status.isPlaying);
+          setProgress(status.positionMillis / status.durationMillis);
+          if (status.didJustFinish) {
+            setIsPlaying(false);
+            setProgress(0);
+          }
+        }
+      });
+
+      await newSound.playAsync();
+    } catch (error) {
+      console.error('Error playing sound:', error);
+    }
+  };
+
+  const stopSound = async () => {
+    if (sound) {
+      await sound.stopAsync();
+      setIsPlaying(false);
+    }
+  };
+
   if (currentUser && message.deletedFor?.includes(currentUser.id)) {
     return (null);
   }
@@ -139,93 +219,103 @@ export function MessageBubble({
           isCurrentUser ? styles.selfContainer : styles.otherContainer,
           { backgroundColor: isDark ? '#999999' : '#E1E1E1' }
         ]}>
-          <ThemedText style={{...styles.deletedText, color: Colors[isDark ? 'dark' : 'light'].text}}>Message deleted</ThemedText>
+          <ThemedText style={{ ...styles.deletedText, color: Colors[isDark ? 'dark' : 'light'].text }}>Message deleted</ThemedText>
         </ThemedView>
       </View>
     );
   }
-
-  return (
-    <>
+  if (message.voiceUrl) {
+    return (
       <Pressable
         onPress={handlePress}
         onLongPress={handleLongPress}
-        style={[
-          styles.container,
-          isCurrentUser ? styles.selfContainer : styles.otherContainer,
-          isSelected && styles.selectedMessage
-        ]}
+        style={[styles.container, isSelected && styles.selectedMessage]}
       >
         <ThemedView style={[
           styles.bubble,
           styles.bubbleWidth,
           isCurrentUser
-            ? [styles.selfBubble, { backgroundColor: isDark ? '#235A4A' : '#DCF8C6' }]
-            : [styles.otherBubble, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }],
-            styles.bubbleWidth, isCurrentUser ? styles.selfContainer : styles.otherContainer
+            ? [styles.selfBubble, styles.selfContainer, { backgroundColor: isDark ? '#235A4A' : '#DCF8C6' }]
+            : [styles.otherBubble, styles.otherContainer, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }],
         ]}>
-          {isEditing ? (
-            <View style={styles.editContainer}>
-              <TextInput
-                style={[
-                  styles.editInput,
-                  {
-                    backgroundColor: Colors[isDark ? 'dark' : 'light'].background,
-                    color: Colors[isDark ? 'dark' : 'light'].text,
-                    borderColor: Colors[isDark ? 'dark' : 'light'].icon
-                  }
-                ]}
-                value={editedText}
-                onChangeText={setEditedText}
-                multiline
-                autoFocus
+          <View style={styles.voiceMessageContainer}>
+            <Pressable onPress={isPlaying ? stopSound : playSound}>
+              <IconSymbol
+                name={isPlaying ? 'stop.circle.fill' : 'play.circle.fill'}
+                size={32}
+                color={isCurrentUser ? '#007AFF' : '#34C759'}
               />
-              <View style={styles.editButtons}>
-                <Pressable onPress={handleSaveEdit} style={styles.editButton}>
-                  <IconSymbol name="checkmark" size={20} color={Colors[isDark ? 'dark' : 'light'].tint} />
-                </Pressable>
-                <Pressable onPress={() => setIsEditing(false)} style={styles.editButton}>
-                  <IconSymbol name="xmark" size={20} color={Colors[isDark ? 'dark' : 'light'].tint} />
-                </Pressable>
+            </Pressable>
+            <View style={styles.voiceMessageInfo}>
+              <View style={styles.progressBarContainer}>
+                <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
               </View>
-            </View>
-          ) : (
-            <>
-              {message.imageUrl && (
-                <Image
-                  source={{ uri: message.imageUrl }}
-                  style={styles.image}
-                  resizeMode="cover"
-                />
-              )}
-              {message.text && (
-                <ThemedText style={[
-                  styles.messageText,
-                  isCurrentUser && !isDark && styles.selfMessageText
-                ]}>
-                  {message.text}
+              <View style={styles.voiceMessageDetails}>
+                <ThemedText style={styles.voiceMessageDuration}>
+                  {formatDuration(Math.floor(totalDuration * progress / 1000))} / {formatDuration(Math.floor(totalDuration / 1000))}
                 </ThemedText>
-              )}
-              <View style={styles.timeContainer}>
-                <ThemedText style={styles.timeText}>
-                  {formatTime(message.timestamp)}
-                </ThemedText>
-                {message.is_edited && (
-                  <ThemedText style={styles.editedText}>
-                    Edited
-                  </ThemedText>
-                )}
                 {isCurrentUser && (
-                  <View style={styles.statusContainer}>
+                  <View style={styles.timeContainer}>
+                    <ThemedText style={styles.timeText}>
+                      {message.timestamp ? formatTime(message.timestamp) : ''}
+                    </ThemedText>
                     {getDeliveryStatusIcon()}
                   </View>
                 )}
               </View>
-            </>
+            </View>
+          </View>
+        </ThemedView>
+      </Pressable>
+    );
+  }
+  return (
+    <>
+      <Pressable
+        onPress={handlePress}
+        onLongPress={handleLongPress}
+        style={[styles.container, isSelected && styles.selectedMessage]}
+      >
+        <ThemedView style={[
+          styles.bubble,
+          styles.bubbleWidth,
+          isCurrentUser
+            ? [styles.selfBubble, styles.selfContainer, { backgroundColor: isDark ? '#235A4A' : '#DCF8C6' }]
+            : [styles.otherBubble, styles.otherContainer, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }],
+        ]}>
+          {message.imageUrl && (
+            <Image
+              source={{ uri: message.imageUrl }}
+              style={styles.image}
+              resizeMode="cover"
+            />
           )}
+          {message.text && (
+            <ThemedText style={[
+              styles.messageText,
+              isCurrentUser && !isDark && styles.selfMessageText
+            ]}>
+              {message.text}
+            </ThemedText>
+          )}
+          <View style={styles.timeContainer}>
+            <ThemedText style={styles.timeText}>
+              {message.timestamp ? formatTime(message.timestamp) : ''}
+            </ThemedText>
+            {message.is_edited && (
+              <ThemedText style={styles.editedText}>
+                Edited
+              </ThemedText>
+            )}
+            {isCurrentUser && message.delivery_status && (
+              <View style={styles.statusContainer}>
+                {getDeliveryStatusIcon()}
+              </View>
+            )}
+          </View>
         </ThemedView>
         {message.reactions && (
-          <View style={isCurrentUser? styles.reactionsContainerSelf : styles.reactionsContainerOther}>
+          <View style={isCurrentUser ? styles.reactionsContainerSelf : styles.reactionsContainerOther}>
             <MessageReactions
               reactions={message.reactions}
               onReactionPress={(reaction) => onReactionPress?.(message.id, reaction)}
@@ -263,7 +353,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   bubbleWidth: {
-    width: '80%',
+    maxWidth: '85%',
   },
   selfContainer: {
     alignSelf: 'flex-end',
@@ -382,5 +472,34 @@ const styles = StyleSheet.create({
   reactionsContainerOther: {
     alignSelf: 'flex-start',
     marginTop: -4,
+  },
+  voiceMessageContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    width: '100%',
+  },
+  voiceMessageInfo: {
+    flex: 1,
+  },
+  progressBarContainer: {
+    height: 4,
+    backgroundColor: '#E1E1E1',
+    borderRadius: 2,
+    marginBottom: 4,
+    marginTop: 10,
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#007AFF',
+    borderRadius: 2,
+  },
+  voiceMessageDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  voiceMessageDuration: {
+    fontSize: 12,
   },
 }); 

@@ -26,6 +26,10 @@ const MAPPING = {
   'face.smiling': 'add-reaction',
   'trash': 'delete',
   'pencil': 'edit',
+  'mic': 'mic',
+  'stop.circle.fill': 'stop',
+  'play.circle.fill': 'play-circle',
+  'xmark.circle.fill': 'close',
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],
