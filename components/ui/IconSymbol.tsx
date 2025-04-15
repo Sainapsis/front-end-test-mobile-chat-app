@@ -11,8 +11,14 @@ const MAPPING = {
   // See SF Symbols in the SF Symbols app on Mac.
   'house.fill': 'home',
   'paperplane.fill': 'send',
-  'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'chevron.left': 'chevron-left',
+  'arrow.up.circle.fill': 'arrow-circle-up',
+  'chevron.left.forwardslash.chevron.right': 'code',
+  'checkmark': 'check',
+  'checkmark.diamond': 'done-all',
+  'eye.fill': 'visibility',
+  'camera.fill': 'camera-alt',
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],

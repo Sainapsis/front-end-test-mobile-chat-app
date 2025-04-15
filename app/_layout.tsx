@@ -45,10 +45,7 @@ function RootLayoutNav() {
           name="login" 
           options={{ headerShown: false, gestureEnabled: false }} 
         />
-        <Stack.Screen 
-          name="ChatRoom" 
-          options={{ headerShown: true }} 
-        />
+        <Stack.Screen name="ChatRoom" />
         <Stack.Screen name="+not-found" />
       </Stack>
       {__DEV__ && <DrizzleStudioDevTool />}

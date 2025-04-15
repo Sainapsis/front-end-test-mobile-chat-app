@@ -2,13 +2,13 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { User } from '@/hooks/useUser';
+import styles from '@/styles/AvatarStyles';
 
 interface AvatarProps {
   user?: User;
   size?: number;
   showStatus?: boolean;
 }
-
 
 const getAvatarColor = (identifier?: string): string => {
   if (!identifier) return '#C0C0C0';
@@ -81,22 +81,3 @@ export function Avatar({ user, size = 40, showStatus = true }: AvatarProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'relative',
-  },
-  avatar: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  initials: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  statusIndicator: {
-    position: 'absolute',
-    borderWidth: 1.5,
-    borderColor: 'white',
-  },
-}); 

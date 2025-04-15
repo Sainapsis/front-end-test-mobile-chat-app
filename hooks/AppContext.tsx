@@ -3,6 +3,7 @@ import { useUser, User } from './useUser';
 import { useChats, Chat } from './useChats';
 import { DatabaseProvider } from '../database/DatabaseProvider';
 import { useDatabase } from './useDatabase';
+import { MediaAttachment } from '@/types/types';
 
 type AppContextType = {
   users: User[];
@@ -12,9 +13,13 @@ type AppContextType = {
   logout: () => void;
   chats: Chat[];
   createChat: (participantIds: string[]) => Promise<Chat | null>;
-  sendMessage: (chatId: string, text: string, senderId: string) => Promise<boolean>;
+  sendMessage: (chatId: string, text: string, senderId: string, media?: MediaAttachment[]) => Promise<boolean>;
   loading: boolean;
   dbInitialized: boolean;
+  updateMessageStatus: (chatId: string, messageId: string, status: 'delivered' | 'read', userId?: string) => Promise<boolean>;
+  addReaction: (chatId: string, messageId: string, emoji: string) => Promise<boolean>;
+  deleteMessage: (chatId: string, messageId: string) => Promise<boolean>;
+  editMessage: (chatId: string, messageId: string, newText: string) => Promise<boolean>;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -29,8 +34,13 @@ function AppContent({ children }: { children: ReactNode }) {
   const value = {
     ...userContext,
     ...chatContext,
+    sendMessage: (chatId: string, text: string, senderId: string, media: MediaAttachment[] = []) => chatContext.sendMessage(chatId, text, senderId, media),
+    updateMessageStatus: chatContext.updateMessageStatus,
+    addReaction: chatContext.addReaction,
     loading,
     dbInitialized: isInitialized,
+    deleteMessage: chatContext.deleteMessage,
+    editMessage: chatContext.editMessage,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -1,4 +1,5 @@
-import { useChatsDb, Chat, Message } from './db/useChatsDb';
+import { useChatsDb } from './db/useChatsDb';
+import { Message, Chat } from '@/types/types';
 
 export { Chat, Message };
 
@@ -6,7 +7,11 @@ export function useChats(currentUserId: string | null) {
   const { 
     chats, 
     createChat, 
-    sendMessage, 
+    sendMessage,
+    updateMessageStatus,
+    addReaction,
+    deleteMessage,
+    editMessage,
     loading 
   } = useChatsDb(currentUserId);
 
@@ -14,6 +19,10 @@ export function useChats(currentUserId: string | null) {
     chats,
     createChat,
     sendMessage,
+    updateMessageStatus,
+    addReaction,
+    deleteMessage,
+    editMessage,
     loading,
   };
 } 
