@@ -1,5 +1,34 @@
 # Implementation Details
 
+## Feature Additions
+
+- **Chat exit button**: Added functionality to leave the chat and return to the general chat list screen.
+- **Message status tracking**: Implemented logic to update and display message states (sent → read).
+- **Message reactions**: Users can add reactions to messages.
+- **Edit timestamps**: Edited messages now display the last modification time.
+- **Multimedia support groundwork**: Installed required packages for future media uploads (images, files).
+- **Multimedia message support**: Full implementation for image/video sharing in chats.
+- **Media message type**: Messages can now contain both text and media content.
+
+## Performance Improvements
+
+- **Optimized rendering**: Implemented message list virtualization using FlatList.
+
+## Code Quality & Architecture
+
+- **Centralized repeated colors**: Extracted duplicate hex colors into shared variables for maintainability.
+- **Simplified theme usage**: Themes can now be applied by name (for now only `"dark"` and `"light"` are implemented) without manual overrides; invalid names throw compilation errors.
+- **Removed unused CSS imports/parameters**: Cleaned up redundant code.
+- **Theme colors as constants**: Colors are now defined as constants that adapt to the selected theme.
+- **Refactored MessageBubble**: Improved component reusability (separated logic for reactions, menus, and status indicators).
+- **Code documentation**: Added inline comments for better documentation.
+- **Dependency management**: Installed packages for haptic feedback (`react-native-haptic-feedback`) and multimedia handling.
+- **Centralized type definitions**: Moved shared types to dedicated `types.ts` file.
+- **Centralized styles directory**: Moved the styles const to a dedicated `styles` directory.
+- **Media type handling**: Added `Media` type with preview/url properties.
+- **Permission configuration**: Added `expo-image-picker` plugin in app.json.
+- **Extended Message type**: Updated base message structure with media property.
+
 ## UI/UX Enhancements
 
 - **Implemented dark mode support**: Added theme switching functionality for better user experience.
@@ -21,16 +50,6 @@
 - **Media composition**: Support for sending media with optional text caption.
 - **Permissions handling**: Added camera roll access permissions setup.
 
-## Feature Additions
-
-- **Chat exit button**: Added functionality to leave the chat and return to the general chat list screen.
-- **Message status tracking**: Implemented logic to update and display message states (sent → read).
-- **Message reactions**: Users can add reactions to messages.
-- **Edit timestamps**: Edited messages now display the last modification time.
-- **Multimedia support groundwork**: Installed required packages for future media uploads (images, files).
-- **Multimedia message support**: Full implementation for image/video sharing in chats.
-- **Media message type**: Messages can now contain both text and media content.
-
 ## Database & Backend Changes
 
 - **Modified `db.ts`**:
@@ -42,17 +61,3 @@
 - **Updated `seed.ts`**:
     - Mock data now includes `is_deleted`, `edited_at`, and `status` for testing consistency.
 - **Soft delete implementation**: Messages are flagged as `is_deleted` instead of permanent removal.
-
-## Code Quality & Architecture
-
-- **Centralized repeated colors**: Extracted duplicate hex colors into shared variables for maintainability.
-- **Simplified theme usage**: Themes can now be applied by name (for now only `"dark"` and `"light"` are implemented) without manual overrides; invalid names throw compilation errors.
-- **Removed unused CSS imports/parameters**: Cleaned up redundant code.
-- **Theme colors as constants**: Colors are now defined as constants that adapt to the selected theme.
-- **Refactored MessageBubble**: Improved component reusability (separated logic for reactions, menus, and status indicators).
-- **Code documentation**: Added inline comments for better documentation.
-- **Dependency management**: Installed packages for haptic feedback (`react-native-haptic-feedback`) and multimedia handling.
-- **Centralized type definitions**: Moved shared types to dedicated `types.ts` file.
-- **Media type handling**: Added `Media` type with preview/url properties.
-- **Permission configuration**: Added `expo-image-picker` plugin in app.json.
-- **Extended Message type**: Updated base message structure with media property.

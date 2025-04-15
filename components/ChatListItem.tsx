@@ -5,6 +5,7 @@ import { Chat } from '@/hooks/useChats';
 import { Avatar } from './Avatar';
 import { ThemedText } from './ThemedText';
 import { User } from '@/hooks/useUser';
+import styles from '@/styles/ChatListItemStyles';
 
 interface ChatListItemProps {
   chat: Chat;
@@ -88,44 +89,3 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    padding: 12,
-    alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E1E1E1',
-  },
-  contentContainer: {
-    flex: 1,
-    marginLeft: 12,
-    justifyContent: 'center',
-  },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  bottomRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  name: {
-    flex: 1,
-    marginRight: 8,
-  },
-  time: {
-    fontSize: 12,
-    color: '#8F8F8F',
-  },
-  lastMessage: {
-    fontSize: 14,
-    color: '#8F8F8F',
-    flex: 1,
-  },
-  currentUserMessage: {
-    fontStyle: 'italic',
-  },
-}); 

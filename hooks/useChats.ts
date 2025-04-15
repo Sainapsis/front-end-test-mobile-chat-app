@@ -1,4 +1,5 @@
-import { useChatsDb, Chat, Message } from './db/useChatsDb';
+import { useChatsDb } from './db/useChatsDb';
+import { Message, Chat } from '@/types/types';
 
 export { Chat, Message };
 

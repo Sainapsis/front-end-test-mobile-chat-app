@@ -48,7 +48,7 @@ Please make sure to **document your task selection, implementation details, and 
 
 ### Performance Improvements
 
-- [ ] Optimize message list rendering with virtualization
+- [ ] ~~Optimize message list rendering with virtualization~~
 - [ ] Optimize database queries and state management
 - [ ] Implement proper memory management for media content
 - [ ] Add pagination for loading older messages
