@@ -20,7 +20,7 @@ const MAPPING = {
   'checkmark': 'check',
   'clock': 'access-time',
   'checkmark.circle': 'check-circle',
-  'checkmark.circle.fill': 'home',
+  'checkmark.circle.fill': 'check-circle-outline',
   'magnifyingglass': 'search',
   'xmark': 'close',
   'face.smiling': 'add-reaction',
@@ -30,6 +30,7 @@ const MAPPING = {
   'stop.circle.fill': 'stop',
   'play.circle.fill': 'play-circle',
   'xmark.circle.fill': 'close',
+  'arrowshape.turn.up.right': 'share',
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],

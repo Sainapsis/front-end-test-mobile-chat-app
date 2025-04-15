@@ -9,6 +9,7 @@ import { ReactionMenu } from './ReactionMenu';
 import { Colors } from '@/constants/Colors';
 import { useAppContext } from '@/hooks/AppContext';
 import { Audio, AVPlaybackStatus } from 'expo-av';
+import { ImagePreviewModal } from './modals/ImagePreviewModal';
 
 interface MessageBubbleProps {
   message: {
@@ -56,6 +57,7 @@ export function MessageBubble({
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
+  const [showImagePreview, setShowImagePreview] = useState(false);
 
   useEffect(() => {
     const loadAudioDuration = async () => {
@@ -284,11 +286,13 @@ export function MessageBubble({
             : [styles.otherBubble, styles.otherContainer, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }],
         ]}>
           {message.imageUrl && (
-            <Image
-              source={{ uri: message.imageUrl }}
-              style={styles.image}
-              resizeMode="cover"
-            />
+            <Pressable onPress={() => setShowImagePreview(true)}>
+              <Image
+                source={{ uri: message.imageUrl }}
+                style={styles.image}
+                resizeMode="cover"
+              />
+            </Pressable>
           )}
           {message.text && (
             <ThemedText style={[
@@ -343,6 +347,12 @@ export function MessageBubble({
           </View>
         </Pressable>
       </Modal>
+
+      <ImagePreviewModal
+        visible={showImagePreview}
+        onClose={() => setShowImagePreview(false)}
+        imageUrl={message.imageUrl || ''}
+      />
     </>
   );
 }
@@ -376,10 +386,12 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 4,
   },
   image: {
-    width: 200,
+    minWidth: "100%",
+    maxWidth: '100%',
     height: 200,
     borderRadius: 8,
     marginBottom: 8,
+    resizeMode: 'cover',
   },
   messageText: {
     fontSize: 16,

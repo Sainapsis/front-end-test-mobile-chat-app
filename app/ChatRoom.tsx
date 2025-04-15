@@ -25,6 +25,10 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { Audio } from 'expo-av';
+import { ForwardModal } from '@/components/modals/ForwardModal';
+import { EditModal } from '@/components/modals/EditModal';
+import { SearchModal } from '@/components/modals/SearchModal';
+import { DeleteModal } from '@/components/modals/DeleteModal';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
@@ -59,6 +63,9 @@ export default function ChatRoomScreen() {
   const [voiceUrl, setVoiceUrl] = useState<string | undefined>(undefined);
   const editInputRef = useRef<TextInput>(null);
 
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [selectedChats, setSelectedChats] = useState<string[]>([]);
+
   // Mark messages as read when chat is opened
   useEffect(() => {
     if (chat && currentUser) {
@@ -92,7 +99,7 @@ export default function ChatRoomScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [4, 3],
+      aspect: [4, 4],
       quality: 0.5,
     });
 
@@ -209,6 +216,43 @@ export default function ChatRoomScreen() {
 
   const handleDeletePress = () => {
     setShowDeleteMenu(true);
+  };
+
+  const handleForwardPress = () => {
+    setShowForwardModal(true);
+  };
+
+  const handleChatSelect = (chatId: string) => {
+    setSelectedChats(prev => {
+      if (prev.includes(chatId)) {
+        return prev.filter(id => id !== chatId);
+      } else {
+        return [...prev, chatId];
+      }
+    });
+  };
+
+  const handleForwardMessages = () => {
+    if (!currentUser || selectedChats.length === 0) return;
+
+    selectedMessages.forEach(msg => {
+      const message = chat?.messages.find(m => m.id === msg.messageId);
+      if (!message) return;
+
+      selectedChats.forEach(chatId => {
+        sendMessage(
+          chatId,
+          message.text,
+          currentUser.id,
+          message.imageUrl,
+          message.voiceUrl
+        );
+      });
+    });
+
+    setShowForwardModal(false);
+    setSelectedChats([]);
+    setSelectedMessages([]);
   };
 
   const handleDeleteForMe = () => {
@@ -349,6 +393,9 @@ export default function ChatRoomScreen() {
                   <Pressable onPress={handleDeletePress}>
                     <IconSymbol name="trash" size={24} color={Colors[colorScheme].icon} />
                   </Pressable>
+                  <Pressable onPress={handleForwardPress}>
+                    <IconSymbol name="arrowshape.turn.up.right" size={24} color={Colors[colorScheme].icon} />
+                  </Pressable>
                 </>
               ) : (
                 <Pressable onPress={() => setIsSearchVisible(true)}>
@@ -361,152 +408,58 @@ export default function ChatRoomScreen() {
         }}
       />
 
-      <Modal
+      <SearchModal
         visible={isSearchVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setIsSearchVisible(false)}
-      >
-        <ThemedView style={styles.searchModalContainer}>
-          <ThemedView style={{ ...styles.searchHeader }}>
-            <TextInput
-              style={[
-                styles.searchInput,
-                {
-                  backgroundColor: Colors[colorScheme].background,
-                  color: Colors[colorScheme].text,
-                  borderColor: Colors[colorScheme].icon
-                }
-              ]}
-              placeholder="Search messages..."
-              placeholderTextColor={Colors[colorScheme].icon}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoFocus
-            />
-            <Pressable onPress={() => setIsSearchVisible(false)}>
-              <IconSymbol name="xmark" size={24} color={Colors[colorScheme].tint} />
-            </Pressable>
-          </ThemedView>
+        onClose={() => setIsSearchVisible(false)}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        filteredMessages={filteredMessages}
+        currentUser={currentUser}
+        selectedMessages={selectedMessages}
+        onReactionPress={handleReactionPress}
+        onRemoveReaction={handleRemoveReaction}
+      />
 
-          <FlatList
-            data={filteredMessages}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <MessageBubble
-                message={item}
-                isCurrentUser={item.senderId === currentUser?.id}
-                onReactionPress={handleReactionPress}
-                onRemoveReaction={handleRemoveReaction}
-                selectedMessages={selectedMessages}
-              />
-            )}
-            contentContainerStyle={styles.searchResultsContainer}
-          />
-        </ThemedView>
-      </Modal>
-
-      <Modal
+      <EditModal
         visible={!!editingMessage}
-        transparent
-        animationType="slide"
-        onRequestClose={() => {
+        onClose={() => {
           setEditingMessage(null);
           setEditText('');
           setMessageToEdit(null);
         }}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => {
+        messageToEdit={messageToEdit}
+        editText={editText}
+        onEditTextChange={setEditText}
+        onSave={() => {
+          if (editingMessage && editText.trim()) {
             Keyboard.dismiss();
-            setEditingMessage(null);
-            setEditText('');
-            setMessageToEdit(null);
-          }}
-        >
-          <ThemedView style={styles.editModalContainer}>
-            <View style={styles.editModalHeader}>
-              <View>
+            handleEditMessage(editingMessage.id, editText);
+          }
+        }}
+      />
 
-                <ThemedText type="defaultSemiBold" style={styles.editModalTitle}>
-                  Edit Message
-                </ThemedText>
-
-              </View>
-              <Pressable
-                style={styles.closeButton}
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setEditingMessage(null);
-                  setEditText('');
-                }}
-              >
-                <IconSymbol name="xmark" size={20} color={Colors[colorScheme].icon} />
-              </Pressable>
-            </View>
-            <MessageBubble
-              message={{
-                id: '-1',
-                senderId: '-1',
-                text: editText,
-                timestamp: messageToEdit?.timestamp,
-                delivery_status: messageToEdit?.delivery_status,
-                is_read: messageToEdit?.is_read,
-                is_edited: messageToEdit?.is_edited,
-                isDeleted: messageToEdit?.isDeleted,
-                deletedFor: messageToEdit?.deletedFor,
-                review: true,
-              }}
-              isCurrentUser={true}
-              selectedMessages={[]}
-            />
-            <View style={styles.editInputContainer}>
-              <TextInput
-                ref={editInputRef}
-                style={styles.input}
-                value={editText}
-                onChangeText={setEditText}
-                multiline
-                autoFocus
-                placeholder="Edit your message..."
-                placeholderTextColor={Colors[colorScheme].icon}
-              />
-              <Pressable
-                style={[styles.editSendButton, !editText.trim() && styles.disabledButton]}
-                onPress={() => {
-                  if (editingMessage && editText.trim()) {
-                    Keyboard.dismiss();
-                    handleEditMessage(editingMessage.id, editText);
-                  }
-                }}
-                disabled={!editText.trim()}
-              >
-                <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />
-              </Pressable>
-            </View>
-          </ThemedView>
-        </Pressable>
-      </Modal>
-      <Modal
+      <DeleteModal
         visible={showDeleteMenu}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowDeleteMenu(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowDeleteMenu(false)}>
-          <View style={[styles.deleteMenu, { top: 20, right: 10 }]}>
-            <Pressable style={styles.deleteOption} onPress={handleDeleteForMe}>
-              <ThemedText style={styles.deleteOptionText}>Delete for me</ThemedText>
-            </Pressable>
-            {selectedMessages.filter(msg => msg.senderId !== currentUser?.id).length === 0 && (
-              <Pressable style={styles.deleteOption} onPress={handleDeleteForEveryone}>
-                <ThemedText style={styles.deleteOptionText}>Delete for everyone</ThemedText>
-              </Pressable>
-            )}
-          </View>
-        </Pressable>
-      </Modal>
+        onClose={() => setShowDeleteMenu(false)}
+        onDeleteForMe={handleDeleteForMe}
+        onDeleteForEveryone={handleDeleteForEveryone}
+        canDeleteForEveryone={selectedMessages.filter(msg => msg.senderId !== currentUser?.id).length === 0}
+      />
+
+      <ForwardModal
+        visible={showForwardModal}
+        onClose={() => {
+          setShowForwardModal(false);
+          setSelectedChats([]);
+        }}
+        chats={chats.filter(c => c.id !== chatId)}
+        currentUser={currentUser}
+        users={users}
+        selectedChats={selectedChats}
+        onChatSelect={handleChatSelect}
+        onForward={handleForwardMessages}
+        selectedMessagesCount={selectedMessages.length}
+      />
 
       <FlatList
         ref={flatListRef}
@@ -541,12 +494,15 @@ export default function ChatRoomScreen() {
         </Pressable>}
         {isRecording ? (
           <View style={styles.recordingContainer}>
-            <Pressable style={[styles.deleteOption, styles.cancelButton]} onPress={cancelRecording}>
-              <ThemedText style={styles.deleteOptionText}>cancel</ThemedText>
-            </Pressable>
+            <ThemedText style={styles.recordingDuration}>
+              Recording:
+            </ThemedText>
             <ThemedText style={styles.recordingDuration}>
               {formatDuration(recordingDuration)}
             </ThemedText>
+            <Pressable style={[styles.deleteOption, styles.cancelButton]} onPress={cancelRecording}>
+              <ThemedText style={styles.deleteOptionText}>cancel</ThemedText>
+            </Pressable>
             <Pressable onPress={stopRecording} style={styles.stopButton}>
               <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />
             </Pressable>
@@ -554,10 +510,18 @@ export default function ChatRoomScreen() {
         ) : (
           <>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: Colors[colorScheme].background,
+                  color: Colors[colorScheme].text,
+                  borderColor: Colors[colorScheme].icon
+                }
+              ]}
               value={messageText}
               onChangeText={setMessageText}
               placeholder="Type a message..."
+              placeholderTextColor={Colors[colorScheme].icon}
               multiline
             />
             {(!messageText.trim() && !selectedImage) ?
@@ -674,7 +638,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#E1E1E1',
   },
   searchInput: {
     flex: 1,
@@ -699,7 +662,6 @@ const styles = StyleSheet.create({
   },
   editModalContainer: {
     width: '100%',
-    backgroundColor: Colors.light.background,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 16,
@@ -716,7 +678,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.icon,
   },
   editModalTitle: {
     fontSize: 18,
@@ -747,7 +708,6 @@ const styles = StyleSheet.create({
   },
   deleteMenu: {
     position: 'absolute',
-    backgroundColor: 'white',
     borderRadius: 8,
     padding: 4,
     elevation: 5,
@@ -757,11 +717,10 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   deleteOption: {
-    padding: 4,
+    padding: 8,
   },
   deleteOptionText: {
     fontSize: 16,
-    color: '#FF3B30',
   },
   backButton: {
     padding: 8
@@ -785,5 +744,64 @@ const styles = StyleSheet.create({
     padding: 5,
     paddingHorizontal: 10,
     borderRadius: 8,
+  },
+  forwardModalContainer: {
+    width: '100%',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  forwardModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+  },
+  forwardModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  chatOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  selectedChatOption: {
+    borderWidth: 1,
+    borderColor: '#34C759',
+  },
+  chatOptionInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  chatOptionSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  forwardModalActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+  },
+  forwardButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  forwardButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 }); 
