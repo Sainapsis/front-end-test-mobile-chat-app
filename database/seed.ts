@@ -1,7 +1,7 @@
 import { db } from './db';
 import { users, chats, chatParticipants, messages } from './schema';
 
-// Mock user data from the original useUser hook
+// Mock user data
 const mockUsers = [
   {
     id: '1',
@@ -33,6 +33,8 @@ const mockUsers = [
 const initialChats = [
   {
     id: 'chat1',
+    isGroup: 0,
+    groupName: null,
     participants: ['1', '2'],
     messages: [
       {
@@ -40,17 +42,31 @@ const initialChats = [
         senderId: '2',
         text: 'Hey, how are you?',
         timestamp: Date.now() - 3600000,
+        deliveryStatus: 'read',
+        isRead: 1,
+        isEdited: 0,
+        isDeleted: 0,
+        deletedFor: '[]',
+        reactions: '{}',
       },
       {
         id: 'msg2',
         senderId: '1',
         text: 'I\'m good, thanks for asking!',
         timestamp: Date.now() - 1800000,
+        deliveryStatus: 'read',
+        isRead: 1,
+        isEdited: 0,
+        isDeleted: 0,
+        deletedFor: '[]',
+        reactions: '{}',
       },
     ],
   },
   {
     id: 'chat2',
+    isGroup: 0,
+    groupName: null,
     participants: ['1', '3'],
     messages: [
       {
@@ -58,6 +74,44 @@ const initialChats = [
         senderId: '3',
         text: 'Did you check the project?',
         timestamp: Date.now() - 86400000,
+        deliveryStatus: 'read',
+        isRead: 1,
+        isEdited: 0,
+        isDeleted: 0,
+        deletedFor: '[]',
+        reactions: '{}',
+      },
+    ],
+  },
+  {
+    id: 'chat3',
+    isGroup: 1,
+    groupName: 'Team Project',
+    participants: ['1', '2', '3', '4'],
+    messages: [
+      {
+        id: 'msg4',
+        senderId: '1',
+        text: 'Welcome to the team chat!',
+        timestamp: Date.now() - 172800000,
+        deliveryStatus: 'read',
+        isRead: 1,
+        isEdited: 0,
+        isDeleted: 0,
+        deletedFor: '[]',
+        reactions: '{}',
+      },
+      {
+        id: 'msg5',
+        senderId: '2',
+        text: 'Thanks! Looking forward to working together.',
+        timestamp: Date.now() - 172700000,
+        deliveryStatus: 'read',
+        isRead: 1,
+        isEdited: 0,
+        isDeleted: 0,
+        deletedFor: '[]',
+        reactions: '{}',
       },
     ],
   },
@@ -105,7 +159,11 @@ export async function seedDatabase() {
     console.log('Seeding chats...');
     for (const chat of initialChats) {
       // Insert chat
-      await db.insert(chats).values({ id: chat.id }).onConflictDoNothing();
+      await db.insert(chats).values({
+        id: chat.id,
+        isGroup: chat.isGroup,
+        groupName: chat.groupName,
+      }).onConflictDoNothing();
       
       // Insert participants
       console.log(`Adding participants for chat ${chat.id}...`);
@@ -126,6 +184,12 @@ export async function seedDatabase() {
           senderId: message.senderId,
           text: message.text,
           timestamp: message.timestamp,
+          deliveryStatus: message.deliveryStatus,
+          isRead: message.isRead,
+          isEdited: message.isEdited,
+          isDeleted: message.isDeleted,
+          deletedFor: message.deletedFor,
+          reactions: message.reactions,
         }).onConflictDoNothing();
       }
     }

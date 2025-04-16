@@ -25,108 +25,119 @@ export interface Chat {
   lastMessage?: Message;
   isGroup: boolean;
   groupName?: string;
+  deletedFor?: string[];
 }
 
 export function useChatsDb(currentUserId: string | null) {
   const [userChats, setUserChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load chats for the current user
-  useEffect(() => {
-    const loadChats = async () => {
-      if (!currentUserId) {
+  // Función para cargar todos los chats
+  const loadChats = useCallback(async () => {
+    if (!currentUserId) {
+      setUserChats([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Get chat IDs where the user is a participant
+      const participantRows = await db
+        .select()
+        .from(chatParticipants)
+        .where(eq(chatParticipants.userId, currentUserId));
+
+      const chatIds = participantRows.map(row => row.chatId);
+
+      if (chatIds.length === 0) {
         setUserChats([]);
         setLoading(false);
         return;
       }
 
-      try {
-        // Get chat IDs where the user is a participant
-        const participantRows = await db
+      // Build the complete chat objects
+      const loadedChats: Chat[] = [];
+
+      for (const chatId of chatIds) {
+        // Get the chat
+        const chatData = await db
+          .select()
+          .from(chats)
+          .where(eq(chats.id, chatId));
+
+        if (chatData.length === 0) continue;
+
+        const chat = chatData[0];
+        
+        // Verificar si el chat está eliminado para el usuario actual
+        const deletedFor = chat.deletedFor ? JSON.parse(chat.deletedFor) : [];
+        if (deletedFor.includes(currentUserId)) {
+          continue; // Saltar este chat si está eliminado para el usuario actual
+        }
+
+        // Get participants
+        const participantsData = await db
           .select()
           .from(chatParticipants)
-          .where(eq(chatParticipants.userId, currentUserId));
+          .where(eq(chatParticipants.chatId, chatId));
 
-        const chatIds = participantRows.map(row => row.chatId);
+        const participantIds = participantsData.map(p => p.userId);
 
-        if (chatIds.length === 0) {
-          setUserChats([]);
-          setLoading(false);
-          return;
-        }
+        // Get messages
+        const messagesData = await db
+          .select()
+          .from(messages)
+          .where(eq(messages.chatId, chatId))
+          .orderBy(messages.timestamp);
 
-        // Build the complete chat objects
-        const loadedChats: Chat[] = [];
+        const chatMessages: Message[] = messagesData.map(m => {
+          const deletedFor = m.deletedFor ? JSON.parse(m.deletedFor as string) : [];
+          const isDeleted = m.isDeleted === 1 || deletedFor.includes('all') || deletedFor.includes(currentUserId);
 
-        for (const chatId of chatIds) {
-          // Get the chat
-          const chatData = await db
-            .select()
-            .from(chats)
-            .where(eq(chats.id, chatId));
+          return {
+            id: m.id as string,
+            senderId: m.senderId as string,
+            text: m.text as string,
+            imageUrl: m.imageUrl as string | undefined,
+            voiceUrl: m.voiceUrl as string | undefined,
+            timestamp: m.timestamp as number,
+            delivery_status: m.deliveryStatus as Message['delivery_status'],
+            is_read: m.isRead === 1,
+            reactions: m.reactions ? JSON.parse(m.reactions as string) : undefined,
+            is_edited: m.isEdited === 1,
+            isDeleted,
+            deletedFor,
+          };
+        });
 
-          if (chatData.length === 0) continue;
+        // Determine last message (excluding deleted messages for the current user)
+        const lastMessage = chatMessages
+          .filter(msg => !msg.isDeleted)
+          .pop();
 
-          // Get participants
-          const participantsData = await db
-            .select()
-            .from(chatParticipants)
-            .where(eq(chatParticipants.chatId, chatId));
-
-          const participantIds = participantsData.map(p => p.userId);
-
-          // Get messages
-          const messagesData = await db
-            .select()
-            .from(messages)
-            .where(eq(messages.chatId, chatId))
-            .orderBy(messages.timestamp);
-
-          const chatMessages: Message[] = messagesData.map(m => {
-            const deletedFor = m.deletedFor ? JSON.parse(m.deletedFor as string) : [];
-            const isDeleted = m.isDeleted === 1 || deletedFor.includes('all') || deletedFor.includes(currentUserId);
-
-            return {
-              id: m.id as string,
-              senderId: m.senderId as string,
-              text: m.text as string,
-              imageUrl: m.imageUrl as string | undefined,
-              voiceUrl: m.voiceUrl as string | undefined,
-              timestamp: m.timestamp as number,
-              delivery_status: m.deliveryStatus as Message['delivery_status'],
-              is_read: m.isRead === 1,
-              reactions: m.reactions ? JSON.parse(m.reactions as string) : undefined,
-              is_edited: m.isEdited === 1,
-              isDeleted,
-              deletedFor,
-            };
-          });
-
-          // Determine last message (excluding deleted messages for the current user)
-          const lastMessage = chatMessages
-            .filter(msg => !msg.isDeleted)
-            .pop();
-
-          loadedChats.push({
-            id: chatId,
-            participants: participantIds,
-            messages: chatMessages,
-            lastMessage,
-            isGroup: chatData[0].isGroup === 1,
-            groupName: chatData[0].groupName as string | undefined,
-          });
-        }
-
-        setUserChats(loadedChats);
-      } catch (error) {
-        console.error('Error loading chats:', error);
-      } finally {
-        setLoading(false);
+        loadedChats.push({
+          id: chatId,
+          participants: participantIds,
+          messages: chatMessages,
+          lastMessage,
+          isGroup: chat.isGroup === 1,
+          groupName: chat.groupName as string | undefined,
+          deletedFor: deletedFor
+        });
       }
-    };
 
-    loadChats();
+      setUserChats(loadedChats);
+    } catch (error) {
+      console.error('Error loading chats:', error);
+    } finally {
+      setLoading(false);
+    }
   }, [currentUserId]);
+
+  // Load chats on mount
+  useEffect(() => {
+    loadChats();
+  }, [loadChats]);
 
   const createChat = useCallback(async (participantIds: string[], isGroup: boolean, groupName?: string) => {
     if (!currentUserId || !participantIds.includes(currentUserId)) {
@@ -134,6 +145,50 @@ export function useChatsDb(currentUserId: string | null) {
     }
 
     try {
+      // Si no es grupo, verificar si ya existe un chat entre los usuarios
+      if (!isGroup && participantIds.length === 2) {
+        const otherUserId = participantIds.find(id => id !== currentUserId);
+        if (otherUserId) {
+          // Buscar chats existentes entre estos usuarios
+          const existingChats = await db.select()
+            .from(chats)
+            .leftJoin(chatParticipants, eq(chatParticipants.chatId, chats.id))
+            .where(and(
+              eq(chatParticipants.userId, currentUserId),
+              eq(chats.isGroup, 0)
+            ));
+
+          // Verificar si hay un chat donde el otro usuario también es participante
+          for (const chat of existingChats) {
+            const otherParticipant = await db.select()
+              .from(chatParticipants)
+              .where(eq(chatParticipants.chatId, chat.chats.id))
+              .then(rows => rows.find(row => row.userId === otherUserId));
+
+            if (otherParticipant) {
+              // Si el usuario actual está en deletedFor, quitarlo
+              const deletedFor = chat.chats.deletedFor ? JSON.parse(chat.chats.deletedFor) : [];
+              if (deletedFor.includes(currentUserId)) {
+                const updatedDeletedFor = deletedFor.filter((id: string) => id !== currentUserId);
+                await db.update(chats)
+                  .set({ deletedFor: JSON.stringify(updatedDeletedFor) })
+                  .where(eq(chats.id, chat.chats.id));
+
+                // Recargar todos los chats
+                await loadChats();
+                return {
+                  id: chat.chats.id,
+                  participants: [currentUserId, otherUserId],
+                  messages: [],
+                  isGroup: false,
+                  deletedFor: updatedDeletedFor
+                };
+              }
+            }
+          }
+        }
+      }
+
       const chatId = `chat${Date.now()}`;
 
       // Insert new chat
@@ -152,21 +207,24 @@ export function useChatsDb(currentUserId: string | null) {
         });
       }
 
+      // Recargar todos los chats
+      await loadChats();
+
       const newChat: Chat = {
         id: chatId,
         participants: participantIds,
         messages: [],
         isGroup,
         groupName: isGroup ? groupName : undefined,
+        deletedFor: []
       };
 
-      setUserChats(prevChats => [...prevChats, newChat]);
       return newChat;
     } catch (error) {
       console.error('Error creating chat:', error);
       return null;
     }
-  }, [currentUserId]);
+  }, [currentUserId, loadChats]);
 
   const sendMessage = useCallback(async (chatId: string, text: string, senderId: string, imageUrl?: string, voiceUrl?: string) => {
     if (!text.trim() && !imageUrl && !voiceUrl) return false;
@@ -508,6 +566,81 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  const deleteAllMessages = useCallback(async (chatId: string) => {
+    try {
+      // Get all messages from the chat
+      const messagesResult = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.chatId, chatId));
+
+      // Update each message to be deleted for the current user
+      for (const message of messagesResult) {
+        const currentDeletedFor = message.deletedFor ? JSON.parse(message.deletedFor as string) : [];
+        if (!currentDeletedFor.includes(currentUserId)) {
+          await db.update(messages)
+            .set({ 
+              deletedFor: JSON.stringify([...currentDeletedFor, currentUserId])
+            })
+            .where(eq(messages.id, message.id));
+        }
+      }
+
+      // Update local state
+      setUserChats(prevChats => {
+        return prevChats.map(chat => {
+          if (chat.id === chatId) {
+            const updatedMessages = chat.messages.map(msg => ({
+              ...msg,
+              deletedFor: [...(msg.deletedFor || []), currentUserId].filter(Boolean) as string[]
+            }));
+            return {
+              ...chat,
+              messages: updatedMessages,
+              lastMessage: chat.lastMessage ? {
+                ...chat.lastMessage,
+                deletedFor: [...(chat.lastMessage.deletedFor || []), currentUserId].filter(Boolean) as string[]
+              } : undefined
+            };
+          }
+          return chat;
+        });
+      });
+    } catch (error) {
+      console.error('Error deleting all messages:', error);
+    }
+  }, [currentUserId]);
+
+  const deleteChat = useCallback(async (chatId: string) => {
+    try {
+      // First, delete all messages for the current user
+      await deleteAllMessages(chatId);
+
+      // Then, mark the chat as deleted for the current user
+      const chatResult = await db
+        .select()
+        .from(chats)
+        .where(eq(chats.id, chatId));
+
+      if (chatResult.length === 0) return;
+
+      const chat = chatResult[0];
+      const currentDeletedFor = chat.deletedFor ? JSON.parse(chat.deletedFor as string) : [];
+
+      // Update chat's deletedFor in database
+      await db.update(chats)
+        .set({ 
+          deletedFor: JSON.stringify([...currentDeletedFor, currentUserId])
+        })
+        .where(eq(chats.id, chatId));
+
+      // Update local state
+      setUserChats(prevChats => prevChats.filter(chat => chat.id !== chatId));
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+    }
+  }, [currentUserId, deleteAllMessages]);
+
   return {
     chats: userChats,
     createChat,
@@ -517,6 +650,8 @@ export function useChatsDb(currentUserId: string | null) {
     removeReaction,
     editMessage,
     deleteMessage,
+    deleteChat,
+    deleteAllMessages,
     loading,
   };
 } 

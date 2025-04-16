@@ -8,9 +8,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
-  Modal,
   Alert,
-  Keyboard
+  Keyboard,
+  Modal
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -28,7 +28,6 @@ import { Audio } from 'expo-av';
 import { ForwardModal } from '@/components/modals/ForwardModal';
 import { EditModal } from '@/components/modals/EditModal';
 import { SearchModal } from '@/components/modals/SearchModal';
-import { DeleteModal } from '@/components/modals/DeleteModal';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
@@ -51,7 +50,6 @@ export default function ChatRoomScreen() {
     .filter(id => id !== currentUser?.id)
     .map(id => users.find(user => user.id === id))
     .filter(Boolean) || [];
-
   const chatName = chatParticipants.length === 1
     ? chatParticipants[0]?.name
     : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
@@ -69,16 +67,13 @@ export default function ChatRoomScreen() {
   // Mark messages as read when chat is opened
   useEffect(() => {
     if (chat && currentUser) {
-      // Find messages that were sent by the other user and are not read
       const unreadMessages = chat.messages.filter(
         msg => msg.senderId !== currentUser.id &&
           !msg.is_read &&
           (msg.delivery_status === 'sent' || msg.delivery_status === 'delivered')
       );
 
-      // If there are unread messages, mark them as read
       if (unreadMessages.length > 0) {
-        // Get the sender ID of the unread messages (should be the same for all)
         const senderId = unreadMessages[0].senderId;
         markMessagesAsRead(chat.id, senderId);
       }
@@ -87,7 +82,6 @@ export default function ChatRoomScreen() {
 
   useEffect(() => {
     if (editingMessage) {
-      // Small delay to ensure the modal is fully rendered
       const timer = setTimeout(() => {
         editInputRef.current?.focus();
       }, 100);
@@ -168,10 +162,8 @@ export default function ChatRoomScreen() {
     if (!message) return;
 
     if (deleteForEveryone) {
-      // Delete for everyone
       deleteMessage(messageId, currentUser.id, true);
     } else {
-      // Delete for me
       deleteMessage(messageId, currentUser.id, false);
     }
 
@@ -370,9 +362,10 @@ export default function ChatRoomScreen() {
                 user={chatParticipants[0]}
                 size={32}
                 showStatus={false}
+                isGroup={chat.isGroup}
               />
               <ThemedText type="defaultSemiBold" numberOfLines={1}>
-                {chatName}
+                {chat.isGroup ? chat.groupName : chatName}
               </ThemedText>
             </View>
           ),
@@ -438,13 +431,25 @@ export default function ChatRoomScreen() {
         }}
       />
 
-      <DeleteModal
+      <Modal
         visible={showDeleteMenu}
-        onClose={() => setShowDeleteMenu(false)}
-        onDeleteForMe={handleDeleteForMe}
-        onDeleteForEveryone={handleDeleteForEveryone}
-        canDeleteForEveryone={selectedMessages.filter(msg => msg.senderId !== currentUser?.id).length === 0}
-      />
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDeleteMenu(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowDeleteMenu(false)}>
+          <View style={[styles.deleteMenu, { top: 20, right: 10, backgroundColor: Colors[colorScheme].background }]}>
+            <Pressable style={styles.deleteOption} onPress={handleDeleteForMe}>
+              <ThemedText style={styles.deleteOptionText}>Delete for me</ThemedText>
+            </Pressable>
+            {selectedMessages.filter(msg => msg.senderId !== currentUser?.id).length === 0 && (
+              <Pressable style={styles.deleteOption} onPress={handleDeleteForEveryone}>
+                <ThemedText style={styles.deleteOptionText}>Delete for everyone</ThemedText>
+              </Pressable>
+            )}
+          </View>
+        </Pressable>
+      </Modal>
 
       <ForwardModal
         visible={showForwardModal}
@@ -630,68 +635,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
   },
-  searchModalContainer: {
-    flex: 1,
-  },
-  searchHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    borderBottomWidth: 1,
-  },
-  searchInput: {
-    flex: 1,
-    height: 40,
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    marginRight: 10,
-  },
-  searchResultsContainer: {
-    padding: 10,
-  },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  editModalContainer: {
-    width: '100%',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  editModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-  },
-  editModalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  closeButton: {
-    padding: 8,
-    borderRadius: 20,
-  },
-  editInputContainer: {
-    marginTop: 10,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
   },
   editInput: {
     flex: 1,
@@ -702,9 +649,6 @@ const styles = StyleSheet.create({
     maxHeight: 100,
     backgroundColor: '#F9F9F9',
     fontSize: 16,
-  },
-  editSendButton: {
-    marginBottom: 5,
   },
   deleteMenu: {
     position: 'absolute',
@@ -745,63 +689,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 8,
   },
-  forwardModalContainer: {
-    width: '100%',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  forwardModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-  },
-  forwardModalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  chatOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  selectedChatOption: {
-    borderWidth: 1,
-    borderColor: '#34C759',
-  },
-  chatOptionInfo: {
+  modalOverlay: {
     flex: 1,
-    marginLeft: 12,
-  },
-  chatOptionSubtitle: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  forwardModalActions: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-  },
-  forwardButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  forwardButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
 }); 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Image, Pressable, Modal, TextInput } from 'react-native';
+import { View, StyleSheet, Image, Pressable, Modal } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
 import { IconSymbol } from './ui/IconSymbol';
@@ -44,13 +44,10 @@ export function MessageBubble({
   onSelect,
   onReactionPress,
   onRemoveReaction,
-  onEdit,
   selectedMessages,
 }: MessageBubbleProps) {
   const isDark = useColorScheme() === 'dark';
   const [showReactionMenu, setShowReactionMenu] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedText, setEditedText] = useState(message.text);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const { currentUser } = useAppContext();
   const [sound, setSound] = useState<Audio.Sound | null>(null);
@@ -139,14 +136,9 @@ export function MessageBubble({
   const handlePress = () => {
     if (selectedMessages.length >= 1) {
       onSelect?.(message.id);
+    } else {
+      message.imageUrl && setShowImagePreview(true);
     }
-  };
-
-  const handleSaveEdit = () => {
-    if (editedText.trim() && onEdit) {
-      onEdit(message.id, editedText.trim());
-    }
-    setIsEditing(false);
   };
 
   const handleReactionSelect = (reaction: string) => {
@@ -286,13 +278,11 @@ export function MessageBubble({
             : [styles.otherBubble, styles.otherContainer, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }],
         ]}>
           {message.imageUrl && (
-            <Pressable onPress={() => setShowImagePreview(true)}>
-              <Image
-                source={{ uri: message.imageUrl }}
-                style={styles.image}
-                resizeMode="cover"
-              />
-            </Pressable>
+            <Image
+              source={{ uri: message.imageUrl }}
+              style={styles.image}
+              resizeMode="cover"
+            />
           )}
           {message.text && (
             <ThemedText style={[

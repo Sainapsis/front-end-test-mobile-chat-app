@@ -15,6 +15,7 @@ export interface AppContextType {
   createChat: (participants: string[], isGroup: boolean, groupName?: string) => Promise<Chat | null>;
   editMessage: (messageId: string, newText: string) => Promise<void>;
   deleteMessage:(messageId: string, userId: string, deleteForEveryone: boolean) => Promise<void>;
+  deleteChat: (chatId: string) => Promise<void>;
   
   loading: boolean;
   isLoggedIn: boolean;
@@ -35,6 +36,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     createChat,
     editMessage,
     deleteMessage,
+    deleteChat,
     loading
   } = useChatsDb(currentUser?.id || null);
 
@@ -51,6 +53,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         createChat,
         editMessage,
         deleteMessage,
+        deleteChat,
         loading,
         isLoggedIn,
         login,

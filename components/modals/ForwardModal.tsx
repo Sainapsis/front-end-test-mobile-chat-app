@@ -16,6 +16,7 @@ interface ForwardModalProps {
         messages: Array<{
             text: string;
         }>;
+        isGroup: boolean;
     }>;
     currentUser: {
         id: string;
@@ -41,10 +42,11 @@ export function ForwardModal({
     selectedChats,
     onChatSelect,
     onForward,
-    selectedMessagesCount
+    selectedMessagesCount,
 }: ForwardModalProps) {
     const colorScheme = useColorScheme() ?? 'light';
-
+    console.log(chats);
+    
     return (
         <BaseModal
             visible={visible}
@@ -92,6 +94,7 @@ export function ForwardModal({
                                 user={otherParticipants[0]}
                                 size={40}
                                 showStatus={false}
+                                isGroup={item.isGroup}
                             />
                             <View style={styles.chatOptionInfo}>
                                 <ThemedText type="defaultSemiBold">{chatName}</ThemedText>

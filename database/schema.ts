@@ -11,6 +11,7 @@ export const chats = sqliteTable('chats', {
     id: text('id').primaryKey(),
     isGroup: integer('is_group').notNull().default(0),
     groupName: text('group_name'),
+    deletedFor: text('deleted_for').default('[]'),
 });
 
 export const chatParticipants = sqliteTable('chat_participants', {

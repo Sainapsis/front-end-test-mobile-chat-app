@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { FlatList, StyleSheet, Pressable, Modal, TextInput, Switch } from 'react-native';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
@@ -6,15 +6,30 @@ import { ThemedView } from '@/components/ThemedView';
 import { ChatListItem } from '@/components/ChatListItem';
 import { UserListItem } from '@/components/UserListItem';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { useRouter } from 'expo-router';
+import { DeleteChatModal } from '@/components/modals/DeleteChatModal';
 
 export default function ChatsScreen() {
-  const { currentUser, users, chats, createChat } = useAppContext();
-  const router = useRouter();
+  const { currentUser, users, chats, createChat, deleteChat } = useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [isGroup, setIsGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
+  const [selectedChats, setSelectedChats] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const sortedChats = useMemo(() => {
+    if (!currentUser?.id) return [];
+    return [...chats]
+      .filter(chat => {
+        const deletedFor = chat.deletedFor || [];
+        return !deletedFor.includes(currentUser.id);
+      })
+      .sort((a, b) => {
+        const aTime = a.lastMessage ? new Date(a.lastMessage.timestamp).getTime() : 0;
+        const bTime = b.lastMessage ? new Date(b.lastMessage.timestamp).getTime() : 0;
+        return bTime - aTime;
+      });
+  }, [chats, currentUser?.id]);
 
   const handleGroupToggle = (value: boolean) => {
     setIsGroup(value);
@@ -39,12 +54,12 @@ export default function ChatsScreen() {
       // If it's not a group chat and only one user is selected
       if (!isGroup && selectedUsers.length === 1) {
         // Check if a chat already exists with this user
-        const existingChat = chats.find(chat => 
-          !chat.isGroup && 
-          chat.participants.includes(selectedUsers[0]) && 
+        const existingChat = sortedChats.find(chat =>
+          !chat.isGroup &&
+          chat.participants.includes(selectedUsers[0]) &&
           chat.participants.includes(currentUser.id)
         );
-        
+
         if (existingChat) {
           // Not allowed to create a new chat with the same user
           setModalVisible(false);
@@ -62,6 +77,26 @@ export default function ChatsScreen() {
     }
   };
 
+  const handleChatSelect = (chatId: string, isSelected: boolean) => {
+    setSelectedChats(prev => {
+      if (isSelected) {
+        return [...prev, chatId];
+      } else {
+        return prev.filter(id => id !== chatId);
+      }
+    });
+  };
+
+  const handleDeleteChats = async () => {
+    await Promise.all(selectedChats.map(async (chatId) => {
+      await deleteChat(chatId);
+    }));
+    setIsDeleting(false);
+    setSelectedChats([]);
+
+    console.log('delete chats', selectedChats);
+  };
+
   const renderEmptyComponent = () => (
     <ThemedView style={styles.emptyContainer}>
       <ThemedText style={styles.emptyText}>No chats yet</ThemedText>
@@ -69,30 +104,51 @@ export default function ChatsScreen() {
     </ThemedView>
   );
 
+
   return (
     <ThemedView style={styles.container}>
       <ThemedView style={styles.header}>
         <ThemedText type="title">Chats</ThemedText>
-        <Pressable
-          style={styles.newChatButton}
-          onPress={() => setModalVisible(true)}
-        >
-          <IconSymbol name="plus" size={24} color="#007AFF" />
-        </Pressable>
+        {
+          selectedChats.length > 0 ? (
+            <Pressable
+              style={{...styles.newChatButton, ...styles.deleteButton}}
+              onPress={() => setIsDeleting(true)}
+            >
+              <IconSymbol name="trash" size={24} color="red" />
+            </Pressable>
+          ) : (
+            <Pressable
+              style={styles.newChatButton}
+              onPress={() => setModalVisible(true)}
+            >
+              <IconSymbol name="plus" size={24} color="#007AFF" />
+            </Pressable>
+          )
+        }
       </ThemedView>
 
       <FlatList
-        data={chats}
+        data={sortedChats}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <ChatListItem
             chat={item}
             currentUserId={currentUser?.id || ''}
             users={users}
+            selectedChats={selectedChats}
+            onSelect={handleChatSelect}
           />
         )}
         ListEmptyComponent={renderEmptyComponent}
         contentContainerStyle={styles.listContainer}
+      />
+
+      <DeleteChatModal
+        visible={isDeleting}
+        onClose={() => setIsDeleting(false)}
+        onDelete={handleDeleteChats}
+        selectedCount={selectedChats.length}
       />
 
       <Modal
@@ -199,6 +255,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0, 122, 255, 0.1)',
   },
+  deleteButton: {
+    backgroundColor: 'rgba(255, 0, 0, 0.1)',
+  },
   listContainer: {
     flexGrow: 1,
   },
@@ -215,13 +274,19 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingTop: 60,
+    zIndex: 1000,
   },
   modalContent: {
-    width: '90%',
+    width: '80%',
     maxHeight: '80%',
     borderRadius: 10,
     padding: 20,
@@ -230,6 +295,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    marginRight: 20,
+    marginTop: 20,
+    zIndex: 1001,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -274,6 +342,5 @@ const styles = StyleSheet.create({
     marginTop: 5,
     color: '#000',
     backgroundColor: '#fff',
-    borderRadius: 15,
   },
 });

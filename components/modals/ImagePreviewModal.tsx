@@ -1,6 +1,5 @@
 import React from 'react';
 import { StyleSheet, View, Image, Pressable, Dimensions, Modal } from 'react-native';
-import { ThemedView } from '../ThemedView';
 import { IconSymbol } from '../ui/IconSymbol';
 
 interface ImagePreviewModalProps {

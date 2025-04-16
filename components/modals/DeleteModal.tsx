@@ -19,7 +19,7 @@ export function DeleteModal({
   onDeleteForEveryone,
   canDeleteForEveryone
 }: DeleteModalProps) {
-  const colorScheme = useColorScheme();
+  const colorScheme = useColorScheme() ?? 'light';
 
   if (!visible) return null;
 

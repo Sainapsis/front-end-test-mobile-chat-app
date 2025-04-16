@@ -1,14 +1,15 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, Image } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { User } from '@/hooks/useUser';
+import { IconSymbol } from './ui/IconSymbol';
 
 interface AvatarProps {
   user?: User;
   size?: number;
   showStatus?: boolean;
+  isGroup?: boolean;
 }
-
 
 const getAvatarColor = (identifier?: string): string => {
   if (!identifier) return '#C0C0C0';
@@ -38,7 +39,8 @@ const getInitials = (name?: string): string => {
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 };
 
-export function Avatar({ user, size = 40, showStatus = true }: AvatarProps) {
+export function Avatar({ user, size = 40, showStatus = true, isGroup = false }: AvatarProps) {
+  const [avatarError, setAvatarError] = useState(false);
   const backgroundColor = getAvatarColor(user?.id || user?.name);
   const initials = getInitials(user?.name);
   
@@ -48,22 +50,33 @@ export function Avatar({ user, size = 40, showStatus = true }: AvatarProps) {
     away: '#FFC107',
   };
 
+  const avatarStyle = {
+    width: size,
+    height: size,
+    borderRadius: size / 2,
+    backgroundColor,
+  };
   return (
     <View style={styles.container}>
-      <View
-        style={[
-          styles.avatar,
-          { width: size, height: size, borderRadius: size / 2, backgroundColor }
-        ]}
-      >
-        <ThemedText style={[
-          styles.initials,
-          { fontSize: size * 0.4 }
-        ]}>
-          {initials}
-        </ThemedText>
+      <View style={[styles.avatar, avatarStyle]}>
+        {isGroup ? (
+          <IconSymbol name="group" size={size * 0.6} color="white" />
+        ) : user?.avatar && !avatarError ? (
+          <Image
+            source={{ uri: user.avatar }}
+            style={[styles.avatarImage, avatarStyle]}
+            onError={() => setAvatarError(true)}
+          />
+        ) : (
+          <ThemedText style={[
+            styles.initials,
+            { fontSize: size * 0.4 }
+          ]}>
+            {initials}
+          </ThemedText>
+        )}
       </View>
-      {showStatus && user?.status && (
+      {showStatus && user?.status && !isGroup && (
         <View
           style={[
             styles.statusIndicator,
@@ -89,6 +102,10 @@ const styles = StyleSheet.create({
   avatar: {
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    resizeMode: 'cover',
   },
   initials: {
     color: 'white',

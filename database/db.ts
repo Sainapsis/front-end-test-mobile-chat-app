@@ -26,7 +26,8 @@ export async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS chats (
         id TEXT PRIMARY KEY,
         is_group INTEGER NOT NULL DEFAULT 0,
-        group_name TEXT
+        group_name TEXT,
+        deleted_for TEXT DEFAULT '[]'
       );
     `);
     

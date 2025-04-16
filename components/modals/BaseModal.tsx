@@ -17,7 +17,7 @@ export function BaseModal({
   children,
   animationType = 'slide'
 }: BaseModalProps) {
-  const colorScheme = useColorScheme();
+  const colorScheme = useColorScheme() ?? 'light';
 
   return (
     <Modal

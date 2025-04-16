@@ -33,7 +33,7 @@ export function EditModal({
   onEditTextChange,
   onSave
 }: EditModalProps) {
-  const colorScheme = useColorScheme();
+  const colorScheme = useColorScheme() ?? 'light';
   const editInputRef = useRef<TextInput>(null);
 
   return (
