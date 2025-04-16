@@ -27,6 +27,7 @@ interface MessageBubbleProps {
     isDeleted?: boolean;
     deletedFor?: string[];
     review?: boolean;
+    isForwarded?: boolean;
   };
   isCurrentUser: boolean;
   isSelected?: boolean;
@@ -56,7 +57,6 @@ export function MessageBubble({
   const [progress, setProgress] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
   const [showImagePreview, setShowImagePreview] = useState(false);
-
   useEffect(() => {
     const loadAudioDuration = async () => {
       if (!message.voiceUrl) return;
@@ -137,7 +137,14 @@ export function MessageBubble({
 
   const handlePress = () => {
     if (selectedMessages.length >= 1) {
-      onSelect?.(message.id);
+      const isAlreadySelected = selectedMessages.some(
+        selected => selected.messageId === message.id && selected.senderId === message.senderId
+      );
+      if (isAlreadySelected) {
+        onSelect?.(message.id);
+      } else {
+        onSelect?.(message.id);
+      }
     } else {
       message.imageUrl && setShowImagePreview(true);
     }
@@ -298,7 +305,11 @@ export function MessageBubble({
             <ThemedText style={styles.timeText}>
               {message.timestamp ? formatTime(message.timestamp) : ''}
             </ThemedText>
-            {message.is_edited && (
+            {message.isForwarded ? (
+              <ThemedText style={styles.editedText}>
+                Forwarded
+              </ThemedText>
+            ) : message.is_edited && (
               <ThemedText style={styles.editedText}>
                 Edited
               </ThemedText>

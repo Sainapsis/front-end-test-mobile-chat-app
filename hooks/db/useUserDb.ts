@@ -15,21 +15,21 @@ export function useUserDb() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load all users from the database
-  useEffect(() => {
-    const loadUsers = async () => {
-      try {
-        const usersData = await db.select().from(users);
-        setAllUsers(usersData as User[]);
-      } catch (error) {
-        console.error('Error loading users:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadUsers();
+  const loadUsers = useCallback(async () => {
+    try {
+      const usersData = await db.select().from(users);
+      setAllUsers(usersData as User[]);
+    } catch (error) {
+      console.error('Error loading users:', error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+  
+  // Load users on mount
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
   
   const login = useCallback(async (userId: string) => {
     try {
@@ -57,5 +57,6 @@ export function useUserDb() {
     logout,
     isLoggedIn: !!currentUser,
     loading,
+    loadUsers
   };
 } 

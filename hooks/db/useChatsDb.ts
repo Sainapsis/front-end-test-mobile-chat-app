@@ -14,6 +14,7 @@ export interface Message {
   is_read: boolean;
   reactions?: Record<string, string>;
   is_edited: boolean;
+  isForwarded: boolean;
   isDeleted: boolean;
   deletedFor: string[];
 }
@@ -111,6 +112,7 @@ export function useChatsDb(currentUserId: string | null) {
               is_read: m.isRead === 1,
               reactions: m.reactions ? JSON.parse(m.reactions as string) : undefined,
               is_edited: m.isEdited === 1,
+              isForwarded: m.isForwarded === 1,
               isDeleted,
               deletedFor,
             };
@@ -234,7 +236,7 @@ export function useChatsDb(currentUserId: string | null) {
   }, [currentUserId, loadChats]);
 
   // Optimized sendMessage function with optimistic updates
-  const sendMessage = useCallback(async (chatId: string, text: string, senderId: string, imageUrl?: string, voiceUrl?: string) => {
+  const sendMessage = useCallback(async (chatId: string, text: string, senderId: string, imageUrl?: string, voiceUrl?: string, isForwarded: boolean = false) => {
     if (!text.trim() && !imageUrl && !voiceUrl) return false;
 
     const messageId = `msg${Date.now()}`;
@@ -253,6 +255,7 @@ export function useChatsDb(currentUserId: string | null) {
         is_read: false,
         reactions: undefined,
         is_edited: false,
+        isForwarded: isForwarded,
         isDeleted: false,
         deletedFor: [],
       };
@@ -281,7 +284,10 @@ export function useChatsDb(currentUserId: string | null) {
         timestamp: timestamp,
         deliveryStatus: 'sending',
         isRead: 0,
-        isEdited: 0
+        isEdited: 0,
+        isForwarded: isForwarded ? 1 : 0,
+        isDeleted: 0,
+        deletedFor: '[]'
       });
 
       // Update delivery status after a delay
@@ -709,6 +715,7 @@ export function useChatsDb(currentUserId: string | null) {
           is_read: m.isRead === 1,
           reactions: m.reactions ? JSON.parse(m.reactions as string) : undefined,
           is_edited: m.isEdited === 1,
+          isForwarded: m.isForwarded === 1,
           isDeleted,
           deletedFor,
         };

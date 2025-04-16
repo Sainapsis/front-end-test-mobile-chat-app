@@ -34,7 +34,7 @@ const MAPPING = {
   'play.circle.fill': 'play-circle',
   'xmark.circle.fill': 'close',
   'arrowshape.turn.up.right': 'share',
-  'group': 'group',
+  'person.2': 'group',
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],

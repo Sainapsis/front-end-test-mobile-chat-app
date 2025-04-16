@@ -50,7 +50,7 @@ export default function ChatRoomScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
-  const [selectedMessages, setSelectedMessages] = useState<{ messageId: string; senderId: string, audio: boolean }[]>([]);
+  const [selectedMessages, setSelectedMessages] = useState<{ messageId: string; senderId: string, audio: boolean, isForwarded: boolean }[]>([]);
   const [editingMessage, setEditingMessage] = useState<{ id: string; text: string } | null>(null);
   const [messageToEdit, setMessageToEdit] = useState<any>(null);
 
@@ -144,7 +144,12 @@ export default function ChatRoomScreen() {
           selected => !(selected.messageId === messageId && selected.senderId === message.senderId)
         );
       } else {
-        return [...prev, { messageId, senderId: message.senderId, audio: message.voiceUrl ? true : false }];
+        return [...prev, { 
+          messageId, 
+          senderId: message.senderId, 
+          audio: message.voiceUrl ? true : false, 
+          isForwarded: message.isForwarded ?? false 
+        }];
       }
     });
   };
@@ -252,7 +257,8 @@ export default function ChatRoomScreen() {
           message.text,
           currentUser.id,
           message.imageUrl,
-          message.voiceUrl
+          message.voiceUrl,
+          true
         );
       });
     });
@@ -401,7 +407,7 @@ export default function ChatRoomScreen() {
             <View style={styles.headerRight}>
               {selectedMessages.length > 0 ? (
                 <>
-                  {selectedMessages.length === 1 && selectedMessages[0].senderId === currentUser?.id && !selectedMessages[0].audio && (
+                  {selectedMessages.length === 1 && selectedMessages[0].senderId === currentUser?.id && !selectedMessages[0].audio && !selectedMessages[0].isForwarded && (
                     <Pressable onPress={handleEditPress}>
                       <IconSymbol name="pencil" size={24} color={Colors[colorScheme].icon} />
                     </Pressable>

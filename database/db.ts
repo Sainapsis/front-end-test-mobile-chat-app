@@ -52,6 +52,7 @@ export async function initializeDatabase() {
         voice_url TEXT,
         message_type TEXT NOT NULL DEFAULT 'text', -- text, image, voice
         is_edited INTEGER NOT NULL DEFAULT 0,
+        is_forwarded INTEGER NOT NULL DEFAULT 0,
         is_deleted INTEGER NOT NULL DEFAULT 0,
         deleted_for TEXT DEFAULT '[]',
         is_read INTEGER NOT NULL DEFAULT 0, -- 0: unread, 1: read

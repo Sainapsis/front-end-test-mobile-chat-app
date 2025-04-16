@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, FlatList, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -8,10 +8,16 @@ import { ThemedView } from '@/components/ThemedView';
 import { UserListItem } from '@/components/UserListItem';
 
 export default function LoginScreen() {
-  const { users, login } = useAppContext();
+  const { users, login, loading, loadUsers } = useAppContext();
   const router = useRouter();
-  const handleUserSelect = (userId: string) => {
-    if (login(userId)) {
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
+
+  const handleUserSelect = async (userId: string) => {
+    const success = await login(userId);
+    if (success) {
       router.replace('/(tabs)');
     }
   };
@@ -26,18 +32,21 @@ export default function LoginScreen() {
             Select a user to continue
           </ThemedText>
         </ThemedView>
-        
-        <FlatList
-          data={users}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <UserListItem
-              user={item}
-              onSelect={() => handleUserSelect(item.id)}
-            />
-          )}
-          contentContainerStyle={styles.listContainer}
-        />
+        {loading ? (
+          <ThemedText>Loading...</ThemedText>
+        ) : (
+          <FlatList
+            data={users}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <UserListItem
+                user={item}
+                onSelect={() => handleUserSelect(item.id)}
+              />
+            )}
+            contentContainerStyle={styles.listContainer}
+          />
+        )}
       </ThemedView>
     </SafeAreaView>
   );

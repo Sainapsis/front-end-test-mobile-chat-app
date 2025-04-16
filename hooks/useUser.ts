@@ -9,7 +9,8 @@ export function useUser() {
     login, 
     logout, 
     isLoggedIn,
-    loading 
+    loading,
+    loadUsers 
   } = useUserDb();
 
   return {
@@ -19,5 +20,6 @@ export function useUser() {
     logout,
     isLoggedIn,
     loading,
+    loadUsers
   };
 } 

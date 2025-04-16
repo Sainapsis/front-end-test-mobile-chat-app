@@ -8,7 +8,7 @@ export interface AppContextType {
   currentUser: User | null;
   users: User[];
   chats: Chat[];
-  sendMessage: (chatId: string, text: string, senderId: string, imageUrl?: string, voiceUrl?: string) => Promise<boolean>;
+  sendMessage: (chatId: string, text: string, senderId: string, imageUrl?: string, voiceUrl?: string, isForwarded?: boolean) => Promise<boolean>;
   markMessagesAsRead: (chatId: string, userId: string) => Promise<void>;
   addReaction: (messageId: string, userId: string, reaction: string) => Promise<void>;
   removeReaction: (messageId: string, userId: string) => Promise<void>;
@@ -23,12 +23,13 @@ export interface AppContextType {
   isLoggedIn: boolean;
   login: (userId: string) => Promise<boolean>;
   logout: () => void;
+  loadUsers: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const { currentUser, users, isLoggedIn, login, logout } = useUser();
+  const { currentUser, users, isLoggedIn, login, logout, loadUsers } = useUser();
   const {
     chats,
     sendMessage,
@@ -65,7 +66,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         loading,
         isLoggedIn,
         login,
-        logout
+        logout,
+        loadUsers
       }}>
         {children}
       </AppContext.Provider>

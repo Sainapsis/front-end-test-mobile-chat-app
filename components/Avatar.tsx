@@ -60,7 +60,7 @@ export function Avatar({ user, size = 40, showStatus = true, isGroup = false }: 
     <View style={styles.container}>
       <View style={[styles.avatar, avatarStyle]}>
         {isGroup ? (
-          <IconSymbol name="group" size={size * 0.6} color="white" />
+          <IconSymbol name="person.2" size={size * 0.6} color="white" />
         ) : user?.avatar && !avatarError ? (
           <Image
             source={{ uri: user.avatar }}
