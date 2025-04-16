@@ -10,6 +10,7 @@ import { Colors } from '@/constants/Colors';
 import { useAppContext } from '@/hooks/AppContext';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import { ImagePreviewModal } from './modals/ImagePreviewModal';
+import * as Haptics from 'expo-haptics';
 
 interface MessageBubbleProps {
   message: {
@@ -131,6 +132,7 @@ export function MessageBubble({
     setMenuPosition({ x: pageX, y: pageY });
     setShowReactionMenu(true);
     onSelect?.(message.id);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
   const handlePress = () => {

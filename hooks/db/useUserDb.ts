@@ -20,7 +20,7 @@ export function useUserDb() {
     const loadUsers = async () => {
       try {
         const usersData = await db.select().from(users);
-        setAllUsers(usersData);
+        setAllUsers(usersData as User[]);
       } catch (error) {
         console.error('Error loading users:', error);
       } finally {
@@ -36,7 +36,7 @@ export function useUserDb() {
       const user = await db.select().from(users).where(eq(users.id, userId));
       
       if (user && user.length > 0) {
-        setCurrentUser(user[0]);
+        setCurrentUser(user[0] as User);
         return true;
       }
       return false;

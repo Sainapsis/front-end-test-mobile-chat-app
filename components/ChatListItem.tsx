@@ -8,6 +8,7 @@ import { User } from '@/hooks/useUser';
 import { IconSymbol } from './ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 interface ChatListItemProps {
   chat: Chat;
@@ -64,6 +65,7 @@ export function ChatListItem({
 
   const handleLongPress = useCallback(() => {
     onSelect(chat.id, !selectedChats.includes(chat.id));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   }, [chat.id, selectedChats, onSelect]);
 
   const timeString = useMemo(() => {
@@ -121,7 +123,7 @@ export function ChatListItem({
             >
               {isCurrentUserLastSender && 'You: '}
               {chat.messages[chat.messages.length - 1]?.voiceUrl && (
-                <><IconSymbol name="waveform" size={16} color={Colors[colorScheme].icon} />{" "}</>
+                <><IconSymbol name="mic" size={16} color={Colors[colorScheme].icon} />{"Audio..."}</>
               )}
               {chat.messages[chat.messages.length - 1]?.imageUrl && (
                 <><IconSymbol name="photo" size={16} color={Colors[colorScheme].icon} />{" "}</>

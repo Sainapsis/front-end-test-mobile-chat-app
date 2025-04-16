@@ -7,15 +7,20 @@ import { ChatListItem } from '@/components/ChatListItem';
 import { UserListItem } from '@/components/UserListItem';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { DeleteChatModal } from '@/components/modals/DeleteChatModal';
+import { ChatListSkeleton } from '@/components/ChatListSkeleton';
+import { Colors } from '@/constants/Colors';
+import { useColorScheme } from 'react-native';
+import NewChatModal from '@/components/modals/NewChatModal';
 
 export default function ChatsScreen() {
-  const { currentUser, users, chats, createChat, deleteChat } = useAppContext();
+  const { currentUser, users, chats, createChat, deleteChat, loading } = useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [isGroup, setIsGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [selectedChats, setSelectedChats] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const colorScheme = useColorScheme() ?? 'light';
 
   const sortedChats = useMemo(() => {
     if (!currentUser?.id) return [];
@@ -93,17 +98,15 @@ export default function ChatsScreen() {
     }));
     setIsDeleting(false);
     setSelectedChats([]);
-
-    console.log('delete chats', selectedChats);
   };
 
   const renderEmptyComponent = () => (
     <ThemedView style={styles.emptyContainer}>
-      <ThemedText style={styles.emptyText}>No chats yet</ThemedText>
-      <ThemedText>Tap the + button to start a new conversation</ThemedText>
+      <IconSymbol name="bubble.left.and.bubble.right" size={64} color={Colors[colorScheme].icon} />
+      <ThemedText style={styles.emptyTitle}>No chats yet</ThemedText>
+      <ThemedText style={styles.emptySubtitle}>Start a conversation by tapping the + button</ThemedText>
     </ThemedView>
   );
-
 
   return (
     <ThemedView style={styles.container}>
@@ -112,7 +115,7 @@ export default function ChatsScreen() {
         {
           selectedChats.length > 0 ? (
             <Pressable
-              style={{...styles.newChatButton, ...styles.deleteButton}}
+              style={{ ...styles.newChatButton, ...styles.deleteButton }}
               onPress={() => setIsDeleting(true)}
             >
               <IconSymbol name="trash" size={24} color="red" />
@@ -128,109 +131,50 @@ export default function ChatsScreen() {
         }
       </ThemedView>
 
-      <FlatList
-        data={sortedChats}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ChatListItem
-            chat={item}
-            currentUserId={currentUser?.id || ''}
-            users={users}
-            selectedChats={selectedChats}
-            onSelect={handleChatSelect}
-          />
-        )}
-        ListEmptyComponent={renderEmptyComponent}
-        contentContainerStyle={styles.listContainer}
-      />
-
-      <DeleteChatModal
+      {loading ? (
+        <ChatListSkeleton />
+      ) : (
+        <FlatList
+          data={sortedChats}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <ChatListItem
+              chat={item}
+              currentUserId={currentUser?.id || ''}
+              users={users}
+              selectedChats={selectedChats}
+              onSelect={handleChatSelect}
+            />
+          )}
+          ListEmptyComponent={renderEmptyComponent}
+          contentContainerStyle={styles.listContainer}
+        />
+      )}
+      < DeleteChatModal
         visible={isDeleting}
         onClose={() => setIsDeleting(false)}
         onDelete={handleDeleteChats}
         selectedCount={selectedChats.length}
       />
 
-      <Modal
-        animationType="slide"
-        transparent={true}
+      <NewChatModal
         visible={modalVisible}
-        onRequestClose={() => {
+        onClose={() => {
           setModalVisible(false);
           setSelectedUsers([]);
           setIsGroup(false);
           setGroupName('');
         }}
-      >
-        <ThemedView style={styles.modalContainer}>
-          <ThemedView style={styles.modalContent}>
-            <ThemedView style={styles.modalHeader}>
-              <ThemedText type="subtitle">New Chat</ThemedText>
-              <Pressable onPress={() => {
-                setModalVisible(false);
-                setSelectedUsers([]);
-                setIsGroup(false);
-                setGroupName('');
-              }}>
-                <IconSymbol name="xmark" size={24} color="#007AFF" />
-              </Pressable>
-            </ThemedView>
-
-            <ThemedView style={styles.groupToggleContainer}>
-              <ThemedText>Group Chat</ThemedText>
-              <Switch
-                value={isGroup}
-                onValueChange={handleGroupToggle}
-                trackColor={{ false: '#767577', true: '#81b0ff' }}
-                thumbColor={isGroup ? '#007AFF' : '#f4f3f4'}
-              />
-            </ThemedView>
-
-            {isGroup && (
-              <ThemedView style={styles.groupNameContainer}>
-                <ThemedText>Group Name</ThemedText>
-                <TextInput
-                  style={styles.groupNameInput}
-                  value={groupName}
-                  onChangeText={setGroupName}
-                  placeholder="Enter group name"
-                  placeholderTextColor="#999"
-                />
-              </ThemedView>
-            )}
-
-            <ThemedText style={styles.modalSubtitle}>
-              Select users to chat with
-            </ThemedText>
-
-            <FlatList
-              data={users.filter(user => user.id !== currentUser?.id)}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <UserListItem
-                  user={item}
-                  onSelect={() => toggleUserSelection(item.id)}
-                  isSelected={selectedUsers.includes(item.id)}
-                />
-              )}
-              style={styles.userList}
-            />
-
-            <Pressable
-              style={[
-                styles.createButton,
-                (selectedUsers.length === 0 || (isGroup && !groupName)) && styles.disabledButton
-              ]}
-              onPress={handleCreateChat}
-              disabled={selectedUsers.length === 0 || (isGroup && !groupName)}
-            >
-              <ThemedText style={styles.createButtonText}>
-                Create {isGroup ? 'Group' : 'Chat'}
-              </ThemedText>
-            </Pressable>
-          </ThemedView>
-        </ThemedView>
-      </Modal>
+        users={users}
+        currentUser={currentUser}
+        selectedUsers={selectedUsers}
+        onUserSelect={toggleUserSelection}
+        isGroup={isGroup}
+        onGroupToggle={handleGroupToggle}
+        groupName={groupName}
+        onGroupNameChange={setGroupName}
+        onCreateChat={handleCreateChat}
+      />
     </ThemedView>
   );
 }
@@ -268,10 +212,16 @@ const styles = StyleSheet.create({
     padding: 20,
     marginTop: 40,
   },
-  emptyText: {
-    fontSize: 18,
+  emptyTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    opacity: 0.7,
   },
   modalContainer: {
     position: 'absolute',

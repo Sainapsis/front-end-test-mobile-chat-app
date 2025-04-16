@@ -1,11 +1,10 @@
-import React from 'react';
-import { StyleSheet, View, FlatList, Pressable } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { StyleSheet, View, FlatList, Pressable, Modal, Animated } from 'react-native';
 import { ThemedText } from '../ThemedText';
 import { IconSymbol } from '../ui/IconSymbol';
 import { Avatar } from '../Avatar';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
-import { BaseModal } from './BaseModal';
 
 interface ForwardModalProps {
     visible: boolean;
@@ -33,7 +32,7 @@ interface ForwardModalProps {
     selectedMessagesCount: number;
 }
 
-export function ForwardModal({
+export default function ForwardModal({
     visible,
     onClose,
     chats,
@@ -45,93 +44,154 @@ export function ForwardModal({
     selectedMessagesCount,
 }: ForwardModalProps) {
     const colorScheme = useColorScheme() ?? 'light';
-    
+    const modalAnim = useRef(new Animated.Value(0)).current;
+    const contentAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.timing(modalAnim, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(contentAnim, {
+                    toValue: 1,
+                    friction: 8,
+                    tension: 40,
+                    useNativeDriver: true,
+                })
+            ]).start();
+        } else {
+            Animated.parallel([
+                Animated.timing(modalAnim, {
+                    toValue: 0,
+                    duration: 200,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(contentAnim, {
+                    toValue: 0,
+                    duration: 200,
+                    useNativeDriver: true,
+                })
+            ]).start();
+        }
+    }, [visible]);
+
     return (
-        <BaseModal
+        <Modal
             visible={visible}
-            onClose={onClose}
+            transparent
+            animationType="none"
+            onRequestClose={onClose}
         >
-            <View style={[
-                styles.modalHeader,
-                { borderBottomColor: Colors[colorScheme].icon }
+            <Animated.View style={[
+                styles.modalOverlay,
+                {
+                    opacity: modalAnim,
+                    backgroundColor: `rgba(0, 0, 0, ${modalAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 0.7]
+                    })})`
+                }
             ]}>
-                <ThemedText type="defaultSemiBold" style={styles.modalTitle}>
-                    Forward to
-                </ThemedText>
-                <Pressable
-                    style={styles.closeButton}
-                    onPress={onClose}
-                >
-                    <IconSymbol name="xmark" size={20} color={Colors[colorScheme].icon} />
-                </Pressable>
-            </View>
-            <FlatList
-                data={chats}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => {
-                    const otherParticipants = item.participants
-                        .filter(id => id !== currentUser?.id)
-                        .map(id => users.find(user => user.id === id))
-                        .filter(Boolean);
+                <Animated.View style={[
+                    styles.modalContent,
+                    {
+                        transform: [
+                            { translateY: contentAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [50, 0]
+                            })}
+                        ],
+                        backgroundColor: Colors[colorScheme].background,
+                        borderColor: Colors[colorScheme].border,
+                        borderWidth: 1,
+                    }
+                ]}>
+                    <View style={[
+                        styles.modalHeader,
+                        { borderBottomColor: Colors[colorScheme].icon }
+                    ]}>
+                        <ThemedText type="defaultSemiBold" style={styles.modalTitle}>
+                            Forward to
+                        </ThemedText>
+                        <Pressable
+                            style={styles.closeButton}
+                            onPress={onClose}
+                        >
+                            <IconSymbol name="xmark" size={20} color={Colors[colorScheme].icon} />
+                        </Pressable>
+                    </View>
+                    <FlatList
+                        data={chats}
+                        keyExtractor={(item) => item.id}
+                        renderItem={({ item }) => {
+                            const otherParticipants = item.participants
+                                .filter(id => id !== currentUser?.id)
+                                .map(id => users.find(user => user.id === id))
+                                .filter(Boolean);
 
-                    const chatName = otherParticipants.length === 1
-                        ? otherParticipants[0]?.name
-                        : `${otherParticipants[0]?.name || 'Unknown'} & ${otherParticipants.length - 1} other${otherParticipants.length > 1 ? 's' : ''}`;
+                            const chatName = otherParticipants.length === 1
+                                ? otherParticipants[0]?.name
+                                : `${otherParticipants[0]?.name || 'Unknown'} & ${otherParticipants.length - 1} other${otherParticipants.length > 1 ? 's' : ''}`;
 
-                    return (
+                            return (
+                                <Pressable
+                                    style={[
+                                        styles.chatOption,
+                                        selectedChats.includes(item.id) && [
+                                            styles.selectedChatOption,
+                                            { backgroundColor: Colors[colorScheme].tint + '20' }
+                                        ]
+                                    ]}
+                                    onPress={() => onChatSelect(item.id)}
+                                >
+                                    <Avatar
+                                        user={otherParticipants[0]}
+                                        size={40}
+                                        showStatus={false}
+                                        isGroup={item.isGroup}
+                                    />
+                                    <View style={styles.chatOptionInfo}>
+                                        <ThemedText type="defaultSemiBold">{chatName}</ThemedText>
+                                        <ThemedText style={[
+                                            styles.chatOptionSubtitle,
+                                            { color: Colors[colorScheme].icon }
+                                        ]}>
+                                            {item.messages.length > 0
+                                                ? item.messages[item.messages.length - 1].text
+                                                : 'No messages yet'}
+                                        </ThemedText>
+                                    </View>
+                                    {selectedChats.includes(item.id) && (
+                                        <IconSymbol name="checkmark.circle.fill" size={24} color="#34C759" />
+                                    )}
+                                </Pressable>
+                            );
+                        }}
+                    />
+                    <View style={[
+                        styles.modalActions,
+                        { borderTopColor: Colors[colorScheme].icon }
+                    ]}>
                         <Pressable
                             style={[
-                                styles.chatOption,
-                                selectedChats.includes(item.id) && [
-                                    styles.selectedChatOption,
-                                    { backgroundColor: Colors[colorScheme].tint + '20' }
-                                ]
+                                styles.forwardButton,
+                                selectedChats.length === 0 && styles.disabledButton,
+                                { backgroundColor: "#007AFF" }
                             ]}
-                            onPress={() => onChatSelect(item.id)}
+                            onPress={onForward}
+                            disabled={selectedChats.length === 0}
                         >
-                            <Avatar
-                                user={otherParticipants[0]}
-                                size={40}
-                                showStatus={false}
-                                isGroup={item.isGroup}
-                            />
-                            <View style={styles.chatOptionInfo}>
-                                <ThemedText type="defaultSemiBold">{chatName}</ThemedText>
-                                <ThemedText style={[
-                                    styles.chatOptionSubtitle,
-                                    { color: Colors[colorScheme].icon }
-                                ]}>
-                                    {item.messages.length > 0
-                                        ? item.messages[item.messages.length - 1].text
-                                        : 'No messages yet'}
-                                </ThemedText>
-                            </View>
-                            {selectedChats.includes(item.id) && (
-                                <IconSymbol name="checkmark.circle.fill" size={24} color="#34C759" />
-                            )}
+                            <ThemedText style={styles.forwardButtonText}>
+                                Forward ({selectedMessagesCount})
+                            </ThemedText>
                         </Pressable>
-                    );
-                }}
-            />
-            <View style={[
-                styles.modalActions,
-                { borderTopColor: Colors[colorScheme].icon }
-            ]}>
-                <Pressable
-                    style={[
-                        styles.forwardButton,
-                        selectedChats.length === 0 && styles.disabledButton,
-                        { backgroundColor: "#007AFF" }
-                    ]}
-                    onPress={onForward}
-                    disabled={selectedChats.length === 0}
-                >
-                    <ThemedText style={styles.forwardButtonText}>
-                        Forward ({selectedMessagesCount})
-                    </ThemedText>
-                </Pressable>
-            </View>
-        </BaseModal>
+                    </View>
+                </Animated.View>
+            </Animated.View>
+        </Modal>
     );
 }
 
@@ -190,5 +250,24 @@ const styles = StyleSheet.create({
     },
     disabledButton: {
         opacity: 0.5,
+    },
+    modalOverlay: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContent: {
+        width: '90%',
+        maxHeight: '80%',
+        borderRadius: 10,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
     },
 }); 

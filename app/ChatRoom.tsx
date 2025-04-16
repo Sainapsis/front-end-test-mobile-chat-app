@@ -26,9 +26,10 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { Audio } from 'expo-av';
-import { ForwardModal } from '@/components/modals/ForwardModal';
+import ForwardModal from '@/components/modals/ForwardModal';
 import { EditModal } from '@/components/modals/EditModal';
-import { SearchModal } from '@/components/modals/SearchModal';
+import SearchModal from '@/components/modals/SearchModal';
+import { ChatRoomSkeleton } from '@/components/ChatRoomSkeleton';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
@@ -215,7 +216,9 @@ export default function ChatRoomScreen() {
   }, [chat?.messages.length]);
 
   const filteredMessages = chat?.messages.filter(message =>
-    message.text.toLowerCase().includes(searchQuery.toLowerCase())
+    message.text.toLowerCase().includes(searchQuery.toLowerCase()) &&
+    !message.isDeleted &&
+    !message.deletedFor?.includes(currentUser?.id || '')
   ) || [];
 
   const handleDeletePress = () => {
@@ -365,11 +368,7 @@ export default function ChatRoomScreen() {
   }, [chat?.id, hasMoreMessages, loadMoreMessages]);
 
   if (!chat || !currentUser) {
-    return (
-      <ThemedView style={styles.centerContainer}>
-        <ThemedText>Chat not found</ThemedText>
-      </ThemedView>
-    );
+    return <ChatRoomSkeleton />;
   }
   return (
     <KeyboardAvoidingView
@@ -511,7 +510,9 @@ export default function ChatRoomScreen() {
         contentContainerStyle={styles.messagesContainer}
         ListEmptyComponent={() => (
           <ThemedView style={styles.emptyContainer}>
-            <ThemedText>No messages yet. Say hello!</ThemedText>
+            <IconSymbol name="bubble.left.and.bubble.right" size={64} color={Colors[colorScheme].icon} />
+            <ThemedText style={styles.emptyTitle}>No messages yet</ThemedText>
+            <ThemedText style={styles.emptySubtitle}>Be the first to say hello!</ThemedText>
           </ThemedView>
         )}
         onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
@@ -623,13 +624,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    marginTop: 40,
+  },
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    opacity: 0.7,
   },
   inputContainer: {
     flexDirection: 'row',
     padding: 10,
     alignItems: 'flex-end',
     borderTopWidth: 1,
-    borderTopColor: '#E1E1E1',
+    borderTopColor: 'gray',
   },
   input: {
     flex: 1,
