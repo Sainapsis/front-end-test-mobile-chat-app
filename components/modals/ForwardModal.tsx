@@ -45,7 +45,6 @@ export function ForwardModal({
     selectedMessagesCount,
 }: ForwardModalProps) {
     const colorScheme = useColorScheme() ?? 'light';
-    console.log(chats);
     
     return (
         <BaseModal

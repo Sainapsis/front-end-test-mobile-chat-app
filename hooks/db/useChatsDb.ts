@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { db } from '../../database/db';
 import { chats, chatParticipants, messages } from '../../database/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray, desc, asc } from 'drizzle-orm';
 
 export interface Message {
   id: string;
@@ -31,8 +31,17 @@ export interface Chat {
 export function useChatsDb(currentUserId: string | null) {
   const [userChats, setUserChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState<Record<string, boolean>>({});
+  const MESSAGES_PER_PAGE = 20;
 
-  // Función para cargar todos los chats
+  // Memoize chat IDs for the current user
+  const userChatIds = useMemo(() => {
+    return userChats.map(chat => chat.id);
+  }, [userChats]);
+
+  // Optimized loadChats function with batch queries
   const loadChats = useCallback(async () => {
     if (!currentUserId) {
       setUserChats([]);
@@ -41,9 +50,9 @@ export function useChatsDb(currentUserId: string | null) {
     }
 
     try {
-      // Get chat IDs where the user is a participant
+      // Get all chat IDs where the user is a participant in a single query
       const participantRows = await db
-        .select()
+        .select({ chatId: chatParticipants.chatId })
         .from(chatParticipants)
         .where(eq(chatParticipants.userId, currentUserId));
 
@@ -55,80 +64,78 @@ export function useChatsDb(currentUserId: string | null) {
         return;
       }
 
-      // Build the complete chat objects
-      const loadedChats: Chat[] = [];
+      // Get all chats in a single query
+      const chatData = await db
+        .select()
+        .from(chats)
+        .where(inArray(chats.id, chatIds));
 
-      for (const chatId of chatIds) {
-        // Get the chat
-        const chatData = await db
-          .select()
-          .from(chats)
-          .where(eq(chats.id, chatId));
+      // Get all participants for all chats in a single query
+      const participantsData = await db
+        .select()
+        .from(chatParticipants)
+        .where(inArray(chatParticipants.chatId, chatIds));
 
-        if (chatData.length === 0) continue;
+      // Get all messages for all chats in a single query, ordered by timestamp
+      const messagesData = await db
+        .select()
+        .from(messages)
+        .where(inArray(messages.chatId, chatIds))
+        .orderBy(asc(messages.timestamp));
 
-        const chat = chatData[0];
-        
-        // Verificar si el chat está eliminado para el usuario actual
+      // Process data in memory for better performance
+      const loadedChats: Chat[] = chatData.map(chat => {
         const deletedFor = chat.deletedFor ? JSON.parse(chat.deletedFor) : [];
         if (deletedFor.includes(currentUserId)) {
-          continue; // Saltar este chat si está eliminado para el usuario actual
+          return null;
         }
 
-        // Get participants
-        const participantsData = await db
-          .select()
-          .from(chatParticipants)
-          .where(eq(chatParticipants.chatId, chatId));
+        const chatParticipants = participantsData
+          .filter(p => p.chatId === chat.id)
+          .map(p => p.userId);
 
-        const participantIds = participantsData.map(p => p.userId);
+        const chatMessages = messagesData
+          .filter(m => m.chatId === chat.id)
+          .map(m => {
+            const deletedFor = m.deletedFor ? JSON.parse(m.deletedFor as string) : [];
+            const isDeleted = m.isDeleted === 1 || deletedFor.includes('all') || deletedFor.includes(currentUserId);
 
-        // Get messages
-        const messagesData = await db
-          .select()
-          .from(messages)
-          .where(eq(messages.chatId, chatId))
-          .orderBy(messages.timestamp);
+            return {
+              id: m.id as string,
+              senderId: m.senderId as string,
+              text: m.text as string,
+              imageUrl: m.imageUrl as string | undefined,
+              voiceUrl: m.voiceUrl as string | undefined,
+              timestamp: m.timestamp as number,
+              delivery_status: m.deliveryStatus as Message['delivery_status'],
+              is_read: m.isRead === 1,
+              reactions: m.reactions ? JSON.parse(m.reactions as string) : undefined,
+              is_edited: m.isEdited === 1,
+              isDeleted,
+              deletedFor,
+            };
+          });
 
-        const chatMessages: Message[] = messagesData.map(m => {
-          const deletedFor = m.deletedFor ? JSON.parse(m.deletedFor as string) : [];
-          const isDeleted = m.isDeleted === 1 || deletedFor.includes('all') || deletedFor.includes(currentUserId);
-
-          return {
-            id: m.id as string,
-            senderId: m.senderId as string,
-            text: m.text as string,
-            imageUrl: m.imageUrl as string | undefined,
-            voiceUrl: m.voiceUrl as string | undefined,
-            timestamp: m.timestamp as number,
-            delivery_status: m.deliveryStatus as Message['delivery_status'],
-            is_read: m.isRead === 1,
-            reactions: m.reactions ? JSON.parse(m.reactions as string) : undefined,
-            is_edited: m.isEdited === 1,
-            isDeleted,
-            deletedFor,
-          };
-        });
-
-        // Determine last message (excluding deleted messages for the current user)
         const lastMessage = chatMessages
           .filter(msg => !msg.isDeleted)
           .pop();
 
-        loadedChats.push({
-          id: chatId,
-          participants: participantIds,
+        return {
+          id: chat.id,
+          participants: chatParticipants,
           messages: chatMessages,
           lastMessage,
           isGroup: chat.isGroup === 1,
           groupName: chat.groupName as string | undefined,
           deletedFor: deletedFor
-        });
-      }
+        };
+      }).filter(Boolean) as Chat[];
 
       setUserChats(loadedChats);
+      setError(null);
     } catch (error) {
       console.error('Error loading chats:', error);
+      setError(error as Error);
     } finally {
       setLoading(false);
     }
@@ -226,27 +233,15 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, [currentUserId, loadChats]);
 
+  // Optimized sendMessage function with optimistic updates
   const sendMessage = useCallback(async (chatId: string, text: string, senderId: string, imageUrl?: string, voiceUrl?: string) => {
     if (!text.trim() && !imageUrl && !voiceUrl) return false;
 
+    const messageId = `msg${Date.now()}`;
+    const timestamp = Date.now();
+
     try {
-      const messageId = `msg${Date.now()}`;
-      const timestamp = Date.now();
-
-      // Insert new message with initial delivery status
-      await db.insert(messages).values({
-        id: messageId,
-        chatId: chatId,
-        senderId: senderId,
-        text: text,
-        imageUrl: imageUrl,
-        voiceUrl: voiceUrl,
-        timestamp: timestamp,
-        deliveryStatus: 'sending',
-        isRead: 0,
-        isEdited: 0
-      });
-
+      // Optimistic update
       const newMessage: Message = {
         id: messageId,
         senderId,
@@ -262,7 +257,6 @@ export function useChatsDb(currentUserId: string | null) {
         deletedFor: [],
       };
 
-      // Update state
       setUserChats(prevChats => {
         return prevChats.map(chat => {
           if (chat.id === chatId) {
@@ -276,7 +270,21 @@ export function useChatsDb(currentUserId: string | null) {
         });
       });
 
-      // Simulate message delivery
+      // Insert message in database
+      await db.insert(messages).values({
+        id: messageId,
+        chatId: chatId,
+        senderId: senderId,
+        text: text,
+        imageUrl: imageUrl,
+        voiceUrl: voiceUrl,
+        timestamp: timestamp,
+        deliveryStatus: 'sending',
+        isRead: 0,
+        isEdited: 0
+      });
+
+      // Update delivery status after a delay
       setTimeout(async () => {
         await db.update(messages)
           .set({ deliveryStatus: 'sent' })
@@ -306,6 +314,19 @@ export function useChatsDb(currentUserId: string | null) {
       return true;
     } catch (error) {
       console.error('Error sending message:', error);
+      // Revert optimistic update on error
+      setUserChats(prevChats => {
+        return prevChats.map(chat => {
+          if (chat.id === chatId) {
+            return {
+              ...chat,
+              messages: chat.messages.filter(msg => msg.id !== messageId),
+              lastMessage: chat.messages[chat.messages.length - 2] || undefined,
+            };
+          }
+          return chat;
+        });
+      });
       return false;
     }
   }, []);
@@ -641,6 +662,93 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, [currentUserId, deleteAllMessages]);
 
+  const loadMoreMessages = useCallback(async (chatId: string) => {
+    if (!currentUserId || loadingMore || !hasMoreMessages[chatId]) return;
+
+    try {
+      setLoadingMore(true);
+
+      // Get the oldest message timestamp in the current chat
+      const chat = userChats.find(c => c.id === chatId);
+      if (!chat) return;
+
+      const oldestMessage = chat.messages[0];
+      if (!oldestMessage) return;
+
+      // Load older messages
+      const olderMessages = await db
+        .select()
+        .from(messages)
+        .where(
+          and(
+            eq(messages.chatId, chatId),
+            eq(messages.isDeleted, 0),
+            eq(messages.timestamp, oldestMessage.timestamp)
+          )
+        )
+        .orderBy(desc(messages.timestamp))
+        .limit(MESSAGES_PER_PAGE);
+
+      if (olderMessages.length === 0) {
+        setHasMoreMessages(prev => ({ ...prev, [chatId]: false }));
+        return;
+      }
+
+      const processedMessages = olderMessages.map(m => {
+        const deletedFor = m.deletedFor ? JSON.parse(m.deletedFor as string) : [];
+        const isDeleted = m.isDeleted === 1 || deletedFor.includes('all') || deletedFor.includes(currentUserId);
+
+        return {
+          id: m.id as string,
+          senderId: m.senderId as string,
+          text: m.text as string,
+          imageUrl: m.imageUrl as string | undefined,
+          voiceUrl: m.voiceUrl as string | undefined,
+          timestamp: m.timestamp as number,
+          delivery_status: m.deliveryStatus as Message['delivery_status'],
+          is_read: m.isRead === 1,
+          reactions: m.reactions ? JSON.parse(m.reactions as string) : undefined,
+          is_edited: m.isEdited === 1,
+          isDeleted,
+          deletedFor,
+        };
+      });
+
+      // Update chat with older messages
+      setUserChats(prevChats => {
+        return prevChats.map(chat => {
+          if (chat.id === chatId) {
+            return {
+              ...chat,
+              messages: [...processedMessages, ...chat.messages],
+            };
+          }
+          return chat;
+        });
+      });
+
+      // Check if there are more messages to load
+      const hasMore = olderMessages.length === MESSAGES_PER_PAGE;
+      setHasMoreMessages(prev => ({ ...prev, [chatId]: hasMore }));
+    } catch (error) {
+      console.error('Error loading more messages:', error);
+      setError(error as Error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [currentUserId, userChats, loadingMore, hasMoreMessages]);
+
+  // Initialize hasMoreMessages when loading chats
+  useEffect(() => {
+    if (userChats.length > 0) {
+      const initialHasMore = userChats.reduce((acc, chat) => {
+        acc[chat.id] = chat.messages.length === MESSAGES_PER_PAGE;
+        return acc;
+      }, {} as Record<string, boolean>);
+      setHasMoreMessages(initialHasMore);
+    }
+  }, [userChats]);
+
   return {
     chats: userChats,
     createChat,
@@ -652,6 +760,11 @@ export function useChatsDb(currentUserId: string | null) {
     deleteMessage,
     deleteChat,
     deleteAllMessages,
+    loadMoreMessages,
     loading,
+    loadingMore,
+    error,
+    hasMoreMessages,
+    userChatIds,
   };
 } 

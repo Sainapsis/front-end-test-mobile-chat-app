@@ -14,9 +14,11 @@ export interface AppContextType {
   removeReaction: (messageId: string, userId: string) => Promise<void>;
   createChat: (participants: string[], isGroup: boolean, groupName?: string) => Promise<Chat | null>;
   editMessage: (messageId: string, newText: string) => Promise<void>;
-  deleteMessage:(messageId: string, userId: string, deleteForEveryone: boolean) => Promise<void>;
+  deleteMessage: (messageId: string, userId: string, deleteForEveryone: boolean) => Promise<void>;
   deleteChat: (chatId: string) => Promise<void>;
-  
+  loadMoreMessages: (chatId: string) => Promise<void>;
+  hasMoreMessages: Record<string, boolean>;
+  loadingMore: boolean;
   loading: boolean;
   isLoggedIn: boolean;
   login: (userId: string) => Promise<boolean>;
@@ -37,6 +39,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     editMessage,
     deleteMessage,
     deleteChat,
+    loadMoreMessages,
+    hasMoreMessages,
+    loadingMore,
     loading
   } = useChatsDb(currentUser?.id || null);
 
@@ -54,6 +59,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         editMessage,
         deleteMessage,
         deleteChat,
+        loadMoreMessages,
+        hasMoreMessages,
+        loadingMore,
         loading,
         isLoggedIn,
         login,

@@ -10,7 +10,8 @@ import {
   Image,
   Alert,
   Keyboard,
-  Modal
+  Modal,
+  ActivityIndicator
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -31,7 +32,18 @@ import { SearchModal } from '@/components/modals/SearchModal';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, users, chats, sendMessage, markMessagesAsRead, editMessage, deleteMessage } = useAppContext();
+  const {
+    currentUser,
+    users,
+    chats,
+    sendMessage,
+    markMessagesAsRead,
+    editMessage,
+    deleteMessage,
+    loadMoreMessages,
+    hasMoreMessages,
+    loadingMore
+  } = useAppContext();
   const colorScheme = useColorScheme() ?? 'light';
   const [messageText, setMessageText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -340,6 +352,18 @@ export default function ChatRoomScreen() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const getItemLayout = useCallback((data: any, index: number) => ({
+    length: 80, // Altura estimada de cada mensaje
+    offset: 80 * index,
+    index,
+  }), []);
+
+  const handleLoadMore = useCallback(() => {
+    if (chat?.id && hasMoreMessages[chat.id]) {
+      loadMoreMessages(chat.id);
+    }
+  }, [chat?.id, hasMoreMessages, loadMoreMessages]);
+
   if (!chat || !currentUser) {
     return (
       <ThemedView style={styles.centerContainer}>
@@ -492,6 +516,20 @@ export default function ChatRoomScreen() {
         )}
         onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
         onLayout={() => flatListRef.current?.scrollToEnd()}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
+        getItemLayout={getItemLayout}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={() => (
+          loadingMore ? (
+            <View style={styles.loadingMoreContainer}>
+              <ActivityIndicator size="small" color={Colors[colorScheme].tint} />
+            </View>
+          ) : null
+        )}
       />
       <ThemedView style={styles.inputContainer}>
         {!isRecording && <Pressable onPress={pickImage} style={styles.mediaButton}>
@@ -693,5 +731,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
+  },
+  loadingMoreContainer: {
+    paddingVertical: 10,
+    alignItems: 'center',
   },
 }); 
