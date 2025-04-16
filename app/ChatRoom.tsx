@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -30,6 +30,53 @@ import ForwardModal from '@/components/modals/ForwardModal';
 import { EditModal } from '@/components/modals/EditModal';
 import SearchModal from '@/components/modals/SearchModal';
 import { ChatRoomSkeleton } from '@/components/ChatRoomSkeleton';
+
+const HeaderRight = React.memo(({ 
+  selectedMessages, 
+  currentUser, 
+  onEdit, 
+  onDelete, 
+  onForward, 
+  onSearch 
+}: {
+  selectedMessages: { messageId: string; senderId: string, audio: boolean, isForwarded: boolean }[];
+  currentUser: any;
+  onEdit: () => void;
+  onDelete: () => void;
+  onForward: () => void;
+  onSearch: () => void;
+}) => {
+  const colorScheme = useColorScheme() ?? 'light';
+  
+  if (selectedMessages.length > 0) {
+    return (
+      <View style={styles.headerRight}>
+        {selectedMessages.length === 1 && 
+         selectedMessages[0].senderId === currentUser?.id && 
+         !selectedMessages[0].audio && 
+         !selectedMessages[0].isForwarded && (
+          <Pressable onPress={onEdit}>
+            <IconSymbol name="pencil" size={24} color={Colors[colorScheme].icon} />
+          </Pressable>
+        )}
+        <Pressable onPress={onDelete}>
+          <IconSymbol name="trash" size={24} color={Colors[colorScheme].icon} />
+        </Pressable>
+        <Pressable onPress={onForward}>
+          <IconSymbol name="arrowshape.turn.up.right" size={24} color={Colors[colorScheme].icon} />
+        </Pressable>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.headerRight}>
+      <Pressable onPress={onSearch}>
+        <IconSymbol name="magnifyingglass" size={24} color={Colors[colorScheme].icon} />
+      </Pressable>
+    </View>
+  );
+});
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
@@ -362,7 +409,7 @@ export default function ChatRoomScreen() {
   };
 
   const getItemLayout = useCallback((data: any, index: number) => ({
-    length: 80, // Altura estimada de cada mensaje
+    length: 80, 
     offset: 80 * index,
     index,
   }), []);
@@ -372,6 +419,17 @@ export default function ChatRoomScreen() {
       loadMoreMessages(chat.id);
     }
   }, [chat?.id, hasMoreMessages, loadMoreMessages]);
+
+  const headerRight = useMemo(() => (
+    <HeaderRight
+      selectedMessages={selectedMessages}
+      currentUser={currentUser}
+      onEdit={handleEditPress}
+      onDelete={handleDeletePress}
+      onForward={handleForwardPress}
+      onSearch={() => setIsSearchVisible(true)}
+    />
+  ), [selectedMessages, currentUser]);
 
   if (!chat || !currentUser) {
     return <ChatRoomSkeleton />;
@@ -403,30 +461,7 @@ export default function ChatRoomScreen() {
               <IconSymbol name="chevron.left" size={24} color="#007AFF" />
             </Pressable>
           ),
-          headerRight: () => (
-            <View style={styles.headerRight}>
-              {selectedMessages.length > 0 ? (
-                <>
-                  {selectedMessages.length === 1 && selectedMessages[0].senderId === currentUser?.id && !selectedMessages[0].audio && !selectedMessages[0].isForwarded && (
-                    <Pressable onPress={handleEditPress}>
-                      <IconSymbol name="pencil" size={24} color={Colors[colorScheme].icon} />
-                    </Pressable>
-                  )}
-                  <Pressable onPress={handleDeletePress}>
-                    <IconSymbol name="trash" size={24} color={Colors[colorScheme].icon} />
-                  </Pressable>
-                  <Pressable onPress={handleForwardPress}>
-                    <IconSymbol name="arrowshape.turn.up.right" size={24} color={Colors[colorScheme].icon} />
-                  </Pressable>
-                </>
-              ) : (
-                <Pressable onPress={() => setIsSearchVisible(true)}>
-                  <IconSymbol name="magnifyingglass" size={24} color={Colors[colorScheme].icon} />
-                </Pressable>
-              )}
-
-            </View>
-          ),
+          headerRight: () => headerRight,
         }}
       />
 
@@ -502,7 +537,9 @@ export default function ChatRoomScreen() {
         renderItem={({ item }) => (
           <MessageBubble
             message={item}
+            isGroup={chat.isGroup}
             isCurrentUser={item.senderId === currentUser?.id}
+            user={users.find(user => user.id === item.senderId) || currentUser}
             onSelect={() => handleMessageSelect(item.id)}
             isSelected={selectedMessages.some(
               selected => selected.messageId === item.id && selected.senderId === item.senderId

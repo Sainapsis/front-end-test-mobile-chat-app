@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { db } from '../../database/db';
-import { chats, chatParticipants, messages } from '../../database/schema';
+import { chats, chatParticipants, messages, users } from '../../database/schema';
 import { eq, and, inArray, desc, asc } from 'drizzle-orm';
 
 export interface Message {
@@ -154,11 +154,11 @@ export function useChatsDb(currentUserId: string | null) {
     }
 
     try {
-      // Si no es grupo, verificar si ya existe un chat entre los usuarios
+      // If it's not a group, check if there's already a chat between the users
       if (!isGroup && participantIds.length === 2) {
         const otherUserId = participantIds.find(id => id !== currentUserId);
         if (otherUserId) {
-          // Buscar chats existentes entre estos usuarios
+          // Search for existing chats between these users
           const existingChats = await db.select()
             .from(chats)
             .leftJoin(chatParticipants, eq(chatParticipants.chatId, chats.id))
@@ -167,7 +167,7 @@ export function useChatsDb(currentUserId: string | null) {
               eq(chats.isGroup, 0)
             ));
 
-          // Verificar si hay un chat donde el otro usuario también es participante
+          // Check if there is a chat where the other user is also a participant
           for (const chat of existingChats) {
             const otherParticipant = await db.select()
               .from(chatParticipants)
@@ -175,7 +175,7 @@ export function useChatsDb(currentUserId: string | null) {
               .then(rows => rows.find(row => row.userId === otherUserId));
 
             if (otherParticipant) {
-              // Si el usuario actual está en deletedFor, quitarlo
+              // If the current user is in deletedFor, remove them
               const deletedFor = chat.chats.deletedFor ? JSON.parse(chat.chats.deletedFor) : [];
               if (deletedFor.includes(currentUserId)) {
                 const updatedDeletedFor = deletedFor.filter((id: string) => id !== currentUserId);
@@ -183,7 +183,7 @@ export function useChatsDb(currentUserId: string | null) {
                   .set({ deletedFor: JSON.stringify(updatedDeletedFor) })
                   .where(eq(chats.id, chat.chats.id));
 
-                // Recargar todos los chats
+                // Reload all chats
                 await loadChats();
                 return {
                   id: chat.chats.id,
@@ -756,6 +756,37 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, [userChats]);
 
+  const updateUserProfile = useCallback(async (userId: string, updates: { name?: string; avatar?: string }) => {
+    try {
+      await db.update(users)
+        .set({
+          ...(updates.name && { name: updates.name }),
+          ...(updates.avatar && { avatar: updates.avatar }),
+        })
+        .where(eq(users.id, userId));
+
+      // Update local state if it's the current user
+      if (userId === currentUserId) {
+        setUserChats(prevChats => {
+          return prevChats.map(chat => {
+            const updatedParticipants = chat.participants.map(p => 
+              p === userId ? userId : p
+            );
+            return {
+              ...chat,
+              participants: updatedParticipants,
+            };
+          });
+        });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      return false;
+    }
+  }, [currentUserId]);
+
   return {
     chats: userChats,
     createChat,
@@ -773,5 +804,6 @@ export function useChatsDb(currentUserId: string | null) {
     error,
     hasMoreMessages,
     userChatIds,
+    updateUserProfile,
   };
 } 

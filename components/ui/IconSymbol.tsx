@@ -35,6 +35,10 @@ const MAPPING = {
   'xmark.circle.fill': 'close',
   'arrowshape.turn.up.right': 'share',
   'person.2': 'group',
+  'arrow.right.square': 'logout',
+  'camera': 'camera',
+  'ellipsis.circle': 'more-vert',
+  'person': 'person',
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],

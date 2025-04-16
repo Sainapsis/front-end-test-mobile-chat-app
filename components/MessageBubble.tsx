@@ -11,7 +11,8 @@ import { useAppContext } from '@/hooks/AppContext';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import { ImagePreviewModal } from './modals/ImagePreviewModal';
 import * as Haptics from 'expo-haptics';
-
+import { Avatar } from './Avatar';
+import { User } from '@/hooks/useUser';
 interface MessageBubbleProps {
   message: {
     id: string;
@@ -28,7 +29,11 @@ interface MessageBubbleProps {
     deletedFor?: string[];
     review?: boolean;
     isForwarded?: boolean;
+    senderName?: string;
+    senderAvatar?: string;
+    isGroup?: boolean;
   };
+  user: User
   isCurrentUser: boolean;
   isSelected?: boolean;
   onSelect?: (messageId: string) => void;
@@ -37,6 +42,7 @@ interface MessageBubbleProps {
   onEdit?: (messageId: string, newText: string) => void;
   selectedMessages: { messageId: string; senderId: string }[];
   selectedCount?: number;
+  isGroup?: boolean;
 }
 
 export function MessageBubble({
@@ -47,6 +53,8 @@ export function MessageBubble({
   onReactionPress,
   onRemoveReaction,
   selectedMessages,
+  isGroup,
+  user,
 }: MessageBubbleProps) {
   const isDark = useColorScheme() === 'dark';
   const [showReactionMenu, setShowReactionMenu] = useState(false);
@@ -57,6 +65,7 @@ export function MessageBubble({
   const [progress, setProgress] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
   const [showImagePreview, setShowImagePreview] = useState(false);
+  
   useEffect(() => {
     const loadAudioDuration = async () => {
       if (!message.voiceUrl) return;
@@ -207,7 +216,6 @@ export function MessageBubble({
       setIsPlaying(false);
     }
   };
-
   if (currentUser && message.deletedFor?.includes(currentUser.id)) {
     return (null);
   }
@@ -279,6 +287,20 @@ export function MessageBubble({
         onLongPress={handleLongPress}
         style={[styles.container, isSelected && styles.selectedMessage]}
       >
+        {!isCurrentUser && isGroup && (
+          <View style={styles.senderInfo}>
+            <Avatar
+              user={{
+                id: user.id,
+                name: user.name,
+                avatar: user.avatar || '',
+                status: user.status || 'offline'
+              }}
+              size={24}
+            />
+            <ThemedText style={styles.senderName}>{user.name || 'Unknown'}</ThemedText>
+          </View>
+        )}
         <ThemedView style={[
           styles.bubble,
           styles.bubbleWidth,
@@ -516,5 +538,16 @@ const styles = StyleSheet.create({
   },
   voiceMessageDuration: {
     fontSize: 12,
+  },
+  senderInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    marginLeft: 8,
+  },
+  senderName: {
+    fontSize: 12,
+    marginLeft: 8,
+    opacity: 0.7,
   },
 }); 
