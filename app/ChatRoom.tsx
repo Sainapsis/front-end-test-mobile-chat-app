@@ -17,15 +17,15 @@ import {
   FlatList,
   TextInput,
   Pressable,
-  KeyboardAvoidingView,
   Platform,
   Image,
   Alert,
   Keyboard,
   Modal,
-  ActivityIndicator
+  ActivityIndicator,
+  KeyboardAvoidingView
 } from 'react-native';
-import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
@@ -315,7 +315,7 @@ export default function ChatRoomScreen() {
       return;
     }
 
-    const results = chat?.messages.reduce<number[]>((acc, message, index) => {
+    const results = chat?.messages.filter((message) => !message.deletedFor.includes(currentUser?.id ?? '')).reduce<number[]>((acc, message, index) => {
       if (message.text.toLowerCase().includes(query.toLowerCase())) {
         acc.push(index);
       }
@@ -325,12 +325,17 @@ export default function ChatRoomScreen() {
     setSearchResults(results);
     setCurrentSearchIndex(results.length > 0 ? 0 : -1);
 
-    if (results.length > 0 && flatListRef.current) {
-      flatListRef.current.scrollToIndex({
-        index: results[0],
-        animated: true,
-        viewPosition: 0.5
-      });
+    if (results.length > 0 && flatListRef.current && results[0] < (chat?.messages.length || 0)) {
+      try {
+        flatListRef.current.scrollToIndex({
+          index: results[0],
+          animated: true,
+          viewPosition: 0.5,
+          viewOffset: 0
+        });
+      } catch (error) {
+        console.log('Error scrolling to message:', error);
+      }
     }
   }, [chat?.messages]);
 
@@ -347,12 +352,17 @@ export default function ChatRoomScreen() {
     }
 
     setCurrentSearchIndex(newIndex);
-    if (flatListRef.current) {
-      flatListRef.current.scrollToIndex({
-        index: searchResults[newIndex],
-        animated: true,
-        viewPosition: 0.5
-      });
+    if (flatListRef.current && searchResults[newIndex] < (chat?.messages.length || 0)) {
+      try {
+        flatListRef.current.scrollToIndex({
+          index: searchResults[newIndex],
+          animated: true,
+          viewPosition: 0.5,
+          viewOffset: 0
+        });
+      } catch (error) {
+        console.log('Error scrolling to message:', error);
+      }
     }
   };
 
@@ -528,266 +538,281 @@ export default function ChatRoomScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      <StatusBar style="auto" />
+      <StatusBar style={colorScheme === 'dark' ? "light" : "dark"} />
       <Stack.Screen
-        options={{
-          headerTitle: () => (
-            selectedMessages.length > 0 ? (
-              <View style={styles.headerContainer}>
-                <ThemedText> {selectedMessages.length}</ThemedText>
-              </View>
-            ) :
-              <View style={styles.headerContainer}>
-                <Avatar
-                  user={chatParticipants[0]}
-                  size={32}
-                  showStatus={false}
-                  isGroup={chat.isGroup}
-                />
-                <ThemedText type="defaultSemiBold" numberOfLines={1}>
-                  {chat.isGroup ? chat.groupName : chatName}
-                </ThemedText>
-              </View>
-          ),
-          headerLeft: () => (
-            selectedMessages.length > 0 ? (
-              <Pressable style={styles.backButton} onPress={() => setSelectedMessages([])}>
-                <IconSymbol name="chevron.backward" size={24} color="#007AFF" />
-              </Pressable>
-            ) : (
-              <Pressable style={styles.backButton} onPress={() => router.back()}>
-                <IconSymbol name="chevron.left" size={24} color="#007AFF" />
-              </Pressable>
-            )
-          ),
-          headerRight: () => headerRight,
-        }}
+        name="ChatRoom"
+        options={{ headerShown: false, gestureEnabled: false }}
       />
-      {isSearchVisible && (
-        <ThemedView style={styles.searchContainer}>
-          <View style={styles.searchInputWrapper}>
-            <IconSymbol name="magnifyingglass" size={20} color={Colors[colorScheme].icon} />
-            <TextInput
-              style={[
-                styles.searchInput,
-                {
-                  backgroundColor: Colors[colorScheme].background,
-                  color: Colors[colorScheme].text,
-                }
-              ]}
-              value={searchQuery}
-              onChangeText={handleSearch}
-              placeholder="Search messages..."
-              placeholderTextColor={Colors[colorScheme].icon}
-              autoFocus
+
+      <ThemedView style={styles.container} darkColor="#000" lightColor="#fff">
+        <StatusBar style={colorScheme === 'dark' ? "light" : "dark"} />
+        <ThemedView style={{...styles.headerContainer,  backgroundColor: Colors[colorScheme].background}}>
+          <View style={styles.headerLeft}>
+            <Pressable style={styles.backButton} onPress={() => router.back()}>
+              <IconSymbol 
+                name="chevron.left" 
+                size={24} 
+                color={colorScheme === 'dark' ? "#007AFF" : "#007AFF"} 
+              />
+            </Pressable>
+            <Avatar
+              user={chatParticipants[0]}
+              size={32}
+              showStatus={false}
+              isGroup={chat.isGroup}
             />
-            <Pressable onPress={() => {
-              setIsSearchVisible(false);
-              setSearchQuery('');
-              setSearchResults([]);
-              setCurrentSearchIndex(-1);
-            }}>
-              <IconSymbol name="xmark.circle.fill" size={20} color={Colors[colorScheme].icon} />
-            </Pressable>
+            <ThemedText type="defaultSemiBold" numberOfLines={1}>
+              {chat.isGroup ? chat.groupName : chatName}
+            </ThemedText>
           </View>
-          {searchResults.length > 0 && (
-            <View style={styles.searchNavigation}>
-              <ThemedText style={styles.searchCount}>
-                {currentSearchIndex + 1} of {searchResults.length}
-              </ThemedText>
-              <View style={styles.searchButtons}>
-                <Pressable
-                  onPress={() => navigateSearch('prev')}
-                  style={[styles.searchButton, currentSearchIndex <= 0 && styles.disabledButton]}
-                >
-                  <IconSymbol name="chevron.up" size={24} color={Colors[colorScheme].tint} />
-                </Pressable>
-                <Pressable
-                  onPress={() => navigateSearch('next')}
-                  style={[styles.searchButton, currentSearchIndex >= searchResults.length - 1 && styles.disabledButton]}
-                >
-                  <IconSymbol name="chevron.down" size={24} color={Colors[colorScheme].tint} />
-                </Pressable>
-              </View>
-            </View>
-          )}
+          {headerRight}
         </ThemedView>
-      )}
-
-      <EditModal
-        visible={!!editingMessage}
-        onClose={() => {
-          setEditingMessage(null);
-          setEditText('');
-          setMessageToEdit(null);
-        }}
-        messageToEdit={messageToEdit}
-        editText={editText}
-        onEditTextChange={setEditText}
-        onSave={() => {
-          if (editingMessage && editText.trim()) {
-            Keyboard.dismiss();
-            handleEditMessage(editingMessage.id, editText);
-          }
-        }}
-      />
-
-      <Modal
-        visible={showDeleteMenu}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowDeleteMenu(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowDeleteMenu(false)}>
-          <View style={[styles.deleteMenu, { top: 20, right: 10, backgroundColor: Colors[colorScheme].background }]}>
-            <Pressable style={styles.deleteOption} onPress={handleDeleteForMe}>
-              <ThemedText style={styles.deleteOptionText}>Delete for me</ThemedText>
-            </Pressable>
-            {selectedMessages.filter(msg => msg.senderId !== currentUser?.id).length === 0 && (
-              <Pressable style={styles.deleteOption} onPress={handleDeleteForEveryone}>
-                <ThemedText style={styles.deleteOptionText}>Delete for everyone</ThemedText>
+        {isSearchVisible && (
+          <ThemedView style={[styles.searchContainer, {
+            borderBottomColor: Colors[colorScheme].border
+          }]}>
+            <ThemedView style={[styles.searchInputWrapper, {
+              backgroundColor: Colors[colorScheme === 'dark' ? 'dark' : 'light'].background
+            }]}>
+              <IconSymbol name="magnifyingglass" size={20} color={Colors[colorScheme].icon} />
+              <TextInput
+                style={[
+                  styles.searchInput,
+                  {
+                    backgroundColor: Colors[colorScheme].background,
+                    color: Colors[colorScheme].text,
+                  }
+                ]}
+                value={searchQuery}
+                onChangeText={handleSearch}
+                placeholder="Search messages..."
+                placeholderTextColor={Colors[colorScheme].icon}
+                autoFocus
+              />
+              <Pressable onPress={() => {
+                setIsSearchVisible(false);
+                setSearchQuery('');
+                setSearchResults([]);
+                setCurrentSearchIndex(-1);
+              }}>
+                <IconSymbol name="xmark.circle.fill" size={20} color={Colors[colorScheme].icon} />
               </Pressable>
+            </ThemedView>
+            {searchResults.length > 0 && (
+              <View style={styles.searchNavigation}>
+                <ThemedText style={styles.searchCount}>
+                  {currentSearchIndex + 1} of {searchResults.length}
+                </ThemedText>
+                <View style={styles.searchButtons}>
+                  <Pressable
+                    onPress={() => navigateSearch('prev')}
+                    style={[styles.searchButton, currentSearchIndex <= 0 && styles.disabledButton]}
+                  >
+                    <IconSymbol name="chevron.up" size={24} color={Colors[colorScheme].tint} />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => navigateSearch('next')}
+                    style={[styles.searchButton, currentSearchIndex >= searchResults.length - 1 && styles.disabledButton]}
+                  >
+                    <IconSymbol name="chevron.down" size={24} color={Colors[colorScheme].tint} />
+                  </Pressable>
+                </View>
+              </View>
             )}
-            <Pressable style={styles.deleteOption} onPress={() => { setShowDeleteMenu(false); setClearIsVisible(true) }}>
-              <ThemedText style={styles.deleteOptionText}>Clear Chat</ThemedText>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Modal>
-      <DeleteChatModal
-        visible={clearIsVisible}
-        onClose={() => setClearIsVisible(false)}
-        onDelete={handleClearChat}
-        selectedCount={chat?.messages.length || 0}
-      />
-
-      <ForwardModal
-        visible={showForwardModal}
-        onClose={() => {
-          setShowForwardModal(false);
-          setSelectedChats([]);
-        }}
-        chats={chats.filter(c => c.id !== chatId)}
-        currentUser={currentUser}
-        users={users}
-        selectedChats={selectedChats}
-        onChatSelect={handleChatSelect}
-        onForward={handleForwardMessages}
-        selectedMessagesCount={selectedMessages.length}
-      />
-
-      <FlatList
-        ref={flatListRef}
-        data={chat?.messages.filter((message) => !message.deletedFor.includes(currentUser?.id || ''))}
-        keyExtractor={(item, index) => `${item.id}-${index}`}
-        renderItem={({ item, index }) => (
-          <MessageBubble
-            message={item}
-            isGroup={chat.isGroup}
-            isCurrentUser={item.senderId === currentUser?.id}
-            user={users.find(user => user.id === item.senderId) || currentUser}
-            onSelect={() => handleMessageSelect(item.id)}
-            isSelected={selectedMessages.some(
-              selected => selected.messageId === item.id && selected.senderId === item.senderId
-            )}
-            onReactionPress={handleReactionPress}
-            onRemoveReaction={handleRemoveReaction}
-            selectedMessages={selectedMessages}
-            selectedCount={selectedMessages.length}
-            highlightText={searchQuery}
-            isHighlighted={searchResults.includes(index) && index === searchResults[currentSearchIndex]}
-          />
-        )}
-        contentContainerStyle={styles.messagesContainer}
-        ListEmptyComponent={() => (
-          <ThemedView style={styles.emptyContainer}>
-            <IconSymbol name="bubble.left.and.bubble.right" size={64} color={Colors[colorScheme].icon} />
-            <ThemedText style={styles.emptyTitle}>No messages yet</ThemedText>
-            <ThemedText style={styles.emptySubtitle}>Be the first to say hello!</ThemedText>
           </ThemedView>
         )}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
-        onLayout={() => flatListRef.current?.scrollToEnd()}
-        initialNumToRender={10}
-        maxToRenderPerBatch={10}
-        windowSize={5}
-        removeClippedSubviews={true}
-        getItemLayout={getItemLayout}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
-        ListFooterComponent={() => (
-          loadingMore ? (
-            <View style={styles.loadingMoreContainer}>
-              <ActivityIndicator size="small" color={Colors[colorScheme].tint} />
-            </View>
-          ) : null
-        )}
-      />
-      <ThemedView style={styles.inputContainer}>
-        {!isRecording && <Pressable onPress={pickImage} style={styles.mediaButton}>
-          <IconSymbol name="photo" size={24} color="#007AFF" />
-        </Pressable>}
-        {isRecording ? (
-          <View style={styles.recordingContainer}>
-            <ThemedText style={styles.recordingDuration}>
-              Recording:
-            </ThemedText>
-            <ThemedText style={styles.recordingDuration}>
-              {formatDuration(recordingDuration)}
-            </ThemedText>
-            <Pressable style={[styles.deleteOption, styles.cancelButton]} onPress={cancelRecording}>
-              <ThemedText style={styles.deleteOptionText}>cancel</ThemedText>
-            </Pressable>
-            <Pressable onPress={stopRecording} style={styles.stopButton}>
-              <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />
-            </Pressable>
-          </View>
-        ) : (
-          <>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: Colors[colorScheme].background,
-                  color: Colors[colorScheme].text,
-                  borderColor: Colors[colorScheme].icon
-                }
-              ]}
-              value={messageText}
-              onChangeText={setMessageText}
-              placeholder="Type a message..."
-              placeholderTextColor={Colors[colorScheme].icon}
-              multiline
-            />
-            {(!messageText.trim() && !selectedImage) ?
-              <Pressable onPress={startRecording} style={styles.sendButton}>
-                <IconSymbol name="mic" size={28} color="#007AFF" />
-              </Pressable> :
-              <Pressable
-                style={[styles.sendButton, (!messageText.trim() && !selectedImage) && styles.disabledButton]}
-                onPress={handleSendMessage}
-                disabled={!messageText.trim() && !selectedImage}
-              >
-                <IconSymbol name="arrow.up.circle.fill" size={28} color="#007AFF" />
-              </Pressable>
+
+        <EditModal
+          visible={!!editingMessage}
+          onClose={() => {
+            setEditingMessage(null);
+            setEditText('');
+            setMessageToEdit(null);
+          }}
+          messageToEdit={messageToEdit}
+          editText={editText}
+          onEditTextChange={setEditText}
+          onSave={() => {
+            if (editingMessage && editText.trim()) {
+              Keyboard.dismiss();
+              handleEditMessage(editingMessage.id, editText);
             }
-          </>
+          }}
+        />
+
+        <Modal
+          visible={showDeleteMenu}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowDeleteMenu(false)}
+        >
+          <Pressable style={styles.modalOverlay} onPress={() => setShowDeleteMenu(false)}>
+            <View style={[styles.deleteMenu, { top: 20, right: 10, backgroundColor: Colors[colorScheme].background }]}>
+              <Pressable style={styles.deleteOption} onPress={handleDeleteForMe}>
+                <ThemedText style={styles.deleteOptionText}>Delete for me</ThemedText>
+              </Pressable>
+              {selectedMessages.filter(msg => msg.senderId !== currentUser?.id).length === 0 && (
+                <Pressable style={styles.deleteOption} onPress={handleDeleteForEveryone}>
+                  <ThemedText style={styles.deleteOptionText}>Delete for everyone</ThemedText>
+                </Pressable>
+              )}
+              <Pressable style={styles.deleteOption} onPress={() => { setShowDeleteMenu(false); setClearIsVisible(true) }}>
+                <ThemedText style={styles.deleteOptionText}>Clear Chat</ThemedText>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Modal>
+        <DeleteChatModal
+          visible={clearIsVisible}
+          onClose={() => setClearIsVisible(false)}
+          onDelete={handleClearChat}
+          selectedCount={chat?.messages.length || 0}
+        />
+
+        <ForwardModal
+          visible={showForwardModal}
+          onClose={() => {
+            setShowForwardModal(false);
+            setSelectedChats([]);
+          }}
+          chats={chats.filter(c => c.id !== chatId)}
+          currentUser={currentUser}
+          users={users}
+          selectedChats={selectedChats}
+          onChatSelect={handleChatSelect}
+          onForward={handleForwardMessages}
+          selectedMessagesCount={selectedMessages.length}
+        />
+
+        <FlatList
+          ref={flatListRef}
+          data={chat?.messages.filter((message) => !message.deletedFor.includes(currentUser?.id || ''))}
+          keyExtractor={(item, index) => `${item.id}-${index}`}
+          renderItem={({ item, index }) => (
+            <MessageBubble
+              message={item}
+              isGroup={chat.isGroup}
+              isCurrentUser={item.senderId === currentUser?.id}
+              user={users.find(user => user.id === item.senderId) || currentUser}
+              onSelect={() => handleMessageSelect(item.id)}
+              isSelected={selectedMessages.some(
+                selected => selected.messageId === item.id && selected.senderId === item.senderId
+              )}
+              onReactionPress={handleReactionPress}
+              onRemoveReaction={handleRemoveReaction}
+              selectedMessages={selectedMessages}
+              selectedCount={selectedMessages.length}
+              highlightText={searchQuery}
+              isHighlighted={searchResults.includes(index) && index === searchResults[currentSearchIndex]}
+            />
+          )}
+          contentContainerStyle={styles.messagesContainer}
+          ListEmptyComponent={() => (
+            <ThemedView style={styles.emptyContainer}>
+              <IconSymbol name="bubble.left.and.bubble.right" size={64} color={Colors[colorScheme].icon} />
+              <ThemedText style={styles.emptyTitle}>No messages yet</ThemedText>
+              <ThemedText style={styles.emptySubtitle}>Be the first to say hello!</ThemedText>
+            </ThemedView>
+          )}
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
+          onLayout={() => flatListRef.current?.scrollToEnd()}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
+          getItemLayout={getItemLayout}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={() => (
+            loadingMore ? (
+              <View style={styles.loadingMoreContainer}>
+                <ActivityIndicator size="small" color={Colors[colorScheme].tint} />
+              </View>
+            ) : null
+          )}
+        />
+        <ThemedView style={styles.inputContainer}>
+          {!isRecording && <Pressable onPress={pickImage} style={styles.mediaButton}>
+            <IconSymbol 
+              name="photo" 
+              size={24} 
+              color={'#007aff'} 
+            />
+          </Pressable>}
+          {isRecording ? (
+            <View style={styles.recordingContainer}>
+              <ThemedText style={[styles.recordingDuration, { color: Colors[colorScheme].tint }]}>
+                Recording:
+              </ThemedText>
+              <ThemedText style={[styles.recordingDuration, { color: Colors[colorScheme].tint }]}>
+                {formatDuration(recordingDuration)}
+              </ThemedText>
+              <Pressable style={[styles.deleteOption, styles.cancelButton]} onPress={cancelRecording}>
+                <ThemedText style={styles.deleteOptionText}>cancel</ThemedText>
+              </Pressable>
+              <Pressable onPress={stopRecording} style={styles.stopButton}>
+                <IconSymbol 
+                  name="arrow.up.circle.fill" 
+                  size={32} 
+                  color={'#007aff'	} 
+                />
+              </Pressable>
+            </View>
+          ) : (
+            <>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: Colors[colorScheme].background,
+                    color: Colors[colorScheme].text,
+                    borderColor: Colors[colorScheme].border
+                  }
+                ]}
+                value={messageText}
+                onChangeText={setMessageText}
+                placeholder="Type a message..."
+                placeholderTextColor={Colors[colorScheme].icon}
+                multiline
+              />
+              {(!messageText.trim() && !selectedImage) ?
+                <Pressable onPress={startRecording} style={styles.sendButton}>
+                  <IconSymbol 
+                    name="mic" 
+                    size={28} 
+                    color={'#007aff'} 
+                  />
+                </Pressable> :
+                <Pressable
+                  style={[styles.sendButton, (!messageText.trim() && !selectedImage) && styles.disabledButton]}
+                  onPress={handleSendMessage}
+                  disabled={!messageText.trim() && !selectedImage}
+                >
+                  <IconSymbol 
+                    name="arrow.up.circle.fill" 
+                    size={28} 
+                    color={'#007aff'} 
+                  />
+                </Pressable>
+              }
+            </>
+          )}
+        </ThemedView>
+
+        {selectedImage && (
+          <ThemedView style={styles.imagePreviewContainer}>
+            <Image source={{ uri: selectedImage }} style={styles.imagePreview} />
+            <View style={styles.imageActionsContainer}>
+              <Pressable
+                style={styles.removeImageButton}
+                onPress={cancelImage}
+              >
+                <IconSymbol name="xmark.circle.fill" size={24} color="#FF3B30" />
+              </Pressable>
+            </View>
+          </ThemedView>
         )}
       </ThemedView>
-
-      {selectedImage && (
-        <ThemedView style={styles.imagePreviewContainer}>
-          <Image source={{ uri: selectedImage }} style={styles.imagePreview} />
-          <View style={styles.imageActionsContainer}>
-            <Pressable
-              style={styles.removeImageButton}
-              onPress={cancelImage}
-            >
-              <IconSymbol name="xmark.circle.fill" size={24} color="#FF3B30" />
-            </Pressable>
-          </View>
-        </ThemedView>
-      )}
     </KeyboardAvoidingView>
   );
 }
@@ -804,7 +829,13 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    paddingTop: Platform.OS === 'android' ? 40 : 0,
+    borderBottomWidth: 1,
+    borderBottomColor: 'gray',
+
   },
   messagesContainer: {
     padding: 10,
@@ -838,11 +869,9 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#E1E1E1',
     borderRadius: 20,
     padding: 10,
     maxHeight: 100,
-    backgroundColor: '#F9F9F9',
   },
   sendButton: {
     marginLeft: 10,
@@ -948,7 +977,6 @@ const styles = StyleSheet.create({
   searchInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
     borderRadius: 10,
     paddingHorizontal: 10,
     height: 40,
@@ -973,5 +1001,11 @@ const styles = StyleSheet.create({
   },
   searchButton: {
     padding: 4,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
   },
 }); 
