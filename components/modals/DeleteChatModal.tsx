@@ -1,3 +1,16 @@
+/**
+ * DeleteChatModal Component
+ * 
+ * A modal for confirming chat deletion that:
+ * - Displays the number of chats to be deleted
+ * - Provides a warning about the irreversible action
+ * - Offers cancel and confirm options
+ * - Integrates with the app's theme system
+ * 
+ * This modal is used when users want to delete one or more chats
+ * from their conversation list.
+ */
+
 import React from 'react';
 import { StyleSheet, View, Pressable } from 'react-native';
 import { ThemedText } from '../ThemedText';
@@ -7,10 +20,10 @@ import { BaseModal } from './BaseModal';
 import { IconSymbol } from '../ui/IconSymbol';
 
 interface DeleteChatModalProps {
-    visible: boolean;
-    onClose: () => void;
-    onDelete: () => void;
-    selectedCount: number;
+    visible: boolean;        // Controls modal visibility
+    onClose: () => void;    // Callback for closing the modal
+    onDelete: () => void;   // Callback for confirming deletion
+    selectedCount: number;  // Number of chats selected for deletion
 }
 
 export function DeleteChatModal({
@@ -26,13 +39,14 @@ export function DeleteChatModal({
             visible={visible}
             onClose={onClose}
         >
+            {/* Modal Header */}
             <View style={[
                 styles.modalHeader,
                 { borderBottomColor: Colors[colorScheme].icon }
             ]}>
                 <View>
                     <ThemedText type="defaultSemiBold" style={styles.modalTitle}>
-                        Delete Chats
+                        Delete Items
                     </ThemedText>
                 </View>
                 <Pressable
@@ -43,14 +57,17 @@ export function DeleteChatModal({
                 </Pressable>
             </View>
 
+            {/* Modal Content */}
             <View style={styles.modalContent}>
+                {/* Confirmation Message */}
                 <ThemedText style={styles.message}>
-                    Are you sure you want to delete {selectedCount} chat{selectedCount > 1 ? 's' : ''}?
+                    Are you sure you want to delete {selectedCount} item{selectedCount > 1 ? 's' : ''}?
                 </ThemedText>
                 <ThemedText style={styles.warning}>
                     This action cannot be undone.
                 </ThemedText>
 
+                {/* Action Buttons */}
                 <View style={styles.buttonsContainer}>
                     <Pressable
                         style={[styles.button, styles.cancelButton]}
@@ -72,6 +89,15 @@ export function DeleteChatModal({
     );
 }
 
+/**
+ * Styles for the DeleteChatModal component
+ * 
+ * The styles define:
+ * - Modal header layout and appearance
+ * - Message and warning text styling
+ * - Button container and button styling
+ * - Consistent spacing and margins
+ */
 const styles = StyleSheet.create({
     modalHeader: {
         flexDirection: 'row',

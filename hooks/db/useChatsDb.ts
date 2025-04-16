@@ -3,6 +3,25 @@ import { db } from '../../database/db';
 import { chats, chatParticipants, messages, users } from '../../database/schema';
 import { eq, and, inArray, desc, asc } from 'drizzle-orm';
 
+/**
+ * Message Interface
+ * 
+ * Defines the structure of a chat message with all its properties and states.
+ * 
+ * @property id - Unique identifier for the message
+ * @property senderId - ID of the user who sent the message
+ * @property text - Content of the message
+ * @property imageUrl - Optional URL for image attachments
+ * @property voiceUrl - Optional URL for voice message attachments
+ * @property timestamp - Unix timestamp of when the message was sent
+ * @property delivery_status - Current delivery status of the message
+ * @property is_read - Whether the message has been read
+ * @property reactions - Optional record of user reactions to the message
+ * @property is_edited - Whether the message has been edited
+ * @property isForwarded - Whether the message was forwarded
+ * @property isDeleted - Whether the message has been deleted
+ * @property deletedFor - Array of user IDs for whom the message is deleted
+ */
 export interface Message {
   id: string;
   senderId: string;
@@ -19,6 +38,19 @@ export interface Message {
   deletedFor: string[];
 }
 
+/**
+ * Chat Interface
+ * 
+ * Defines the structure of a chat with all its properties and related messages.
+ * 
+ * @property id - Unique identifier for the chat
+ * @property participants - Array of user IDs participating in the chat
+ * @property messages - Array of messages in the chat
+ * @property lastMessage - The most recent message in the chat
+ * @property isGroup - Whether the chat is a group chat
+ * @property groupName - Optional name for group chats
+ * @property deletedFor - Array of user IDs for whom the chat is deleted
+ */
 export interface Chat {
   id: string;
   participants: string[];
@@ -29,6 +61,26 @@ export interface Chat {
   deletedFor?: string[];
 }
 
+/**
+ * useChatsDb Hook
+ * 
+ * A custom hook that provides chat-related functionality and state management.
+ * This hook handles all chat operations including loading, creating, sending messages,
+ * managing reactions, and handling message deletion.
+ * 
+ * Features:
+ * - Chat loading and pagination
+ * - Message sending with delivery status
+ * - Reaction management
+ * - Message editing and deletion
+ * - Chat creation and deletion
+ * - Message read status tracking
+ * - Optimistic updates for better UX
+ * - Error handling and loading states
+ * 
+ * @param currentUserId - ID of the current user
+ * @returns Object containing chat state and operations
+ */
 export function useChatsDb(currentUserId: string | null) {
   const [userChats, setUserChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
@@ -787,6 +839,27 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, [currentUserId]);
 
+  /**
+   * Hook Return Value
+   * 
+   * @property chats - Array of user's chats
+   * @property createChat - Function to create a new chat
+   * @property sendMessage - Function to send a message
+   * @property markMessagesAsRead - Function to mark messages as read
+   * @property addReaction - Function to add a reaction to a message
+   * @property removeReaction - Function to remove a reaction from a message
+   * @property editMessage - Function to edit a message
+   * @property deleteMessage - Function to delete a message
+   * @property deleteChat - Function to delete a chat
+   * @property deleteAllMessages - Function to delete all messages in a chat
+   * @property loadMoreMessages - Function to load older messages
+   * @property loading - Loading state for initial chat load
+   * @property loadingMore - Loading state for pagination
+   * @property error - Error state if any operation fails
+   * @property hasMoreMessages - Record indicating which chats have more messages to load
+   * @property userChatIds - Array of chat IDs for the current user
+   * @property updateUserProfile - Function to update user profile information
+   */
   return {
     chats: userChats,
     createChat,

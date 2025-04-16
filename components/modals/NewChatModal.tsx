@@ -1,24 +1,30 @@
+/**
+ * NewChatModal Component
+ * 
+ * A modal for creating new chats that:
+ * - Allows selection of multiple users
+ * - Supports both individual and group chats
+ * - Handles group name input for group chats
+ * - Validates selections before creation
+ * - Integrates with the app's theme system
+ * 
+ * This modal provides the interface for initiating new conversations
+ * with one or more users.
+ */
+
 import React from 'react';
-import { StyleSheet, Pressable, TextInput, FlatList, Modal, Switch } from 'react-native';
-import { ThemedText } from '../ThemedText';
-import { ThemedView } from '../ThemedView';
-import { IconSymbol } from '../ui/IconSymbol';
-import { UserListItem } from '../UserListItem';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { StyleSheet, View, Pressable, TextInput, FlatList } from 'react-native';
+import { ThemedText } from '@/components/ThemedText';
+import { BaseModal } from './BaseModal';
+import { UserListItem } from '@/components/UserListItem';
 import { Colors } from '@/constants/Colors';
+import { useColorScheme } from 'react-native';
 
 interface NewChatModalProps {
   visible: boolean;
   onClose: () => void;
-  users: Array<{
-    id: string;
-    name: string;
-    avatar: string;
-    status: 'online' | 'offline' | 'away';
-  }>;
-  currentUser: {
-    id: string;
-  } | null;
+  users: any[];
+  currentUser: any;
   selectedUsers: string[];
   onUserSelect: (userId: string) => void;
   isGroup: boolean;
@@ -28,7 +34,7 @@ interface NewChatModalProps {
   onCreateChat: () => void;
 }
 
-export default function NewChatModal({
+export function NewChatModal({
   visible,
   onClose,
   users,
@@ -39,161 +45,181 @@ export default function NewChatModal({
   onGroupToggle,
   groupName,
   onGroupNameChange,
-  onCreateChat,
+  onCreateChat
 }: NewChatModalProps) {
   const colorScheme = useColorScheme() ?? 'light';
 
+  const filteredUsers = users.filter(user => user.id !== currentUser?.id);
+
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <ThemedView style={styles.modalContainer}>
-        <ThemedView style={[
-          styles.modalContent,
-          {
-            backgroundColor: Colors[colorScheme].background,
-            borderColor: Colors[colorScheme].border,
-            borderWidth: 1,
-          }
-        ]}>
-          <ThemedView style={styles.modalHeader}>
-            <ThemedText type="subtitle">New Chat</ThemedText>
-            <Pressable onPress={onClose}>
-              <IconSymbol name="xmark" size={24} color="#007AFF" />
-            </Pressable>
-          </ThemedView>
+    <BaseModal visible={visible} onClose={onClose}>
+      <ThemedText type="title" style={styles.title}>New Chat</ThemedText>
+      
+      {/* Group Chat Toggle */}
+      <View style={styles.groupToggleContainer}>
+        <ThemedText>Group Chat</ThemedText>
+        <Pressable
+          style={[styles.toggleButton, isGroup && styles.toggleButtonActive]}
+          onPress={() => onGroupToggle(!isGroup)}
+        >
+          <View style={[styles.toggleCircle, isGroup && styles.toggleCircleActive]} />
+        </Pressable>
+      </View>
 
-          <ThemedView style={styles.groupToggleContainer}>
-            <ThemedText>Group Chat</ThemedText>
-            <Switch
-              value={isGroup}
-              onValueChange={onGroupToggle}
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-              thumbColor={isGroup ? '#007AFF' : '#f4f3f4'}
-            />
-          </ThemedView>
-
-          {isGroup && (
-            <ThemedView style={styles.groupNameContainer}>
-              <ThemedText>Group Name</ThemedText>
-              <TextInput
-                style={[
-                  styles.groupNameInput,
-                  {
-                    backgroundColor: Colors[colorScheme].background,
-                    color: Colors[colorScheme].text,
-                    borderColor: Colors[colorScheme].icon
-                  }
-                ]}
-                value={groupName}
-                onChangeText={onGroupNameChange}
-                placeholder="Enter group name"
-                placeholderTextColor={Colors[colorScheme].icon}
-              />
-            </ThemedView>
-          )}
-
-          <ThemedText style={styles.modalSubtitle}>
-            Select users to chat with
-          </ThemedText>
-
-          <FlatList
-            data={users.filter(user => user.id !== currentUser?.id)}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <UserListItem
-                user={item}
-                onSelect={() => onUserSelect(item.id)}
-                isSelected={selectedUsers.includes(item.id)}
-              />
-            )}
-            style={styles.userList}
-          />
-
-          <Pressable
+      {/* Group Name Input */}
+      {isGroup && (
+        <View style={styles.groupNameContainer}>
+          <ThemedText>Group Name</ThemedText>
+          <TextInput
             style={[
-              styles.createButton,
-              (selectedUsers.length === 0 || (isGroup && !groupName)) && styles.disabledButton
+              styles.groupNameInput,
+              {
+                backgroundColor: Colors[colorScheme].background,
+                color: Colors[colorScheme].text,
+                borderColor: Colors[colorScheme].border
+              }
             ]}
-            onPress={onCreateChat}
-            disabled={selectedUsers.length === 0 || (isGroup && !groupName)}
-          >
-            <ThemedText style={styles.createButtonText}>
-              Create {isGroup ? 'Group' : 'Chat'}
-            </ThemedText>
-          </Pressable>
-        </ThemedView>
-      </ThemedView>
-    </Modal>
+            value={groupName}
+            onChangeText={onGroupNameChange}
+            placeholder="Enter group name..."
+            placeholderTextColor={Colors[colorScheme].tabIconDefault}
+          />
+        </View>
+      )}
+
+      {/* User Selection List */}
+      <ThemedText style={styles.subtitle}>Select Users</ThemedText>
+      <FlatList
+        data={filteredUsers}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <UserListItem
+            user={item}
+            onSelect={() => onUserSelect(item.id)}
+            isSelected={selectedUsers.includes(item.id)}
+          />
+        )}
+        style={styles.userList}
+      />
+
+      {/* Action Buttons */}
+      <View style={styles.buttonContainer}>
+        <Pressable
+          style={[styles.button, styles.cancelButton]}
+          onPress={onClose}
+        >
+          <ThemedText style={styles.buttonText}>Cancel</ThemedText>
+        </Pressable>
+        <Pressable
+          style={[
+            styles.button,
+            styles.createButton,
+            (!selectedUsers.length || (isGroup && !groupName.trim())) && styles.disabledButton
+          ]}
+          onPress={onCreateChat}
+          disabled={!selectedUsers.length || (isGroup && !groupName.trim())}
+        >
+          <ThemedText style={styles.createButtonText}>Create</ThemedText>
+        </Pressable>
+      </View>
+    </BaseModal>
   );
 }
 
+/**
+ * Styles for the NewChatModal component
+ * 
+ * The styles define:
+ * - Title and subtitle text styling
+ * - Group toggle appearance
+ * - Input field styling
+ * - User list layout
+ * - Button container and button styling
+ * - Consistent spacing and margins
+ */
 const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  },
-  modalContent: {
-    width: '90%',
-    maxHeight: '80%',
-    borderRadius: 10,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
     marginBottom: 20,
+  },
+  subtitle: {
+    fontSize: 16,
+    marginBottom: 10,
   },
   groupToggleContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 15,
+  },
+  toggleButton: {
+    width: 50,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#E0E0E0',
+    justifyContent: 'center',
+    padding: 2,
+    borderWidth: 1,
+    borderColor: '#BDBDBD',
+  },
+  toggleButtonActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  toggleCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#BDBDBD',
+  },
+  toggleCircleActive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF',
+    transform: [{ translateX: 20 }],
   },
   groupNameContainer: {
-    marginBottom: 20,
+    marginBottom: 15,
   },
   groupNameInput: {
-    height: 40,
     borderWidth: 1,
-    borderColor: '#E1E1E1',
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    marginTop: 8,
-    backgroundColor: '#F9F9F9',
-  },
-  modalSubtitle: {
-    marginBottom: 10,
+    borderRadius: 5,
+    padding: 10,
+    marginTop: 5,
   },
   userList: {
-    maxHeight: 300,
-    marginBottom: 20,
+    maxHeight: 400,
   },
-  createButton: {
-    backgroundColor: '#007AFF',
-    padding: 15,
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginTop: 20,
+  },
+  button: {
+    flex: 1,
+    padding: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
-  createButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
+  cancelButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  createButton: {
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
   },
   disabledButton: {
     opacity: 0.5,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  createButtonText: {
+    color: '#007AFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 }); 

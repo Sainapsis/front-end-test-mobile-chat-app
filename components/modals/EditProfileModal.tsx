@@ -1,3 +1,17 @@
+/**
+ * EditProfileModal Component
+ * 
+ * A modal for editing user profile information that:
+ * - Allows users to change their name
+ * - Provides avatar selection and preview
+ * - Handles image picking from device gallery
+ * - Validates input before saving
+ * - Integrates with the app's theme system
+ * 
+ * This modal is used when users want to update their profile
+ * information and avatar.
+ */
+
 import React, { useState } from 'react';
 import { StyleSheet, View, TextInput, Pressable, Modal, Alert, Image } from 'react-native';
 import { ThemedText } from '../ThemedText';
@@ -7,11 +21,11 @@ import { useColorScheme } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 interface EditProfileModalProps {
-    visible: boolean;
-    onClose: () => void;
-    onSave: (name: string, avatar: string) => void;
-    currentName: string;
-    currentAvatar: string;
+    visible: boolean;        // Controls modal visibility
+    onClose: () => void;    // Callback for closing the modal
+    onSave: (name: string, avatar: string) => void;  // Callback for saving changes
+    currentName: string;    // Current user's name
+    currentAvatar: string;  // Current user's avatar URL
 }
 
 export function EditProfileModal({ visible, onClose, onSave, currentName, currentAvatar }: EditProfileModalProps) {
@@ -20,6 +34,12 @@ export function EditProfileModal({ visible, onClose, onSave, currentName, curren
     const [name, setName] = useState(currentName);
     const [avatar, setAvatar] = useState(currentAvatar);
 
+    /**
+     * Handles image picking from device gallery
+     * - Requests media library permissions
+     * - Launches image picker
+     * - Updates avatar state with selected image
+     */
     const pickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
@@ -39,6 +59,11 @@ export function EditProfileModal({ visible, onClose, onSave, currentName, curren
         }
     };
 
+    /**
+     * Handles saving profile changes
+     * - Calls onSave with updated name and avatar
+     * - Closes the modal
+     */
     const handleSave = () => {
         onSave(name, avatar);
         onClose();
@@ -51,8 +76,10 @@ export function EditProfileModal({ visible, onClose, onSave, currentName, curren
             animationType="slide"
             onRequestClose={onClose}
         >
+            {/* Modal Container */}
             <View style={[styles.modalContainer, { backgroundColor: colors.background + 'CC' }]}>
-                <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+                <View style={[styles.modalContent, { backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border }]}>
+                    {/* Header Section */}
                     <View style={styles.header}>
                         <ThemedText type="title">Edit Profile</ThemedText>
                         <Pressable onPress={onClose} style={styles.closeButton}>
@@ -60,6 +87,7 @@ export function EditProfileModal({ visible, onClose, onSave, currentName, curren
                         </Pressable>
                     </View>
 
+                    {/* Avatar Section */}
                     <View style={styles.avatarContainer}>
                         <Pressable onPress={pickImage}>
                             <View style={[styles.avatarWrapper, { borderColor: colors.border }]}>
@@ -77,6 +105,7 @@ export function EditProfileModal({ visible, onClose, onSave, currentName, curren
                         </Pressable>
                     </View>
 
+                    {/* Name Input Section */}
                     <View style={styles.inputContainer}>
                         <ThemedText style={styles.label}>Name</ThemedText>
                         <TextInput
@@ -92,6 +121,7 @@ export function EditProfileModal({ visible, onClose, onSave, currentName, curren
                         />
                     </View>
 
+                    {/* Action Buttons */}
                     <View style={styles.buttonContainer}>
                         <Pressable
                             style={[styles.button, { backgroundColor: colors.tabIconDefault }]}
@@ -113,6 +143,17 @@ export function EditProfileModal({ visible, onClose, onSave, currentName, curren
     );
 }
 
+/**
+ * Styles for the EditProfileModal component
+ * 
+ * The styles define:
+ * - Modal container and content layout
+ * - Header and close button styling
+ * - Avatar container and image styling
+ * - Input field appearance
+ * - Button container and button styling
+ * - Consistent spacing and margins
+ */
 const styles = StyleSheet.create({
     modalContainer: {
         flex: 1,

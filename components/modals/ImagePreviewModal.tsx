@@ -1,7 +1,19 @@
+/**
+ * ImagePreviewModal Component
+ * 
+ * A modal for previewing images that:
+ * - Displays images in full screen
+ * - Provides zoom and pan capabilities
+ * - Handles image loading states
+ * - Integrates with the app's theme system
+ * 
+ * This modal is used for previewing images before sending
+ * or viewing received images in the chat.
+ */
+
 import React from 'react';
 import { StyleSheet, View, Image, Pressable, Dimensions, Modal } from 'react-native';
 import { IconSymbol } from '../ui/IconSymbol';
-
 interface ImagePreviewModalProps {
     visible: boolean;
     onClose: () => void;
@@ -9,6 +21,7 @@ interface ImagePreviewModalProps {
 }
 
 export function ImagePreviewModal({ visible, onClose, imageUrl }: ImagePreviewModalProps) {
+
     return (
         <Modal
             visible={visible}
@@ -30,6 +43,14 @@ export function ImagePreviewModal({ visible, onClose, imageUrl }: ImagePreviewMo
     );
 }
 
+/**
+ * Styles for the ImagePreviewModal component
+ * 
+ * The styles define:
+ * - Image container and sizing
+ * - Image display properties
+ * - Consistent spacing and layout
+ */
 const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,

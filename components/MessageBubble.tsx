@@ -1,3 +1,21 @@
+/**
+ * MessageBubble Component
+ * 
+ * A versatile component that renders individual chat messages with support for various message types
+ * and interactive features. This component handles text messages, images, voice messages, and provides
+ * functionality for message reactions, editing, and deletion.
+ * 
+ * Features:
+ * - Supports text, image, and voice message types
+ * - Handles message reactions and reaction menu
+ * - Shows delivery status indicators
+ * - Supports message selection and highlighting
+ * - Displays sender information in group chats
+ * - Handles deleted messages
+ * - Supports message forwarding
+ * - Integrates with the app's theme system
+ */
+
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Image, Pressable, Modal } from 'react-native';
 import { ThemedText } from './ThemedText';
@@ -13,6 +31,22 @@ import { ImagePreviewModal } from './modals/ImagePreviewModal';
 import * as Haptics from 'expo-haptics';
 import { Avatar } from './Avatar';
 import { User } from '@/hooks/useUser';
+
+/**
+ * Props interface for the MessageBubble component
+ * 
+ * @property message - The message object containing all message data
+ * @property user - Optional user object for group chat sender information
+ * @property isCurrentUser - Whether the message is from the current user
+ * @property isSelected - Whether the message is currently selected
+ * @property onSelect - Callback for message selection
+ * @property onReactionPress - Callback for reaction selection
+ * @property onRemoveReaction - Callback for reaction removal
+ * @property selectedMessages - Array of currently selected messages
+ * @property isGroup - Whether the chat is a group chat
+ * @property highlightText - Text to highlight in the message
+ * @property isHighlighted - Whether the message should be highlighted
+ */
 interface MessageBubbleProps {
   message: {
     id: string;
@@ -33,7 +67,7 @@ interface MessageBubbleProps {
     senderAvatar?: string;
     isGroup?: boolean;
   };
-  user: User
+  user?: User;
   isCurrentUser: boolean;
   isSelected?: boolean;
   onSelect?: (messageId: string) => void;
@@ -43,8 +77,22 @@ interface MessageBubbleProps {
   selectedMessages: { messageId: string; senderId: string }[];
   selectedCount?: number;
   isGroup?: boolean;
+  highlightText?: string;
+  isHighlighted?: boolean;
 }
 
+/**
+ * MessageBubble Component Implementation
+ * 
+ * Renders a chat message bubble with support for:
+ * - Text messages with formatting and highlighting
+ * - Image messages with preview functionality
+ * - Voice messages with playback controls
+ * - Message reactions and reaction menu
+ * - Delivery status indicators
+ * - Sender information in group chats
+ * - Message selection and highlighting
+ */
 export function MessageBubble({
   message,
   isCurrentUser,
@@ -55,6 +103,8 @@ export function MessageBubble({
   selectedMessages,
   isGroup,
   user,
+  highlightText,
+  isHighlighted,
 }: MessageBubbleProps) {
   const isDark = useColorScheme() === 'dark';
   const [showReactionMenu, setShowReactionMenu] = useState(false);
@@ -287,7 +337,7 @@ export function MessageBubble({
         onLongPress={handleLongPress}
         style={[styles.container, isSelected && styles.selectedMessage]}
       >
-        {!isCurrentUser && isGroup && (
+        {!isCurrentUser && isGroup && user && (
           <View style={styles.senderInfo}>
             <Avatar
               user={{
@@ -318,9 +368,16 @@ export function MessageBubble({
           {message.text && (
             <ThemedText style={[
               styles.messageText,
-              isCurrentUser && !isDark && styles.selfMessageText
+              isCurrentUser && !isDark && styles.selfMessageText,
+              isHighlighted && styles.highlightedMessage
             ]}>
-              {message.text}
+              {highlightText && message.text ? (
+                message.text.split(new RegExp(`(${highlightText})`, 'gi')).map((part, i) => 
+                  part.toLowerCase() === highlightText.toLowerCase() ? (
+                    <ThemedText key={i} style={styles.highlightedText}>{part}</ThemedText>
+                  ) : part
+                )
+              ) : message.text}
             </ThemedText>
           )}
           <View style={styles.timeContainer}>
@@ -461,7 +518,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   selectedMessage: {
-    backgroundColor: 'rgba(128, 128, 255, 0.2)',
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
   },
   editContainer: {
     flex: 1,
@@ -549,5 +606,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 8,
     opacity: 0.7,
+  },
+  highlightedMessage: {
+    backgroundColor: 'rgba(255, 213, 0, 0.1)',
+  },
+  highlightedText: {
+    backgroundColor: 'rgba(255, 213, 0, 0.4)',
+    borderRadius: 2,
   },
 }); 

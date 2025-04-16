@@ -1,27 +1,47 @@
+/**
+ * ChatsScreen Component
+ * 
+ * This component implements the main chat list interface where users can:
+ * - View their active chats
+ * - Create new individual or group chats
+ * - Delete existing chats
+ * - Sort chats by most recent activity
+ * 
+ * The component includes modals for creating new chats and deleting existing ones,
+ * and integrates with the app's theme system for consistent styling.
+ */
+
 import React, { useState, useMemo } from 'react';
-import { FlatList, StyleSheet, Pressable, Modal, TextInput, Switch } from 'react-native';
+import { FlatList, StyleSheet, Pressable } from 'react-native';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { ChatListItem } from '@/components/ChatListItem';
-import { UserListItem } from '@/components/UserListItem';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { DeleteChatModal } from '@/components/modals/DeleteChatModal';
 import { ChatListSkeleton } from '@/components/ChatListSkeleton';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from 'react-native';
-import NewChatModal from '@/components/modals/NewChatModal';
+import { NewChatModal } from '@/components/modals/NewChatModal';
 
 export default function ChatsScreen() {
+  // Context and hooks initialization
   const { currentUser, users, chats, createChat, deleteChat, loading } = useAppContext();
+  const colorScheme = useColorScheme() ?? 'light';
+
+  // State management for UI and modals
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [isGroup, setIsGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [selectedChats, setSelectedChats] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
-  const colorScheme = useColorScheme() ?? 'light';
 
+  /**
+   * Sort and filter chats based on:
+   * - Exclude chats deleted by current user
+   * - Sort by most recent message timestamp
+   */
   const sortedChats = useMemo(() => {
     if (!currentUser?.id) return [];
     return [...chats]
@@ -36,6 +56,10 @@ export default function ChatsScreen() {
       });
   }, [chats, currentUser?.id]);
 
+  /**
+   * Handle group chat toggle
+   * @param value - Boolean indicating if chat should be a group
+   */
   const handleGroupToggle = (value: boolean) => {
     setIsGroup(value);
     if (!value) {
@@ -46,6 +70,10 @@ export default function ChatsScreen() {
     }
   };
 
+  /**
+   * Toggle user selection for new chat
+   * @param userId - ID of the user to toggle
+   */
   const toggleUserSelection = (userId: string) => {
     if (selectedUsers.includes(userId)) {
       setSelectedUsers(selectedUsers.filter(id => id !== userId));
@@ -54,6 +82,12 @@ export default function ChatsScreen() {
     }
   };
 
+  /**
+   * Handle chat creation
+   * - Checks for existing individual chats
+   * - Creates new chat with selected participants
+   * - Handles both individual and group chats
+   */
   const handleCreateChat = () => {
     if (currentUser && selectedUsers.length > 0) {
       // If it's not a group chat and only one user is selected
@@ -82,6 +116,11 @@ export default function ChatsScreen() {
     }
   };
 
+  /**
+   * Handle chat selection for bulk actions
+   * @param chatId - ID of the chat to select/deselect
+   * @param isSelected - Whether the chat is being selected or deselected
+   */
   const handleChatSelect = (chatId: string, isSelected: boolean) => {
     setSelectedChats(prev => {
       if (isSelected) {
@@ -92,6 +131,9 @@ export default function ChatsScreen() {
     });
   };
 
+  /**
+   * Handle deletion of selected chats
+   */
   const handleDeleteChats = async () => {
     await Promise.all(selectedChats.map(async (chatId) => {
       await deleteChat(chatId);
@@ -100,6 +142,9 @@ export default function ChatsScreen() {
     setSelectedChats([]);
   };
 
+  /**
+   * Render empty state when no chats exist
+   */
   const renderEmptyComponent = () => (
     <ThemedView style={styles.emptyContainer}>
       <IconSymbol name="bubble.left.and.bubble.right" size={64} color={Colors[colorScheme].icon} />
@@ -110,6 +155,7 @@ export default function ChatsScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      {/* Header Section */}
       <ThemedView style={styles.header}>
         <ThemedText type="title">Chats</ThemedText>
         {
@@ -131,6 +177,7 @@ export default function ChatsScreen() {
         }
       </ThemedView>
 
+      {/* Chat List Section */}
       {loading ? (
         <ChatListSkeleton />
       ) : (
@@ -150,13 +197,16 @@ export default function ChatsScreen() {
           contentContainerStyle={styles.listContainer}
         />
       )}
-      < DeleteChatModal
+
+      {/* Delete Chat Modal */}
+      <DeleteChatModal
         visible={isDeleting}
         onClose={() => setIsDeleting(false)}
         onDelete={handleDeleteChats}
         selectedCount={selectedChats.length}
       />
 
+      {/* New Chat Modal */}
       <NewChatModal
         visible={modalVisible}
         onClose={() => {
@@ -179,7 +229,18 @@ export default function ChatsScreen() {
   );
 }
 
+/**
+ * Styles for the ChatsScreen component
+ * 
+ * The styles are organized into sections:
+ * - Layout and container styles
+ * - Header styles
+ * - List styles
+ * - Empty state styles
+ * - Modal styles
+ */
 const styles = StyleSheet.create({
+  // Layout and container styles
   container: {
     flex: 1,
     paddingTop: 60,
@@ -191,6 +252,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
+
+  // Button styles
   newChatButton: {
     width: 40,
     height: 40,
@@ -202,9 +265,13 @@ const styles = StyleSheet.create({
   deleteButton: {
     backgroundColor: 'rgba(255, 0, 0, 0.1)',
   },
+
+  // List styles
   listContainer: {
     flexGrow: 1,
   },
+
+  // Empty state styles
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -223,6 +290,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.7,
   },
+
+  // Modal styles
   modalContainer: {
     position: 'absolute',
     top: 0,

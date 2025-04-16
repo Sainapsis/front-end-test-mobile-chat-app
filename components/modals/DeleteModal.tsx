@@ -1,3 +1,16 @@
+/**
+ * DeleteModal Component
+ * 
+ * A confirmation modal for deletion actions that:
+ * - Displays a warning message
+ * - Provides confirm and cancel options
+ * - Handles deletion confirmation
+ * - Integrates with the app's theme system
+ * 
+ * This modal is used for confirming deletion of various items
+ * throughout the application.
+ */
+
 import React from 'react';
 import { StyleSheet, View, Pressable } from 'react-native';
 import { ThemedText } from '../ThemedText';
@@ -52,6 +65,15 @@ export function DeleteModal({
   );
 }
 
+/**
+ * Styles for the DeleteModal component
+ * 
+ * The styles define:
+ * - Title and message text styling
+ * - Button container layout
+ * - Button appearance and states
+ * - Consistent spacing and margins
+ */
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,

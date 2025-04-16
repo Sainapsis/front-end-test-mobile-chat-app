@@ -1,3 +1,16 @@
+/**
+ * BaseModal Component
+ * 
+ * A reusable base modal component that provides:
+ * - Consistent modal behavior across the app
+ * - Standardized animation and presentation
+ * - Theme-aware styling
+ * - Backdrop handling
+ * 
+ * This component serves as the foundation for all other modal components
+ * in the application, ensuring consistent behavior and appearance.
+ */
+
 import React from 'react';
 import { StyleSheet, Modal, Pressable, View } from 'react-native';
 import { ThemedView } from '../ThemedView';
@@ -36,6 +49,14 @@ export function BaseModal({ visible, onClose, children }: BaseModalProps) {
   );
 }
 
+/**
+ * Styles for the BaseModal component
+ * 
+ * The styles define:
+ * - Modal overlay positioning and background
+ * - Modal content container styling
+ * - Consistent spacing and layout
+ */
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,

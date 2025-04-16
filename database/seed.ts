@@ -1,7 +1,29 @@
+/**
+ * Database Seed File
+ * 
+ * This file contains the initial data seeding functionality for the chat application.
+ * It populates the database with mock users, chats, and messages for development
+ * and testing purposes.
+ * 
+ * Features:
+ * - Mock user data with avatars and status
+ * - Initial chat conversations
+ * - Group and private chat examples
+ * - Sample messages with various states
+ * - Conflict handling for existing data
+ */
+
 import { db } from './db';
 import { users, chats, chatParticipants, messages } from './schema';
 
-// Mock user data
+/**
+ * Mock User Data
+ * 
+ * Sample user data for initial database population:
+ * - Each user has a unique ID, name, avatar, and status
+ * - Avatars are generated using a placeholder service
+ * - Status indicates user's current availability
+ */
 const mockUsers = [
   {
     id: '1',
@@ -29,7 +51,15 @@ const mockUsers = [
   },
 ];
 
-// Initial chat data (similar to useChats)
+/**
+ * Initial Chat Data
+ * 
+ * Sample chat data including:
+ * - Private and group chat examples
+ * - Message history with various states
+ * - Different delivery statuses
+ * - Message reactions and edits
+ */
 const initialChats = [
   {
     id: 'chat1',
@@ -121,7 +151,11 @@ const initialChats = [
   },
 ];
 
-// Check if there's any data in the users table
+/**
+ * Checks if the database has already been seeded
+ * 
+ * @returns Promise<boolean> - True if data exists, false otherwise
+ */
 async function isDataSeeded() {
   try {
     const result = await db.select().from(users);
@@ -132,6 +166,18 @@ async function isDataSeeded() {
   }
 }
 
+/**
+ * Seeds the database with initial data
+ * 
+ * This function:
+ * 1. Checks if the database is already seeded
+ * 2. Inserts mock users
+ * 3. Creates chats and their relationships
+ * 4. Adds initial messages
+ * 5. Handles conflicts gracefully
+ * 
+ * @throws Error if seeding fails
+ */
 export async function seedDatabase() {
   try {
     // Check if database already has data

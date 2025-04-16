@@ -1,3 +1,15 @@
+/**
+ * ChatRoom.tsx
+ * 
+ * This component implements the main chat room interface where users can:
+ * - Send and receive text messages
+ * - Share images and voice messages
+ * - Edit and delete messages
+ * - Forward messages to other chats
+ * - Search through message history
+ * - React to messages with emojis
+ */
+
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -28,16 +40,29 @@ import { Colors } from '@/constants/Colors';
 import { Audio } from 'expo-av';
 import ForwardModal from '@/components/modals/ForwardModal';
 import { EditModal } from '@/components/modals/EditModal';
-import SearchModal from '@/components/modals/SearchModal';
 import { ChatRoomSkeleton } from '@/components/ChatRoomSkeleton';
+import { DeleteChatModal } from '@/components/modals/DeleteChatModal';
 
-const HeaderRight = React.memo(({ 
-  selectedMessages, 
-  currentUser, 
-  onEdit, 
-  onDelete, 
-  onForward, 
-  onSearch 
+/**
+ * HeaderRight Component
+ * 
+ * A memoized component that renders the right side of the header with different actions
+ * based on whether messages are selected or not.
+ * 
+ * @param selectedMessages - Array of selected messages
+ * @param currentUser - Current user object
+ * @param onEdit - Function to handle message editing
+ * @param onDelete - Function to handle message deletion
+ * @param onForward - Function to handle message forwarding
+ * @param onSearch - Function to handle search action
+ */
+const HeaderRight = React.memo(({
+  selectedMessages,
+  currentUser,
+  onEdit,
+  onDelete,
+  onForward,
+  onSearch
 }: {
   selectedMessages: { messageId: string; senderId: string, audio: boolean, isForwarded: boolean }[];
   currentUser: any;
@@ -47,18 +72,18 @@ const HeaderRight = React.memo(({
   onSearch: () => void;
 }) => {
   const colorScheme = useColorScheme() ?? 'light';
-  
+
   if (selectedMessages.length > 0) {
     return (
       <View style={styles.headerRight}>
-        {selectedMessages.length === 1 && 
-         selectedMessages[0].senderId === currentUser?.id && 
-         !selectedMessages[0].audio && 
-         !selectedMessages[0].isForwarded && (
-          <Pressable onPress={onEdit}>
-            <IconSymbol name="pencil" size={24} color={Colors[colorScheme].icon} />
-          </Pressable>
-        )}
+        {selectedMessages.length === 1 &&
+          selectedMessages[0].senderId === currentUser?.id &&
+          !selectedMessages[0].audio &&
+          !selectedMessages[0].isForwarded && (
+            <Pressable onPress={onEdit}>
+              <IconSymbol name="pencil" size={24} color={Colors[colorScheme].icon} />
+            </Pressable>
+          )}
         <Pressable onPress={onDelete}>
           <IconSymbol name="trash" size={24} color={Colors[colorScheme].icon} />
         </Pressable>
@@ -78,6 +103,17 @@ const HeaderRight = React.memo(({
   );
 });
 
+/**
+ * ChatRoomScreen Component
+ * 
+ * Main chat room screen component that handles:
+ * - Message display and management
+ * - Media sharing (images and voice messages)
+ * - Message editing and deletion
+ * - Message forwarding
+ * - Search functionality
+ * - Real-time updates
+ */
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const {
@@ -90,6 +126,7 @@ export default function ChatRoomScreen() {
     deleteMessage,
     loadMoreMessages,
     hasMoreMessages,
+    deleteAllMessages,
     loadingMore
   } = useAppContext();
   const colorScheme = useColorScheme() ?? 'light';
@@ -97,6 +134,8 @@ export default function ChatRoomScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
+  const [searchResults, setSearchResults] = useState<number[]>([]);
+  const [currentSearchIndex, setCurrentSearchIndex] = useState(-1);
   const [selectedMessages, setSelectedMessages] = useState<{ messageId: string; senderId: string, audio: boolean, isForwarded: boolean }[]>([]);
   const [editingMessage, setEditingMessage] = useState<{ id: string; text: string } | null>(null);
   const [messageToEdit, setMessageToEdit] = useState<any>(null);
@@ -106,6 +145,15 @@ export default function ChatRoomScreen() {
   const router = useRouter();
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
   const chat = chats.find(c => c.id === chatId);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const recordingTimer = useRef<NodeJS.Timeout | null>(null);
+  const [voiceUrl, setVoiceUrl] = useState<string | undefined>(undefined);
+  const editInputRef = useRef<TextInput>(null);
+  const [clearIsVisible, setClearIsVisible] = useState(false);
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [selectedChats, setSelectedChats] = useState<string[]>([]);
   const chatParticipants = chat?.participants
     .filter(id => id !== currentUser?.id)
     .map(id => users.find(user => user.id === id))
@@ -114,17 +162,9 @@ export default function ChatRoomScreen() {
     ? chatParticipants[0]?.name
     : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
 
-  const [isRecording, setIsRecording] = useState(false);
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
-  const [recordingDuration, setRecordingDuration] = useState(0);
-  const recordingTimer = useRef<NodeJS.Timeout | null>(null);
-  const [voiceUrl, setVoiceUrl] = useState<string | undefined>(undefined);
-  const editInputRef = useRef<TextInput>(null);
-
-  const [showForwardModal, setShowForwardModal] = useState(false);
-  const [selectedChats, setSelectedChats] = useState<string[]>([]);
-
-  // Mark messages as read when chat is opened
+  /**
+   * Mark messages as read when chat is opened
+   */
   useEffect(() => {
     if (chat && currentUser) {
       const unreadMessages = chat.messages.filter(
@@ -191,11 +231,11 @@ export default function ChatRoomScreen() {
           selected => !(selected.messageId === messageId && selected.senderId === message.senderId)
         );
       } else {
-        return [...prev, { 
-          messageId, 
-          senderId: message.senderId, 
-          audio: message.voiceUrl ? true : false, 
-          isForwarded: message.isForwarded ?? false 
+        return [...prev, {
+          messageId,
+          senderId: message.senderId,
+          audio: message.voiceUrl ? true : false,
+          isForwarded: message.isForwarded ?? false
         }];
       }
     });
@@ -267,11 +307,54 @@ export default function ChatRoomScreen() {
     }
   }, [chat?.messages.length]);
 
-  const filteredMessages = chat?.messages.filter(message =>
-    message.text.toLowerCase().includes(searchQuery.toLowerCase()) &&
-    !message.isDeleted &&
-    !message.deletedFor?.includes(currentUser?.id || '')
-  ) || [];
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setSearchResults([]);
+      setCurrentSearchIndex(-1);
+      return;
+    }
+
+    const results = chat?.messages.reduce<number[]>((acc, message, index) => {
+      if (message.text.toLowerCase().includes(query.toLowerCase())) {
+        acc.push(index);
+      }
+      return acc;
+    }, []) || [];
+
+    setSearchResults(results);
+    setCurrentSearchIndex(results.length > 0 ? 0 : -1);
+
+    if (results.length > 0 && flatListRef.current) {
+      flatListRef.current.scrollToIndex({
+        index: results[0],
+        animated: true,
+        viewPosition: 0.5
+      });
+    }
+  }, [chat?.messages]);
+
+  const navigateSearch = (direction: 'next' | 'prev') => {
+    if (searchResults.length === 0) return;
+
+    Keyboard.dismiss();
+
+    let newIndex = currentSearchIndex;
+    if (direction === 'next') {
+      newIndex = (currentSearchIndex + 1) % searchResults.length;
+    } else {
+      newIndex = (currentSearchIndex - 1 + searchResults.length) % searchResults.length;
+    }
+
+    setCurrentSearchIndex(newIndex);
+    if (flatListRef.current) {
+      flatListRef.current.scrollToIndex({
+        index: searchResults[newIndex],
+        animated: true,
+        viewPosition: 0.5
+      });
+    }
+  };
 
   const handleDeletePress = () => {
     setShowDeleteMenu(true);
@@ -327,6 +410,11 @@ export default function ChatRoomScreen() {
       handleDeleteMessage(msg.messageId, true);
     });
     setShowDeleteMenu(false);
+  };
+  const handleClearChat = async () => {
+    await deleteAllMessages(chatId);
+    setSelectedMessages([]);
+    setClearIsVisible(false);
   };
 
   const startRecording = async () => {
@@ -409,7 +497,7 @@ export default function ChatRoomScreen() {
   };
 
   const getItemLayout = useCallback((data: any, index: number) => ({
-    length: 80, 
+    length: 80,
     offset: 80 * index,
     index,
   }), []);
@@ -444,38 +532,87 @@ export default function ChatRoomScreen() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <View style={styles.headerContainer}>
-              <Avatar
-                user={chatParticipants[0]}
-                size={32}
-                showStatus={false}
-                isGroup={chat.isGroup}
-              />
-              <ThemedText type="defaultSemiBold" numberOfLines={1}>
-                {chat.isGroup ? chat.groupName : chatName}
-              </ThemedText>
-            </View>
+            selectedMessages.length > 0 ? (
+              <View style={styles.headerContainer}>
+                <ThemedText> {selectedMessages.length}</ThemedText>
+              </View>
+            ) :
+              <View style={styles.headerContainer}>
+                <Avatar
+                  user={chatParticipants[0]}
+                  size={32}
+                  showStatus={false}
+                  isGroup={chat.isGroup}
+                />
+                <ThemedText type="defaultSemiBold" numberOfLines={1}>
+                  {chat.isGroup ? chat.groupName : chatName}
+                </ThemedText>
+              </View>
           ),
           headerLeft: () => (
-            <Pressable style={styles.backButton} onPress={() => router.back()}>
-              <IconSymbol name="chevron.left" size={24} color="#007AFF" />
-            </Pressable>
+            selectedMessages.length > 0 ? (
+              <Pressable style={styles.backButton} onPress={() => setSelectedMessages([])}>
+                <IconSymbol name="chevron.backward" size={24} color="#007AFF" />
+              </Pressable>
+            ) : (
+              <Pressable style={styles.backButton} onPress={() => router.back()}>
+                <IconSymbol name="chevron.left" size={24} color="#007AFF" />
+              </Pressable>
+            )
           ),
           headerRight: () => headerRight,
         }}
       />
-
-      <SearchModal
-        visible={isSearchVisible}
-        onClose={() => setIsSearchVisible(false)}
-        searchQuery={searchQuery}
-        onSearchQueryChange={setSearchQuery}
-        filteredMessages={filteredMessages}
-        currentUser={currentUser}
-        selectedMessages={selectedMessages}
-        onReactionPress={handleReactionPress}
-        onRemoveReaction={handleRemoveReaction}
-      />
+      {isSearchVisible && (
+        <ThemedView style={styles.searchContainer}>
+          <View style={styles.searchInputWrapper}>
+            <IconSymbol name="magnifyingglass" size={20} color={Colors[colorScheme].icon} />
+            <TextInput
+              style={[
+                styles.searchInput,
+                {
+                  backgroundColor: Colors[colorScheme].background,
+                  color: Colors[colorScheme].text,
+                }
+              ]}
+              value={searchQuery}
+              onChangeText={handleSearch}
+              placeholder="Search messages..."
+              placeholderTextColor={Colors[colorScheme].icon}
+              autoFocus
+            />
+            <Pressable onPress={() => {
+              setIsSearchVisible(false);
+              setSearchQuery('');
+              setSearchResults([]);
+              setCurrentSearchIndex(-1);
+            }}>
+              <IconSymbol name="xmark.circle.fill" size={20} color={Colors[colorScheme].icon} />
+            </Pressable>
+          </View>
+          {searchResults.length > 0 && (
+            <View style={styles.searchNavigation}>
+              <ThemedText style={styles.searchCount}>
+                {currentSearchIndex + 1} of {searchResults.length}
+              </ThemedText>
+              <View style={styles.searchButtons}>
+                <Pressable
+                  onPress={() => navigateSearch('prev')}
+                  style={[styles.searchButton, currentSearchIndex <= 0 && styles.disabledButton]}
+                >
+                  <IconSymbol name="chevron.up" size={24} color={Colors[colorScheme].tint} />
+                </Pressable>
+                <Pressable
+                  onPress={() => navigateSearch('next')}
+                  style={[styles.searchButton, currentSearchIndex >= searchResults.length - 1 && styles.disabledButton]}
+                >
+                  <IconSymbol name="chevron.down" size={24} color={Colors[colorScheme].tint} />
+                </Pressable>
+              </View>
+            </View>
+          )}
+        </ThemedView>
+      )}
 
       <EditModal
         visible={!!editingMessage}
@@ -511,9 +648,18 @@ export default function ChatRoomScreen() {
                 <ThemedText style={styles.deleteOptionText}>Delete for everyone</ThemedText>
               </Pressable>
             )}
+            <Pressable style={styles.deleteOption} onPress={() => { setShowDeleteMenu(false); setClearIsVisible(true) }}>
+              <ThemedText style={styles.deleteOptionText}>Clear Chat</ThemedText>
+            </Pressable>
           </View>
         </Pressable>
       </Modal>
+      <DeleteChatModal
+        visible={clearIsVisible}
+        onClose={() => setClearIsVisible(false)}
+        onDelete={handleClearChat}
+        selectedCount={chat?.messages.length || 0}
+      />
 
       <ForwardModal
         visible={showForwardModal}
@@ -532,9 +678,9 @@ export default function ChatRoomScreen() {
 
       <FlatList
         ref={flatListRef}
-        data={chat?.messages}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
+        data={chat?.messages.filter((message) => !message.deletedFor.includes(currentUser?.id || ''))}
+        keyExtractor={(item, index) => `${item.id}-${index}`}
+        renderItem={({ item, index }) => (
           <MessageBubble
             message={item}
             isGroup={chat.isGroup}
@@ -548,6 +694,8 @@ export default function ChatRoomScreen() {
             onRemoveReaction={handleRemoveReaction}
             selectedMessages={selectedMessages}
             selectedCount={selectedMessages.length}
+            highlightText={searchQuery}
+            isHighlighted={searchResults.includes(index) && index === searchResults[currentSearchIndex]}
           />
         )}
         contentContainerStyle={styles.messagesContainer}
@@ -791,5 +939,39 @@ const styles = StyleSheet.create({
   loadingMoreContainer: {
     paddingVertical: 10,
     alignItems: 'center',
+  },
+  searchContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+    paddingHorizontal: 8,
+  },
+  searchInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    height: 40,
+  },
+  searchInput: {
+    flex: 1,
+    marginHorizontal: 8,
+    fontSize: 16,
+  },
+  searchNavigation: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  searchCount: {
+    fontSize: 14,
+  },
+  searchButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  searchButton: {
+    padding: 4,
   },
 }); 

@@ -16,6 +16,7 @@ export interface AppContextType {
   editMessage: (messageId: string, newText: string) => Promise<void>;
   deleteMessage: (messageId: string, userId: string, deleteForEveryone: boolean) => Promise<void>;
   deleteChat: (chatId: string) => Promise<void>;
+  deleteAllMessages: (chatId: string) => Promise<void>;
   loadMoreMessages: (chatId: string) => Promise<void>;
   hasMoreMessages: Record<string, boolean>;
   loadingMore: boolean;
@@ -40,6 +41,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     editMessage,
     deleteMessage,
     deleteChat,
+    deleteAllMessages,
     loadMoreMessages,
     hasMoreMessages,
     loadingMore,
@@ -60,6 +62,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         editMessage,
         deleteMessage,
         deleteChat,
+        deleteAllMessages,
         loadMoreMessages,
         hasMoreMessages,
         loadingMore,

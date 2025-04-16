@@ -1,6 +1,18 @@
+/**
+ * ProfileScreen Component
+ * 
+ * This component implements the user profile interface where users can:
+ * - View their profile information
+ * - Edit their name and avatar
+ * - Preview their profile picture
+ * - Log out of the application
+ * 
+ * The component uses modals for editing profile and previewing images,
+ * and integrates with the app's theme system for consistent styling.
+ */
+
 import React, { useState } from 'react';
 import { StyleSheet, Pressable, SafeAreaView, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -13,21 +25,39 @@ import { useColorScheme } from 'react-native';
 import { Colors } from '@/constants/Colors';
 
 export default function ProfileScreen() {
+  // Context and hooks initialization
   const { currentUser, logout } = useAppContext();
   const { updateUserProfile } = useChatsDb(currentUser?.id || null);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+
+  // State management for modals and UI
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
 
+  /**
+   * Handle user logout
+   * Calls the logout function from AppContext
+   */
   const handleLogout = () => {
     logout();
   };
 
+  /**
+   * Handle edit profile action
+   * Opens the edit profile modal
+   */
   const handleEdit = () => {
     setShowEditModal(true);
   };
 
+  /**
+   * Handle saving profile changes
+   * Updates the user's profile information in the database
+   * 
+   * @param name - New name for the user
+   * @param avatar - New avatar URL for the user
+   */
   const handleSaveProfile = async (name: string, avatar: string) => {
     if (!currentUser) return;
 
@@ -42,6 +72,7 @@ export default function ProfileScreen() {
     }
   };
 
+  // Show loading state if user data is not available
   if (!currentUser) {
     return (
       <ThemedView style={styles.loadingContainer}>
@@ -53,13 +84,17 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <ThemedView style={styles.container}>
+        {/* Profile Header Section */}
         <View style={styles.profileHeader}>
+          {/* Avatar with preview functionality */}
           <Pressable
             onPress={() => setShowImagePreview(true)}
             style={styles.avatarContainer}
           >
             <Avatar user={currentUser} size={120} />
           </Pressable>
+
+          {/* User Information Section */}
           <View style={styles.profileInfo}>
             <View style={styles.nameContainer}>
               <ThemedText type="title" style={styles.nameText}>{currentUser.name}</ThemedText>
@@ -72,6 +107,8 @@ export default function ProfileScreen() {
             </ThemedText>
           </View>
         </View>
+
+        {/* Account Information Section */}
         <ThemedView style={styles.section}>
           <ThemedText type="subtitle">Account Information</ThemedText>
 
@@ -85,6 +122,8 @@ export default function ProfileScreen() {
             <ThemedText>{currentUser.name}</ThemedText>
           </ThemedView>
         </ThemedView>
+
+        {/* Logout Button Section */}
         <View style={styles.buttonContainer}>
           <Pressable
             style={[styles.logoutButton, { backgroundColor: '#FF3B30' }]}
@@ -95,11 +134,15 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
       </ThemedView>
+
+      {/* Image Preview Modal */}
       <ImagePreviewModal
         visible={showImagePreview}
         onClose={() => setShowImagePreview(false)}
         imageUrl={currentUser.avatar || ''}
       />
+
+      {/* Edit Profile Modal */}
       <EditProfileModal
         visible={showEditModal}
         onClose={() => setShowEditModal(false)}
@@ -111,7 +154,17 @@ export default function ProfileScreen() {
   );
 }
 
+/**
+ * Styles for the ProfileScreen component
+ * 
+ * The styles are organized into sections:
+ * - Layout and container styles
+ * - Profile header styles
+ * - Information section styles
+ * - Button styles
+ */
 const styles = StyleSheet.create({
+  // Layout and container styles
   safeArea: {
     flex: 1,
   },
@@ -125,6 +178,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
+
+  // Profile header styles
   profileHeader: {
     alignItems: 'center',
     padding: 20,
@@ -153,6 +208,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     opacity: 0.7,
   },
+
+  // Information section styles
+  section: {
+    padding: 20,
+    marginTop: 20,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    marginTop: 12,
+  },
+  infoLabel: {
+    fontWeight: 'bold',
+    marginRight: 10,
+    width: 100,
+  },
+
+  // Button styles
   buttonContainer: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -170,18 +242,5 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     marginLeft: 8,
-  },
-  section: {
-    padding: 20,
-    marginTop: 20,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    marginTop: 12,
-  },
-  infoLabel: {
-    fontWeight: 'bold',
-    marginRight: 10,
-    width: 100,
   },
 });

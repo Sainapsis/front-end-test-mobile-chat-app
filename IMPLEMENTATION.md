@@ -102,6 +102,33 @@ This document details the implementation of new features in the mobile Chat appl
 ### 1. Individual and Group Chat Management
 - **Chat Creation**
   - Single chat validation per person (except groups)
+### 3. Reusable Components
+
+1. **Modal Components**
+- **Base Modal Structure**
+  - Reusable modal wrapper with consistent styling
+  - Standardized animations and transitions
+  - Backdrop handling and press events
+
+- **Specific Modal Types**
+  - `DeleteChatModal`: For chat deletion confirmation
+  - `NewChatModal`: For creating individual/group chats
+  - `EditProfileModal`: For profile editing
+  - `ImagePreviewModal`: For full-screen image viewing
+  - `ReactionMenu`: For message reactions
+
+2. **Loading Components**
+- **Skeleton Screens**
+  - `ChatListSkeleton`: Loading state for chat list
+  - `MessageListSkeleton`: Loading state for messages
+  - `ProfileSkeleton`: Loading state for profile views
+  - Consistent animation and styling
+  - Responsive to screen sizes
+
+- **Loading Indicators**
+  - `LoadingSpinner`: Reusable loading animation
+  - `ProgressBar`: For media upload/download
+  - `LoadingOverlay`: Full screen loading state
 
 - **Chat Deletion**
   - Individual chat deletion

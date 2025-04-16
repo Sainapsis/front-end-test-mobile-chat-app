@@ -1,3 +1,16 @@
+/**
+ * EditModal Component
+ * 
+ * A modal for editing content that:
+ * - Provides a text input for editing
+ * - Handles content updates
+ * - Validates input before saving
+ * - Integrates with the app's theme system
+ * 
+ * This modal is used for editing various types of content
+ * throughout the application, such as messages or user information.
+ */
+
 import React, { useRef } from 'react';
 import { StyleSheet, View, Pressable, TextInput, Keyboard } from 'react-native';
 import { ThemedText } from '../ThemedText';
@@ -6,6 +19,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { BaseModal } from './BaseModal';
 import { MessageBubble } from '../MessageBubble';
+import { useAppContext } from '@/hooks/AppContext';
 
 interface EditModalProps {
   visible: boolean;
@@ -35,6 +49,7 @@ export function EditModal({
 }: EditModalProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const editInputRef = useRef<TextInput>(null);
+  const { currentUser } = useAppContext();
 
   return (
     <BaseModal
@@ -73,6 +88,7 @@ export function EditModal({
           deletedFor: messageToEdit?.deletedFor,
           review: true,
         }}
+        user={currentUser || undefined}
         isCurrentUser={true}
         selectedMessages={[]}
       />
@@ -111,6 +127,15 @@ export function EditModal({
   );
 }
 
+/**
+ * Styles for the EditModal component
+ * 
+ * The styles define:
+ * - Title text styling
+ * - Input field appearance and layout
+ * - Button container and button styling
+ * - Consistent spacing and margins
+ */
 const styles = StyleSheet.create({
   modalHeader: {
     flexDirection: 'row',

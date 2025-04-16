@@ -1,3 +1,17 @@
+/**
+ * ForwardModal Component
+ * 
+ * A modal for forwarding messages that:
+ * - Displays a list of available chats
+ * - Allows selection of multiple chats
+ * - Shows chat preview information
+ * - Handles message forwarding
+ * - Integrates with the app's theme system
+ * 
+ * This modal is used when users want to forward messages
+ * to other conversations.
+ */
+
 import React, { useRef, useEffect } from 'react';
 import { StyleSheet, View, FlatList, Pressable, Modal, Animated } from 'react-native';
 import { ThemedText } from '../ThemedText';
@@ -47,6 +61,11 @@ export default function ForwardModal({
     const modalAnim = useRef(new Animated.Value(0)).current;
     const contentAnim = useRef(new Animated.Value(0)).current;
 
+    /**
+     * Handles modal animation
+     * - Animates modal overlay and content
+     * - Runs when modal visibility changes
+     */
     useEffect(() => {
         if (visible) {
             Animated.parallel([
@@ -99,10 +118,12 @@ export default function ForwardModal({
                     styles.modalContent,
                     {
                         transform: [
-                            { translateY: contentAnim.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [50, 0]
-                            })}
+                            {
+                                translateY: contentAnim.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [50, 0]
+                                })
+                            }
                         ],
                         backgroundColor: Colors[colorScheme].background,
                         borderColor: Colors[colorScheme].border,
@@ -141,8 +162,8 @@ export default function ForwardModal({
                                     style={[
                                         styles.chatOption,
                                         selectedChats.includes(item.id) && [
-                                            styles.selectedChatOption,
-                                            { backgroundColor: Colors[colorScheme].tint + '20' }
+                                            //styles.selectedChatOption,
+                                            { backgroundColor: 'rgba(73, 108, 185, 0.2)' }
                                         ]
                                     ]}
                                     onPress={() => onChatSelect(item.id)}
@@ -164,9 +185,7 @@ export default function ForwardModal({
                                                 : 'No messages yet'}
                                         </ThemedText>
                                     </View>
-                                    {selectedChats.includes(item.id) && (
-                                        <IconSymbol name="checkmark.circle.fill" size={24} color="#34C759" />
-                                    )}
+
                                 </Pressable>
                             );
                         }}
@@ -195,6 +214,16 @@ export default function ForwardModal({
     );
 }
 
+/**
+ * Styles for the ForwardModal component
+ * 
+ * The styles define:
+ * - Modal header layout and appearance
+ * - Chat option list styling
+ * - Selected chat highlighting
+ * - Forward button styling
+ * - Consistent spacing and margins
+ */
 const styles = StyleSheet.create({
     modalHeader: {
         flexDirection: 'row',

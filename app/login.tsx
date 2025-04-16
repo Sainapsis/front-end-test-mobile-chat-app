@@ -1,3 +1,15 @@
+/**
+ * LoginScreen Component
+ * 
+ * This component implements the login interface where users can:
+ * - View a list of available users
+ * - Select a user to log in
+ * - Navigate to the main app after successful login
+ * 
+ * The component handles user authentication and provides
+ * a simple interface for user selection.
+ */
+
 import React, { useEffect } from 'react';
 import { StyleSheet, FlatList, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -8,13 +20,21 @@ import { ThemedView } from '@/components/ThemedView';
 import { UserListItem } from '@/components/UserListItem';
 
 export default function LoginScreen() {
+  // Context and hooks initialization
   const { users, login, loading, loadUsers } = useAppContext();
   const router = useRouter();
 
+  /**
+   * Load available users when component mounts
+   */
   useEffect(() => {
     loadUsers();
   }, [loadUsers]);
 
+  /**
+   * Handle user selection and login
+   * @param userId - ID of the selected user
+   */
   const handleUserSelect = async (userId: string) => {
     const success = await login(userId);
     if (success) {
@@ -26,12 +46,15 @@ export default function LoginScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="auto" />
       <ThemedView style={styles.container}>
+        {/* Header Section */}
         <ThemedView style={styles.header}>
           <ThemedText type="title">Welcome to Chat App</ThemedText>
           <ThemedText style={styles.subtitle}>
             Select a user to continue
           </ThemedText>
         </ThemedView>
+
+        {/* User List Section */}
         {loading ? (
           <ThemedText>Loading...</ThemedText>
         ) : (
@@ -52,7 +75,16 @@ export default function LoginScreen() {
   );
 }
 
+/**
+ * Styles for the LoginScreen component
+ * 
+ * The styles are organized into sections:
+ * - Layout and container styles
+ * - Header styles
+ * - List styles
+ */
 const styles = StyleSheet.create({
+  // Layout and container styles
   safeArea: {
     flex: 1,
   },
@@ -60,6 +92,8 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 20,
   },
+
+  // Header styles
   header: {
     alignItems: 'center',
     padding: 20,
@@ -70,6 +104,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#8F8F8F',
   },
+
+  // List styles
   listContainer: {
     paddingBottom: 20,
   },

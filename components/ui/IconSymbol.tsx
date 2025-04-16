@@ -39,6 +39,9 @@ const MAPPING = {
   'camera': 'camera',
   'ellipsis.circle': 'more-vert',
   'person': 'person',
+  'chevron.up': 'keyboard-arrow-up',
+  'chevron.down': 'keyboard-arrow-down',
+  'chevron.backward': 'arrow-back',
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],
