@@ -1,20 +1,26 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { Chat } from '@/hooks/useChats';
 import { Avatar } from './Avatar';
 import { ThemedText } from './ThemedText';
 import { User } from '@/hooks/useUser';
+import { IconSymbol } from './ui/IconSymbol';
+import { selectionFeedback } from '@/utils';
 
 interface ChatListItemProps {
-  chat: Chat;
-  currentUserId: string;
-  users: User[];
+  readonly chat: Chat;
+  readonly currentUserId: string;
+  readonly users: User[];
 }
 
+type RootStackParamList = {
+  ChatRoom: { chatId: string };
+};
+
 export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) {
-  const navigation = useNavigation();
-  
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+
   const otherParticipants = useMemo(() => {
     return chat.participants
       .filter(id => id !== currentUserId)
@@ -23,6 +29,12 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
   }, [chat.participants, currentUserId, users]);
 
   const chatName = useMemo(() => {
+    // Si es un chat grupal y tiene nombre, usar ese nombre
+    if (chat.isGroup && chat.name) {
+      return chat.name;
+    }
+
+    // Si no, usar la lógica anterior para formar el nombre
     if (otherParticipants.length === 0) {
       return 'No participants';
     } else if (otherParticipants.length === 1) {
@@ -30,19 +42,20 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
     } else {
       return `${otherParticipants[0].name} & ${otherParticipants.length - 1} other${otherParticipants.length > 2 ? 's' : ''}`;
     }
-  }, [otherParticipants]);
+  }, [chat.isGroup, chat.name, otherParticipants]);
 
   const handlePress = () => {
-    navigation.navigate('ChatRoom' as never, { chatId: chat.id } as never);
+    selectionFeedback();
+    navigation.navigate('ChatRoom', { chatId: chat.id });
   };
 
   const timeString = useMemo(() => {
     if (!chat.lastMessage) return '';
-    
+
     const date = new Date(chat.lastMessage.timestamp);
     const now = new Date();
     const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     if (diffInDays === 0) {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } else if (diffInDays === 1) {
@@ -56,31 +69,63 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
 
   const isCurrentUserLastSender = chat.lastMessage?.senderId === currentUserId;
 
-  return (
-    <Pressable style={styles.container} onPress={handlePress}>
-      <Avatar 
-        user={otherParticipants[0]} 
+  const getSenderPrefix = () => {
+    if (isCurrentUserLastSender) {
+      return 'You: ';
+    }
+
+    if (chat.isGroup && chat.lastMessage) {
+      const senderName = users.find(u => u.id === chat.lastMessage?.senderId)?.name;
+      return senderName ? `${senderName}: ` : '';
+    }
+
+    return '';
+  };
+
+  const renderAvatar = () => {
+    if (chat.isGroup) {
+      // Avatar para grupos
+      return (
+        <View style={styles.groupAvatarContainer}>
+          <View style={styles.groupIconContainer}>
+            <IconSymbol name="people" size={28} color="#FFFFFF" />
+          </View>
+        </View>
+      );
+    }
+
+    // Avatar normal para chats individuales
+    return (
+      <Avatar
+        user={otherParticipants[0]}
         size={50}
       />
+    );
+  };
+
+  return (
+    <Pressable style={styles.container} onPress={handlePress}>
+      {renderAvatar()}
       <View style={styles.contentContainer}>
         <View style={styles.topRow}>
           <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.name}>
             {chatName}
           </ThemedText>
-          {timeString && (
+          {!!timeString && (
             <ThemedText style={styles.time}>{timeString}</ThemedText>
           )}
         </View>
         <View style={styles.bottomRow}>
-          {chat.lastMessage && (
-            <ThemedText 
+          {!!chat.lastMessage && (
+            <ThemedText
               numberOfLines={1}
-              style={[
-                styles.lastMessage,
-                isCurrentUserLastSender && styles.currentUserMessage
-              ]}
+              style={{
+                ...styles.lastMessage,
+                ...(isCurrentUserLastSender ? styles.currentUserMessage : {})
+              }}
             >
-              {isCurrentUserLastSender && 'You: '}{chat.lastMessage.text}
+              {getSenderPrefix()}
+              {chat.lastMessage.text}
             </ThemedText>
           )}
         </View>
@@ -127,5 +172,20 @@ const styles = StyleSheet.create({
   },
   currentUserMessage: {
     fontStyle: 'italic',
+  },
+  groupAvatarContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  groupIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 }); 

@@ -40,12 +40,14 @@ const initialChats = [
         senderId: '2',
         text: 'Hey, how are you?',
         timestamp: Date.now() - 3600000,
+        status: 'delivered',
       },
       {
         id: 'msg2',
         senderId: '1',
         text: 'I\'m good, thanks for asking!',
         timestamp: Date.now() - 1800000,
+        status: 'sent',
       },
     ],
   },
@@ -58,6 +60,7 @@ const initialChats = [
         senderId: '3',
         text: 'Did you check the project?',
         timestamp: Date.now() - 86400000,
+        status: 'read',
       },
     ],
   },
@@ -116,6 +119,7 @@ export async function seedDatabase() {
           senderId: message.senderId,
           text: message.text,
           timestamp: message.timestamp,
+          status: message.status,
         }).onConflictDoNothing();
       }
     }

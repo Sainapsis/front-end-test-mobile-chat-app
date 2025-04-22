@@ -1,31 +1,52 @@
 import React from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, useColorScheme } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { Avatar } from './Avatar';
 import { User } from '@/hooks/useUser';
+import { Colors } from '@/constants/Colors';
 
 interface UserListItemProps {
-  user: User;
-  onSelect?: (user: User) => void;
-  isSelected?: boolean;
+  readonly user: User;
+  readonly onSelect?: (user: User) => void;
+  readonly isSelected?: boolean;
 }
 
 export function UserListItem({ user, onSelect, isSelected }: UserListItemProps) {
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? Colors.dark : Colors.light;
+
   const handlePress = () => {
     if (onSelect) {
       onSelect(user);
     }
   };
 
+  const getStatusColor = () => {
+    if (user.status === 'online') {
+      return theme.success;
+    }
+    if (user.status === 'away') {
+      return theme.warning;
+    }
+    return theme.tabIconDefault;
+  };
+
   return (
-    <Pressable 
-      style={[styles.container, isSelected && styles.selectedContainer]} 
+    <Pressable
+      style={[
+        styles.container,
+        isSelected && [styles.selectedContainer, { backgroundColor: `${theme.primary}20` }],
+        { borderBottomColor: theme.border }
+      ]}
       onPress={handlePress}
     >
       <Avatar user={user} size={50} />
       <View style={styles.infoContainer}>
-        <ThemedText type="defaultSemiBold">{user.name}</ThemedText>
-        <ThemedText style={styles.statusText}>
+        <ThemedText style={styles.nameText}>{user.name}</ThemedText>
+        <ThemedText style={{
+          ...styles.statusText,
+          color: getStatusColor()
+        }}>
           {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
         </ThemedText>
       </View>
@@ -39,18 +60,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E1E1E1',
   },
   selectedContainer: {
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    borderRadius: 8,
   },
   infoContainer: {
     marginLeft: 12,
     flex: 1,
   },
+  nameText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
   statusText: {
     fontSize: 14,
-    color: '#8F8F8F',
     marginTop: 4,
   },
 }); 
