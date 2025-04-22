@@ -1,0 +1,7 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Ensure all packages are compatible with Expo SDK 52
+Keep all the libraries compatible between them

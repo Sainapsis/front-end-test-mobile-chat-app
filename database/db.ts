@@ -20,14 +20,14 @@ export async function initializeDatabase() {
         status TEXT NOT NULL
       );
     `);
-    
+
     console.log('Creating chats table...');
     await sqlite.execAsync(`
       CREATE TABLE IF NOT EXISTS chats (
         id TEXT PRIMARY KEY
       );
     `);
-    
+
     console.log('Creating chat_participants table...');
     await sqlite.execAsync(`
       CREATE TABLE IF NOT EXISTS chat_participants (
@@ -37,7 +37,7 @@ export async function initializeDatabase() {
         FOREIGN KEY (chat_id) REFERENCES chats (id)
       );
     `);
-    
+
     console.log('Creating messages table...');
     await sqlite.execAsync(`
       CREATE TABLE IF NOT EXISTS messages (
@@ -49,10 +49,52 @@ export async function initializeDatabase() {
         FOREIGN KEY (chat_id) REFERENCES chats (id)
       );
     `);
-    
+
     console.log('All tables created successfully!');
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;
+  }
+}
+
+// Reset database function to clear all data and reseed
+export async function resetDatabase() {
+  try {
+    console.log('Resetting database...');
+
+    // Delete all data in reverse order of dependencies
+    await sqlite.execAsync(`DELETE FROM messages;`);
+    await sqlite.execAsync(`DELETE FROM chat_participants;`);
+    await sqlite.execAsync(`DELETE FROM chats;`);
+    await sqlite.execAsync(`DELETE FROM users;`);
+
+    console.log('All data cleared successfully!');
+    return true;
+  } catch (error) {
+    console.error('Error resetting database:', error);
+    return false;
+  }
+}
+
+// Reinitialize database function - drops tables and recreates everything from scratch
+export async function reinitializeDatabase() {
+  try {
+    console.log('Completely reinitializing database...');
+
+    // Drop all tables in reverse order of dependencies
+    await sqlite.execAsync(`DROP TABLE IF EXISTS messages;`);
+    await sqlite.execAsync(`DROP TABLE IF EXISTS chat_participants;`);
+    await sqlite.execAsync(`DROP TABLE IF EXISTS chats;`);
+    await sqlite.execAsync(`DROP TABLE IF EXISTS users;`);
+
+    console.log('All tables dropped successfully!');
+
+    // Re-create all tables
+    await initializeDatabase();
+
+    return true;
+  } catch (error) {
+    console.error('Error reinitializing database:', error);
+    return false;
   }
 } 

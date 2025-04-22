@@ -12,9 +12,9 @@ interface ChatListItemProps {
   users: User[];
 }
 
-export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) {
+export const ChatListItem = React.memo(function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) {
   const navigation = useNavigation();
-  
+
   const otherParticipants = useMemo(() => {
     return chat.participants
       .filter(id => id !== currentUserId)
@@ -33,16 +33,17 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
   }, [otherParticipants]);
 
   const handlePress = () => {
-    navigation.navigate('ChatRoom' as never, { chatId: chat.id } as never);
+    // @ts-ignore - Ignorar error de tipo para la navegación
+    navigation.navigate('ChatRoom', { chatId: chat.id });
   };
 
   const timeString = useMemo(() => {
     if (!chat.lastMessage) return '';
-    
+
     const date = new Date(chat.lastMessage.timestamp);
     const now = new Date();
     const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     if (diffInDays === 0) {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } else if (diffInDays === 1) {
@@ -58,8 +59,8 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
 
   return (
     <Pressable style={styles.container} onPress={handlePress}>
-      <Avatar 
-        user={otherParticipants[0]} 
+      <Avatar
+        user={otherParticipants[0]}
         size={50}
       />
       <View style={styles.contentContainer}>
@@ -73,7 +74,7 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
         </View>
         <View style={styles.bottomRow}>
           {chat.lastMessage && (
-            <ThemedText 
+            <ThemedText
               numberOfLines={1}
               style={[
                 styles.lastMessage,
@@ -87,7 +88,7 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
       </View>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

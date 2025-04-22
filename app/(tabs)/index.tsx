@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { FlatList, StyleSheet, Pressable, Modal } from 'react-native';
 import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
@@ -6,35 +6,147 @@ import { ThemedView } from '@/components/ThemedView';
 import { ChatListItem } from '@/components/ChatListItem';
 import { UserListItem } from '@/components/UserListItem';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { PerformanceMonitor } from '@/components/PerformanceMonitor';
+import DatabaseInitializer from '../../components/DatabaseInitializer';
+
 
 export default function ChatsScreen() {
-  const { currentUser, users, chats, createChat } = useAppContext();
+  const { currentUser, users, chats, createChat, sendMessage } = useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
-  const toggleUserSelection = (userId: string) => {
-    if (selectedUsers.includes(userId)) {
-      setSelectedUsers(selectedUsers.filter(id => id !== userId));
-    } else {
-      setSelectedUsers([...selectedUsers, userId]);
-    }
-  };
+  const toggleUserSelection = useCallback((userId: string) => {
+    setSelectedUsers(prev => {
+      if (prev.includes(userId)) {
+        return prev.filter(id => id !== userId);
+      } else {
+        return [...prev, userId];
+      }
+    });
+  }, []);
 
-  const handleCreateChat = () => {
+  const handleCreateChat = useCallback(() => {
     if (currentUser && selectedUsers.length > 0) {
       const participants = [currentUser.id, ...selectedUsers];
       createChat(participants);
       setModalVisible(false);
       setSelectedUsers([]);
     }
-  };
+  }, [currentUser, selectedUsers, createChat]);
 
-  const renderEmptyComponent = () => (
+  const renderEmptyComponent = useCallback(() => (
     <ThemedView style={styles.emptyContainer}>
       <ThemedText style={styles.emptyText}>No chats yet</ThemedText>
       <ThemedText>Tap the + button to start a new conversation</ThemedText>
     </ThemedView>
+  ), []);
+
+  const renderChatItem = useCallback(({ item }: { item: any }) => (
+    <ChatListItem
+      chat={item}
+      currentUserId={currentUser?.id || ''}
+      users={users}
+    />
+  ), [currentUser?.id, users]);
+
+  const keyExtractor = useCallback((item: any) => item.id, []);
+
+  const renderUserItem = useCallback(({ item }: { item: any }) => (
+    <UserListItem
+      user={item}
+      onSelect={() => toggleUserSelection(item.id)}
+      isSelected={selectedUsers.includes(item.id)}
+    />
+  ), [toggleUserSelection, selectedUsers]);
+
+  const userKeyExtractor = useCallback((item: any) => item.id, []);
+
+  const filteredUsers = useMemo(() =>
+    users.filter(user => user.id !== currentUser?.id),
+    [users, currentUser?.id]
   );
+
+  const createButtonStyle = useMemo(() => [
+    styles.createButton,
+    selectedUsers.length === 0 && styles.disabledButton
+  ], [selectedUsers.length]);
+
+  const toggleModal = useCallback(() => {
+    setModalVisible(prev => !prev);
+    if (modalVisible) {
+      setSelectedUsers([]);
+    }
+  }, [modalVisible]);
+
+  const closeModal = useCallback(() => {
+    setModalVisible(false);
+    setSelectedUsers([]);
+  }, []);
+
+  // Función para generar chats de prueba masivos
+  const generateBulkChats = useCallback(async () => {
+    if (!currentUser) return;
+
+    // Mostrar feedback
+    alert('Generando 50 chats de prueba...');
+
+    // Obtener todos los usuarios disponibles excepto el actual
+    const otherUsers = users.filter(user => user.id !== currentUser.id);
+
+    if (otherUsers.length === 0) {
+      alert('No hay otros usuarios disponibles para crear chats.');
+      return;
+    }
+
+    // Generar chats con combinaciones aleatorias de usuarios
+    for (let i = 0; i < 50; i++) {
+      // Seleccionar entre 1 y 3 usuarios aleatorios para cada chat
+      const numUsers = Math.floor(Math.random() * 3) + 1;
+      const selectedUsers = [];
+
+      // Asegurarse de no seleccionar el mismo usuario más de una vez
+      const availableUsers = [...otherUsers];
+      for (let j = 0; j < numUsers && availableUsers.length > 0; j++) {
+        const randomIndex = Math.floor(Math.random() * availableUsers.length);
+        selectedUsers.push(availableUsers[randomIndex].id);
+        availableUsers.splice(randomIndex, 1);
+      }
+
+      // Crear el chat con el usuario actual y los seleccionados
+      const participants = [currentUser.id, ...selectedUsers];
+
+      try {
+        // Pequeña pausa para no bloquear la UI
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        const newChat = await createChat(participants);
+
+        // Generar algunos mensajes para este chat
+        if (newChat) {
+          const numMessages = Math.floor(Math.random() * 5) + 1;
+          const messages = [
+            "Hola, ¿cómo estás?",
+            "¿Qué tal todo?",
+            "Chat de prueba para rendimiento",
+            "Mensaje de test",
+            "¡Buen día!"
+          ];
+
+          for (let k = 0; k < numMessages; k++) {
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            const senderId = Math.random() > 0.5 ? currentUser.id : selectedUsers[0];
+
+            await new Promise(resolve => setTimeout(resolve, 20));
+            await sendMessage(newChat.id, `${randomMessage} (${i + 1}-${k + 1})`, senderId);
+          }
+        }
+      } catch (error) {
+        console.error("Error al crear chat de prueba:", error);
+      }
+    }
+
+    alert('¡50 chats de prueba generados con éxito!');
+  }, [currentUser, users, createChat, sendMessage]);
 
   return (
     <ThemedView style={styles.container}>
@@ -42,43 +154,62 @@ export default function ChatsScreen() {
         <ThemedText type="title">Chats</ThemedText>
         <Pressable
           style={styles.newChatButton}
-          onPress={() => setModalVisible(true)}
+          onPress={toggleModal}
         >
           <IconSymbol name="plus" size={24} color="#007AFF" />
         </Pressable>
       </ThemedView>
 
+      {/* Performance Monitor integrado en el flujo normal (no position absolute) */}
+      <ThemedView style={styles.performanceContainer}>
+        <PerformanceMonitor
+          initiallyVisible={true}
+          screenName="chats-list"
+          itemCount={chats.length}
+          itemLabel="Chats"
+          absolutePosition={false}
+        />
+      </ThemedView>
+
+      {/* Botón para reinicializar la base de datos (posición absoluta) */}
+      <DatabaseInitializer onComplete={() => {
+        // Recargar datos o reiniciar la visualización
+        alert('Base de datos reinicializada. Para ver los cambios, reinicia la aplicación.');
+      }} />
+
       <FlatList
         data={chats}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ChatListItem
-            chat={item}
-            currentUserId={currentUser?.id || ''}
-            users={users}
-          />
-        )}
+        keyExtractor={keyExtractor}
+        renderItem={renderChatItem}
         ListEmptyComponent={renderEmptyComponent}
         contentContainerStyle={styles.listContainer}
+
+        // Performance optimizations
+        windowSize={5}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
+        removeClippedSubviews={true}
+        initialNumToRender={10}
+
+        // Estimate each chat row height to be about 76 points
+        getItemLayout={(data, index) => ({
+          length: 76,
+          offset: 76 * index,
+          index,
+        })}
       />
 
       <Modal
         animationType="slide"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => {
-          setModalVisible(false);
-          setSelectedUsers([]);
-        }}
+        onRequestClose={closeModal}
       >
         <ThemedView style={styles.modalContainer}>
           <ThemedView style={styles.modalContent}>
             <ThemedView style={styles.modalHeader}>
               <ThemedText type="subtitle">New Chat</ThemedText>
-              <Pressable onPress={() => {
-                setModalVisible(false);
-                setSelectedUsers([]);
-              }}>
+              <Pressable onPress={closeModal}>
                 <IconSymbol name="xmark" size={24} color="#007AFF" />
               </Pressable>
             </ThemedView>
@@ -88,23 +219,28 @@ export default function ChatsScreen() {
             </ThemedText>
 
             <FlatList
-              data={users.filter(user => user.id !== currentUser?.id)}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <UserListItem
-                  user={item}
-                  onSelect={() => toggleUserSelection(item.id)}
-                  isSelected={selectedUsers.includes(item.id)}
-                />
-              )}
+              data={filteredUsers}
+              keyExtractor={userKeyExtractor}
+              renderItem={renderUserItem}
               style={styles.userList}
+
+              // Performance optimizations
+              windowSize={5}
+              maxToRenderPerBatch={10}
+              updateCellsBatchingPeriod={50}
+              removeClippedSubviews={true}
+              initialNumToRender={10}
+
+              // Estimate each user row height to be about 60 points
+              getItemLayout={(data, index) => ({
+                length: 60,
+                offset: 60 * index,
+                index,
+              })}
             />
 
             <Pressable
-              style={[
-                styles.createButton,
-                selectedUsers.length === 0 && styles.disabledButton
-              ]}
+              style={createButtonStyle}
               onPress={handleCreateChat}
               disabled={selectedUsers.length === 0}
             >
@@ -196,5 +332,23 @@ const styles = StyleSheet.create({
   createButtonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  bulkGeneratorButton: {
+    backgroundColor: '#FF9500',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignSelf: 'center',
+    marginBottom: 8,
+  },
+  bulkGeneratorText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  performanceContainer: {
+    marginBottom: 10,
+    width: '100%',
+    alignItems: 'center',
   },
 });

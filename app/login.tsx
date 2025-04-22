@@ -11,9 +11,14 @@ export default function LoginScreen() {
   const { users, login } = useAppContext();
   const router = useRouter();
 
-  const handleUserSelect = (userId: string) => {
-    if (login(userId)) {
-      router.replace('/(tabs)');
+  const handleUserSelect = async (userId: string) => {
+    try {
+      const success = await login(userId);
+      if (success) {
+        router.replace('/(tabs)');
+      }
+    } catch (error) {
+      console.error("Error al iniciar sesión:", error);
     }
   };
 
@@ -27,7 +32,7 @@ export default function LoginScreen() {
             Select a user to continue
           </ThemedText>
         </ThemedView>
-        
+
         <FlatList
           data={users}
           keyExtractor={(item) => item.id}
@@ -38,6 +43,20 @@ export default function LoginScreen() {
             />
           )}
           contentContainerStyle={styles.listContainer}
+
+          // Performance optimizations
+          windowSize={5}
+          maxToRenderPerBatch={10}
+          updateCellsBatchingPeriod={50}
+          removeClippedSubviews={true}
+          initialNumToRender={10}
+
+          // Estimate each user row height to be about 60 points
+          getItemLayout={(data, index) => ({
+            length: 60,
+            offset: 60 * index,
+            index,
+          })}
         />
       </ThemedView>
     </SafeAreaView>
