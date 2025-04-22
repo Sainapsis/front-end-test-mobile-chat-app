@@ -18,7 +18,7 @@ function useProtectedRoute(isLoggedIn: boolean, loading: boolean) {
 
   useEffect(() => {
     if (loading) return; // Don't redirect during loading
-    
+
     const inAuthGroup = segments[0] === 'login';
     
     if (!isLoggedIn && !inAuthGroup) {
@@ -41,13 +41,13 @@ function RootLayoutNav() {
     <>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen 
-          name="login" 
-          options={{ headerShown: false, gestureEnabled: false }} 
+        <Stack.Screen
+          name="login"
+          options={{ headerShown: false, gestureEnabled: false }}
         />
-        <Stack.Screen 
-          name="ChatRoom" 
-          options={{ headerShown: true }} 
+        <Stack.Screen
+          name="ChatRoom"
+          options={{ headerShown: true }}
         />
         <Stack.Screen name="+not-found" />
       </Stack>

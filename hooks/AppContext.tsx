@@ -1,45 +1,79 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useUser, User } from './useUser';
-import { useChats, Chat } from './useChats';
+import { Chat } from './useChats';
 import { DatabaseProvider } from '../database/DatabaseProvider';
-import { useDatabase } from './useDatabase';
+import { useChatsDb } from './db/useChatsDb';
 
-type AppContextType = {
-  users: User[];
+export interface AppContextType {
   currentUser: User | null;
+  users: User[];
+  chats: Chat[];
+  sendMessage: (chatId: string, text: string, senderId: string, imageUrl?: string, voiceUrl?: string, isForwarded?: boolean) => Promise<boolean>;
+  markMessagesAsRead: (chatId: string, userId: string) => Promise<void>;
+  addReaction: (messageId: string, userId: string, reaction: string) => Promise<void>;
+  removeReaction: (messageId: string, userId: string) => Promise<void>;
+  createChat: (participants: string[], isGroup: boolean, groupName?: string) => Promise<Chat | null>;
+  editMessage: (messageId: string, newText: string) => Promise<void>;
+  deleteMessage: (messageId: string, userId: string, deleteForEveryone: boolean) => Promise<void>;
+  deleteChat: (chatId: string) => Promise<void>;
+  deleteAllMessages: (chatId: string) => Promise<void>;
+  loadMoreMessages: (chatId: string) => Promise<void>;
+  hasMoreMessages: Record<string, boolean>;
+  loadingMore: boolean;
+  loading: boolean;
   isLoggedIn: boolean;
   login: (userId: string) => Promise<boolean>;
   logout: () => void;
-  chats: Chat[];
-  createChat: (participantIds: string[]) => Promise<Chat | null>;
-  sendMessage: (chatId: string, text: string, senderId: string) => Promise<boolean>;
-  loading: boolean;
-  dbInitialized: boolean;
-};
+  loadUsers: () => Promise<void>;
+}
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-function AppContent({ children }: { children: ReactNode }) {
-  const { isInitialized } = useDatabase();
-  const userContext = useUser();
-  const chatContext = useChats(userContext.currentUser?.id || null);
-  
-  const loading = !isInitialized || userContext.loading || chatContext.loading;
-
-  const value = {
-    ...userContext,
-    ...chatContext,
-    loading,
-    dbInitialized: isInitialized,
-  };
-
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
-}
-
 export function AppProvider({ children }: { children: ReactNode }) {
+  const { currentUser, users, isLoggedIn, login, logout, loadUsers } = useUser();
+  const {
+    chats,
+    sendMessage,
+    markMessagesAsRead,
+    addReaction,
+    removeReaction,
+    createChat,
+    editMessage,
+    deleteMessage,
+    deleteChat,
+    deleteAllMessages,
+    loadMoreMessages,
+    hasMoreMessages,
+    loadingMore,
+    loading
+  } = useChatsDb(currentUser?.id || null);
+
   return (
     <DatabaseProvider>
-      <AppContent>{children}</AppContent>
+      <AppContext.Provider value={{
+        currentUser,
+        users,
+        chats,
+        sendMessage,
+        markMessagesAsRead,
+        addReaction,
+        removeReaction,
+        createChat,
+        editMessage,
+        deleteMessage,
+        deleteChat,
+        deleteAllMessages,
+        loadMoreMessages,
+        hasMoreMessages,
+        loadingMore,
+        loading,
+        isLoggedIn,
+        login,
+        logout,
+        loadUsers
+      }}>
+        {children}
+      </AppContext.Provider>
     </DatabaseProvider>
   );
 }

@@ -1,54 +1,451 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { ThemedText } from './ThemedText';
-import { Message } from '@/hooks/useChats';
-import { useColorScheme } from '@/hooks/useColorScheme';
+/**
+ * MessageBubble Component
+ * 
+ * A versatile component that renders individual chat messages with support for various message types
+ * and interactive features. This component handles text messages, images, voice messages, and provides
+ * functionality for message reactions, editing, and deletion.
+ * 
+ * Features:
+ * - Supports text, image, and voice message types
+ * - Handles message reactions and reaction menu
+ * - Shows delivery status indicators
+ * - Supports message selection and highlighting
+ * - Displays sender information in group chats
+ * - Handles deleted messages
+ * - Supports message forwarding
+ * - Integrates with the app's theme system
+ */
 
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, Image, Pressable, Modal } from 'react-native';
+import { ThemedText } from './ThemedText';
+import { ThemedView } from './ThemedView';
+import { IconSymbol } from './ui/IconSymbol';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { MessageReactions } from './MessageReactions';
+import { ReactionMenu } from './ReactionMenu';
+import { Colors } from '@/constants/Colors';
+import { useAppContext } from '@/hooks/AppContext';
+import { Audio, AVPlaybackStatus } from 'expo-av';
+import { ImagePreviewModal } from './modals/ImagePreviewModal';
+import * as Haptics from 'expo-haptics';
+import { Avatar } from './Avatar';
+import { User } from '@/hooks/useUser';
+
+/**
+ * Props interface for the MessageBubble component
+ * 
+ * @property message - The message object containing all message data
+ * @property user - Optional user object for group chat sender information
+ * @property isCurrentUser - Whether the message is from the current user
+ * @property isSelected - Whether the message is currently selected
+ * @property onSelect - Callback for message selection
+ * @property onReactionPress - Callback for reaction selection
+ * @property onRemoveReaction - Callback for reaction removal
+ * @property selectedMessages - Array of currently selected messages
+ * @property isGroup - Whether the chat is a group chat
+ * @property highlightText - Text to highlight in the message
+ * @property isHighlighted - Whether the message should be highlighted
+ */
 interface MessageBubbleProps {
-  message: Message;
+  message: {
+    id: string;
+    senderId: string;
+    text: string;
+    imageUrl?: string;
+    voiceUrl?: string;
+    timestamp?: number;
+    delivery_status?: 'sending' | 'sent' | 'delivered' | 'read';
+    is_read?: boolean;
+    reactions?: Record<string, string>;
+    is_edited?: boolean;
+    isDeleted?: boolean;
+    deletedFor?: string[];
+    review?: boolean;
+    isForwarded?: boolean;
+    senderName?: string;
+    senderAvatar?: string;
+    isGroup?: boolean;
+  };
+  user?: User;
   isCurrentUser: boolean;
+  isSelected?: boolean;
+  onSelect?: (messageId: string) => void;
+  onReactionPress?: (messageId: string, reaction: string) => void;
+  onRemoveReaction?: (messageId: string) => void;
+  onEdit?: (messageId: string, newText: string) => void;
+  selectedMessages: { messageId: string; senderId: string }[];
+  selectedCount?: number;
+  isGroup?: boolean;
+  highlightText?: string;
+  isHighlighted?: boolean;
 }
 
-export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+/**
+ * MessageBubble Component Implementation
+ * 
+ * Renders a chat message bubble with support for:
+ * - Text messages with formatting and highlighting
+ * - Image messages with preview functionality
+ * - Voice messages with playback controls
+ * - Message reactions and reaction menu
+ * - Delivery status indicators
+ * - Sender information in group chats
+ * - Message selection and highlighting
+ */
+export function MessageBubble({
+  message,
+  isCurrentUser,
+  isSelected,
+  onSelect,
+  onReactionPress,
+  onRemoveReaction,
+  selectedMessages,
+  isGroup,
+  user,
+  highlightText,
+  isHighlighted,
+}: MessageBubbleProps) {
+  const isDark = useColorScheme() === 'dark';
+  const [showReactionMenu, setShowReactionMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+  const { currentUser } = useAppContext();
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(0);
+  const [showImagePreview, setShowImagePreview] = useState(false);
+  
+  useEffect(() => {
+    const loadAudioDuration = async () => {
+      if (!message.voiceUrl) return;
+
+      try {
+        const { sound: newSound } = await Audio.Sound.createAsync(
+          { uri: message.voiceUrl },
+          { shouldPlay: false }
+        );
+
+        newSound.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
+          if (status.isLoaded && status.durationMillis) {
+            setTotalDuration(status.durationMillis);
+            newSound.unloadAsync();
+          }
+        });
+      } catch (error) {
+        console.error('Error loading audio duration:', error);
+      }
+    };
+
+    loadAudioDuration();
+
+    return () => {
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
+  }, [message.voiceUrl]);
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  return (
-    <View style={[
-      styles.container,
-      isCurrentUser ? styles.selfContainer : styles.otherContainer
-    ]}>
-      <View style={[
-        styles.bubble,
-        isCurrentUser 
-          ? [styles.selfBubble, { backgroundColor: isDark ? '#235A4A' : '#DCF8C6' }]
-          : [styles.otherBubble, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }]
-      ]}>
-        <ThemedText style={[
-          styles.messageText,
-          isCurrentUser && !isDark && styles.selfMessageText
-        ]}>
-          {message.text}
-        </ThemedText>
-        <View style={styles.timeContainer}>
-          <ThemedText style={styles.timeText}>
-            {formatTime(message.timestamp)}
-          </ThemedText>
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getDeliveryStatusIcon = () => {
+    if (!isCurrentUser) return null;
+
+    if (message.is_read) {
+      return (
+        <View style={styles.doubleCheck}>
+          <IconSymbol name="checkmark" size={12} color="#34C759" />
+          <IconSymbol name="checkmark" size={12} color="#34C759" />
         </View>
+      );
+    }
+
+    switch (message.delivery_status) {
+      case 'sending':
+        return <IconSymbol name="clock" size={12} color={isDark ? '#8F8F8F' : '#666666'} />;
+      case 'sent':
+        return <IconSymbol name="checkmark" size={12} color={isDark ? '#8F8F8F' : '#666666'} />;
+      case 'delivered':
+        return (
+          <View style={styles.doubleCheck}>
+            <IconSymbol name="checkmark" size={12} color={isDark ? '#8F8F8F' : '#666666'} />
+            <IconSymbol name="checkmark" size={12} color={isDark ? '#8F8F8F' : '#666666'} />
+          </View>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const handleLongPress = (event: any) => {
+    const { pageX, pageY } = event.nativeEvent;
+    setMenuPosition({ x: pageX, y: pageY });
+    setShowReactionMenu(true);
+    onSelect?.(message.id);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  };
+
+  const handlePress = () => {
+    if (selectedMessages.length >= 1) {
+      const isAlreadySelected = selectedMessages.some(
+        selected => selected.messageId === message.id && selected.senderId === message.senderId
+      );
+      if (isAlreadySelected) {
+        onSelect?.(message.id);
+      } else {
+        onSelect?.(message.id);
+      }
+    } else {
+      message.imageUrl && setShowImagePreview(true);
+    }
+  };
+
+  const handleReactionSelect = (reaction: string) => {
+    if (onReactionPress) {
+      onReactionPress(message.id, reaction);
+    }
+    setShowReactionMenu(false);
+  };
+
+  const handleRemoveReaction = () => {
+    if (onRemoveReaction && isCurrentUser) {
+      onRemoveReaction(message.id);
+    }
+    setShowReactionMenu(false);
+  };
+
+  const getCurrentReaction = () => {
+    if (!message.reactions || !message.senderId) return undefined;
+    const reaction = message.reactions[message.senderId];
+    return reaction || undefined;
+  };
+
+  const playSound = async () => {
+    if (!message.voiceUrl) return;
+
+    try {
+      if (sound) {
+        await sound.unloadAsync();
+      }
+
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri: message.voiceUrl },
+        { shouldPlay: true }
+      );
+      setSound(newSound);
+
+      newSound.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
+        if (status.isLoaded && status.durationMillis) {
+          setIsPlaying(status.isPlaying);
+          setProgress(status.positionMillis / status.durationMillis);
+          if (status.didJustFinish) {
+            setIsPlaying(false);
+            setProgress(0);
+          }
+        }
+      });
+
+      await newSound.playAsync();
+    } catch (error) {
+      console.error('Error playing sound:', error);
+    }
+  };
+
+  const stopSound = async () => {
+    if (sound) {
+      await sound.stopAsync();
+      setIsPlaying(false);
+    }
+  };
+  if (currentUser && message.deletedFor?.includes(currentUser.id)) {
+    return (null);
+  }
+
+  if (message.isDeleted) {
+    return (
+      <View style={[styles.container]}>
+        <ThemedView style={[
+          styles.bubble,
+          styles.deletedMessage,
+          styles.bubbleWidth,
+          isCurrentUser ? styles.selfContainer : styles.otherContainer,
+          { backgroundColor: isDark ? '#999999' : '#E1E1E1' }
+        ]}>
+          <ThemedText style={{ ...styles.deletedText, color: Colors[isDark ? 'dark' : 'light'].text }}>Message deleted</ThemedText>
+        </ThemedView>
       </View>
-    </View>
+    );
+  }
+  if (message.voiceUrl) {
+    return (
+      <Pressable
+        onPress={handlePress}
+        onLongPress={handleLongPress}
+        style={[styles.container, isSelected && styles.selectedMessage]}
+      >
+        <ThemedView style={[
+          styles.bubble,
+          styles.bubbleWidth,
+          isCurrentUser
+            ? [styles.selfBubble, styles.selfContainer, { backgroundColor: isDark ? '#235A4A' : '#DCF8C6' }]
+            : [styles.otherBubble, styles.otherContainer, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }],
+        ]}>
+          <View style={styles.voiceMessageContainer}>
+            <Pressable onPress={isPlaying ? stopSound : playSound}>
+              <IconSymbol
+                name={isPlaying ? 'stop.circle.fill' : 'play.circle.fill'}
+                size={32}
+                color={isCurrentUser ? '#007AFF' : '#34C759'}
+              />
+            </Pressable>
+            <View style={styles.voiceMessageInfo}>
+              <View style={styles.progressBarContainer}>
+                <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
+              </View>
+              <View style={styles.voiceMessageDetails}>
+                <ThemedText style={styles.voiceMessageDuration}>
+                  {formatDuration(Math.floor(totalDuration * progress / 1000))} / {formatDuration(Math.floor(totalDuration / 1000))}
+                </ThemedText>
+                {isCurrentUser && (
+                  <View style={styles.timeContainer}>
+                    <ThemedText style={styles.timeText}>
+                      {message.timestamp ? formatTime(message.timestamp) : ''}
+                    </ThemedText>
+                    {getDeliveryStatusIcon()}
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
+        </ThemedView>
+      </Pressable>
+    );
+  }
+  return (
+    <>
+      <Pressable
+        onPress={handlePress}
+        onLongPress={handleLongPress}
+        style={[styles.container, isSelected && styles.selectedMessage]}
+      >
+        {!isCurrentUser && isGroup && user && (
+          <View style={styles.senderInfo}>
+            <Avatar
+              user={{
+                id: user.id,
+                name: user.name,
+                avatar: user.avatar || '',
+                status: user.status || 'offline'
+              }}
+              size={24}
+            />
+            <ThemedText style={styles.senderName}>{user.name || 'Unknown'}</ThemedText>
+          </View>
+        )}
+        <ThemedView style={[
+          styles.bubble,
+          styles.bubbleWidth,
+          isCurrentUser
+            ? [styles.selfBubble, styles.selfContainer, { backgroundColor: isDark ? '#235A4A' : '#DCF8C6' }]
+            : [styles.otherBubble, styles.otherContainer, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }],
+        ]}>
+          {message.imageUrl && (
+            <Image
+              source={{ uri: message.imageUrl }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+          )}
+          {message.text && (
+            <ThemedText style={[
+              styles.messageText,
+              isCurrentUser && !isDark && styles.selfMessageText,
+              isHighlighted && styles.highlightedMessage
+            ]}>
+              {highlightText && message.text ? (
+                message.text.split(new RegExp(`(${highlightText})`, 'gi')).map((part, i) => 
+                  part.toLowerCase() === highlightText.toLowerCase() ? (
+                    <ThemedText key={i} style={styles.highlightedText}>{part}</ThemedText>
+                  ) : part
+                )
+              ) : message.text}
+            </ThemedText>
+          )}
+          <View style={styles.timeContainer}>
+            <ThemedText style={styles.timeText}>
+              {message.timestamp ? formatTime(message.timestamp) : ''}
+            </ThemedText>
+            {message.isForwarded ? (
+              <ThemedText style={styles.editedText}>
+                Forwarded
+              </ThemedText>
+            ) : message.is_edited && (
+              <ThemedText style={styles.editedText}>
+                Edited
+              </ThemedText>
+            )}
+            {isCurrentUser && message.delivery_status && (
+              <View style={styles.statusContainer}>
+                {getDeliveryStatusIcon()}
+              </View>
+            )}
+          </View>
+        </ThemedView>
+        {message.reactions && (
+          <View style={isCurrentUser ? styles.reactionsContainerSelf : styles.reactionsContainerOther}>
+            <MessageReactions
+              reactions={message.reactions}
+              onReactionPress={(reaction) => onReactionPress?.(message.id, reaction)}
+            />
+          </View>
+        )}
+      </Pressable>
+
+      <Modal
+        visible={showReactionMenu && selectedMessages.length === 1 && selectedMessages[0].messageId === message.id}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowReactionMenu(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowReactionMenu(false)}
+        >
+          <View style={[styles.menuContainer, { top: menuPosition.y }]}>
+            <ReactionMenu
+              onReactionSelect={handleReactionSelect}
+              onRemoveReaction={handleRemoveReaction}
+              currentReaction={getCurrentReaction()}
+            />
+          </View>
+        </Pressable>
+      </Modal>
+
+      <ImagePreviewModal
+        visible={showImagePreview}
+        onClose={() => setShowImagePreview(false)}
+        imageUrl={message.imageUrl || ''}
+      />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     marginVertical: 4,
-    maxWidth: '80%',
+    width: '100%',
+  },
+  bubbleWidth: {
+    maxWidth: '85%',
   },
   selfContainer: {
     alignSelf: 'flex-end',
@@ -62,7 +459,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     elevation: 1,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
     shadowRadius: 1,
   },
   selfBubble: {
@@ -70,6 +466,14 @@ const styles = StyleSheet.create({
   },
   otherBubble: {
     borderBottomLeftRadius: 4,
+  },
+  image: {
+    minWidth: "100%",
+    maxWidth: '100%',
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 8,
+    resizeMode: 'cover',
   },
   messageText: {
     fontSize: 16,
@@ -80,10 +484,134 @@ const styles = StyleSheet.create({
   timeContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    alignItems: 'center',
     marginTop: 2,
   },
   timeText: {
     fontSize: 11,
     opacity: 0.7,
+    marginRight: 4,
+  },
+  statusContainer: {
+    marginLeft: 4,
+  },
+  editedText: {
+    fontSize: 11,
+    opacity: 0.7,
+    marginRight: 4,
+    fontStyle: 'italic'
+  },
+  doubleCheck: {
+    flexDirection: 'row',
+    gap: 2,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  menuContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    transform: [{ translateY: -50 }],
+    backgroundColor: 'transparent',
+  },
+  selectedMessage: {
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+  },
+  editContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 10,
+    marginRight: 10,
+  },
+  editButtons: {
+    flexDirection: 'row',
+  },
+  editButton: {
+    padding: 5,
+  },
+  optionsContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.light.background,
+    borderRadius: 10,
+    padding: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  optionButton: {
+    padding: 5,
+  },
+  deletedMessage: {
+    opacity: 0.5,
+  },
+  deletedText: {
+    fontStyle: 'italic',
+    color: '#666666',
+  },
+  reactionsContainerSelf: {
+    alignSelf: 'flex-end',
+    marginTop: -4,
+  },
+  reactionsContainerOther: {
+    alignSelf: 'flex-start',
+    marginTop: -4,
+  },
+  voiceMessageContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    width: '100%',
+  },
+  voiceMessageInfo: {
+    flex: 1,
+  },
+  progressBarContainer: {
+    height: 4,
+    backgroundColor: '#E1E1E1',
+    borderRadius: 2,
+    marginBottom: 4,
+    marginTop: 10,
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#007AFF',
+    borderRadius: 2,
+  },
+  voiceMessageDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  voiceMessageDuration: {
+    fontSize: 12,
+  },
+  senderInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    marginLeft: 8,
+  },
+  senderName: {
+    fontSize: 12,
+    marginLeft: 8,
+    opacity: 0.7,
+  },
+  highlightedMessage: {
+    backgroundColor: 'rgba(255, 213, 0, 0.1)',
+  },
+  highlightedText: {
+    backgroundColor: 'rgba(255, 213, 0, 0.4)',
+    borderRadius: 2,
   },
 }); 

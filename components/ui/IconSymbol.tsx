@@ -3,16 +3,45 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { SymbolWeight } from 'expo-symbols';
 import React from 'react';
-import { OpaqueColorValue, StyleProp, ViewStyle } from 'react-native';
+import { OpaqueColorValue, StyleProp, TextStyle } from 'react-native';
 
 // Add your SFSymbol to MaterialIcons mappings here.
 const MAPPING = {
   // See MaterialIcons here: https://icons.expo.fyi
   // See SF Symbols in the SF Symbols app on Mac.
+  'bubble.left.and.bubble.right': 'message',
+  'message.fill': 'message',
+  'person.fill': 'person',
   'house.fill': 'home',
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'plus': 'add',
+  'arrow.up.circle.fill': 'arrow-upward',
+  'chevron.left': 'chevron-left',
+  'photo': 'photo',
+  'checkmark': 'check',
+  'clock': 'access-time',
+  'checkmark.circle': 'check-circle',
+  'checkmark.circle.fill': 'check-circle-outline',
+  'magnifyingglass': 'search',
+  'xmark': 'close',
+  'face.smiling': 'add-reaction',
+  'trash': 'delete',
+  'pencil': 'edit',
+  'mic': 'mic',
+  'stop.circle.fill': 'stop',
+  'play.circle.fill': 'play-circle',
+  'xmark.circle.fill': 'close',
+  'arrowshape.turn.up.right': 'share',
+  'person.2': 'group',
+  'arrow.right.square': 'logout',
+  'camera': 'camera',
+  'ellipsis.circle': 'more-vert',
+  'person': 'person',
+  'chevron.up': 'keyboard-arrow-up',
+  'chevron.down': 'keyboard-arrow-down',
+  'chevron.backward': 'arrow-back',
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],
@@ -36,7 +65,7 @@ export function IconSymbol({
   name: IconSymbolName;
   size?: number;
   color: string | OpaqueColorValue;
-  style?: StyleProp<ViewStyle>;
+  style?: StyleProp<TextStyle>;
   weight?: SymbolWeight;
 }) {
   return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;

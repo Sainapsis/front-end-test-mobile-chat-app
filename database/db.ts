@@ -17,14 +17,17 @@ export async function initializeDatabase() {
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         avatar TEXT NOT NULL,
-        status TEXT NOT NULL
+        status TEXT NOT NULL DEFAULT 'offline'
       );
     `);
     
     console.log('Creating chats table...');
     await sqlite.execAsync(`
       CREATE TABLE IF NOT EXISTS chats (
-        id TEXT PRIMARY KEY
+        id TEXT PRIMARY KEY,
+        is_group INTEGER NOT NULL DEFAULT 0,
+        group_name TEXT,
+        deleted_for TEXT DEFAULT '[]'
       );
     `);
     
@@ -45,6 +48,16 @@ export async function initializeDatabase() {
         chat_id TEXT NOT NULL,
         sender_id TEXT NOT NULL,
         text TEXT NOT NULL,
+        image_url TEXT,
+        voice_url TEXT,
+        message_type TEXT NOT NULL DEFAULT 'text', -- text, image, voice
+        is_edited INTEGER NOT NULL DEFAULT 0,
+        is_forwarded INTEGER NOT NULL DEFAULT 0,
+        is_deleted INTEGER NOT NULL DEFAULT 0,
+        deleted_for TEXT DEFAULT '[]',
+        is_read INTEGER NOT NULL DEFAULT 0, -- 0: unread, 1: read
+        delivery_status TEXT NOT NULL DEFAULT 'sending', -- sending, sent, delivered, read
+        reactions TEXT, -- JSON string of reactions {userId: reaction}
         timestamp INTEGER NOT NULL,
         FOREIGN KEY (chat_id) REFERENCES chats (id)
       );
