@@ -1,83 +1,37 @@
-import React, { useEffect } from 'react';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack, usePathname, useSegments, useRouter } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
+import React from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { ThemeProvider } from '@/context/ThemeContext';
+import { useTheme } from '@/context/ThemeContext';
+import { commonStyles } from '@/design_system/ui/styles';
+import { AppProvider } from '@/context/AppContext';
+import { AppInitializer } from '@/components/providers/AppInitializer';
+import { RootNavigation } from '@/components/navigation/RootNavigation';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { View } from 'react-native';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { AppProvider, useAppContext } from '@/hooks/AppContext';
-import { DrizzleStudioDevTool } from '@/database/DrizzleStudio';
-
-SplashScreen.preventAutoHideAsync();
-
-function useProtectedRoute(isLoggedIn: boolean, loading: boolean) {
-  const segments = useSegments();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (loading) return; // Don't redirect during loading
-    
-    const inAuthGroup = segments[0] === 'login';
-    
-    if (!isLoggedIn && !inAuthGroup) {
-      // Redirect to the login page if not logged in
-      router.replace('/login');
-    } else if (isLoggedIn && inAuthGroup) {
-      // Redirect to the home page if logged in and trying to access login page
-      router.replace('/(tabs)');
-    }
-  }, [isLoggedIn, segments, loading]);
-}
-
-function RootLayoutNav() {
-  const { isLoggedIn, loading } = useAppContext();
-
-  // Call the hook unconditionally
-  useProtectedRoute(isLoggedIn, loading);
-
-  return (
-    <>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen 
-          name="login" 
-          options={{ headerShown: false, gestureEnabled: false }} 
-        />
-        <Stack.Screen 
-          name="ChatRoom" 
-          options={{ headerShown: true }} 
-        />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      {__DEV__ && <DrizzleStudioDevTool />}
-    </>
-  );
-}
-
+/**
+ * Root layout component that wraps the entire application with necessary providers
+ * and sets up the navigation theme and status bar
+ */
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
+  const { theme } = useTheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AppProvider>
-        <RootLayoutNav />
-        <StatusBar style="auto" />
-      </AppProvider>
+    <ThemeProvider>
+      <View style={commonStyles.container}>
+        <GestureHandlerRootView style={commonStyles.gestureContainer}>
+          <NavigationThemeProvider value={theme === 'dark' ? DarkTheme : DefaultTheme}>
+            <AppProvider>
+              <AppInitializer>
+                <RootNavigation />
+                <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+              </AppInitializer>
+            </AppProvider>
+          </NavigationThemeProvider>
+        </GestureHandlerRootView>
+      </View>
     </ThemeProvider>
   );
 }
