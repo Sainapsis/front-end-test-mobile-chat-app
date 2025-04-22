@@ -35,43 +35,28 @@ Please make sure to **document your task selection, implementation details, and 
 > ⚠️ A common pitfall we've seen is **overscoping** — putting in a lot of effort across too many tasks, which leads to rushed or unfocused results.  
 > This test is **very doable in just a few focused hours** if scped and approached smartly with one goal in mind, showcase your code simplicity and quality, thats it.
 
-### Feature Additions
+### Code Quality & Architecture
+
+- [ ] Question the implementation of the architecture from the AppContext.ts, hooks, etc. Remember, this architecture was made by the IA with low to none suppervision, so dont extend actual code without thinking about it, instead refactor it to start using better practices for that you see fit. This is possible the most important thing to have in mind and you can implement it gradually (while attacking other tasks but questioning at all time what to refactor and what to extend as is.)
+
+### Performance Improvements (extra points for anything regarding data management improvement since this is a offline first app and its important to use the localDb wisely)
+
+- [ ] Optimize message list rendering with virtualization
+- [ ] Add pagination for loading older messages
+- [ ] Optimize database queries and state management
+- [ ] Implement proper memory management for media content
+
+### Feature Additions (rmember, we encourgae you to tackle just some challinging features instead of lots os easy ones, choose the difficult over easy the easy ones also to better showcase your skills)
 
 - [ ] Add media sharing capabilities (photos preferably, with a optimized/compressed preview instead of the original image)
 - [ ] Add read receipts for messages along with status indicators (sent, read)
-- [ ] Implement message reactions (emoji responses, easy but still gets points)
-- [ ] Create group chat creation and management
-- [ ] Implement message search functionality
 - [ ] Add message deletion and editing
-- [ ] Add voice messages (recording/playing)
-- [ ] Implement message forwarding
-
-### Performance Improvements
-
-- [ ] Optimize message list rendering with virtualization
-- [ ] Optimize database queries and state management
-- [ ] Implement proper memory management for media content
-- [ ] Add pagination for loading older messages
-
-### Code Quality & Architecture
-
-- [ ] Implement comprehensive unit and integration tests
-- [ ] Refactor components for better reusability
-- [ ] Implement proper logging and monitoring
+- [ ] Implement message search functionality
 
 ### Bug Fixes
 
 - [ ] Fix message ordering in chat rooms (newest messages should appear at the bottom, next to the input box)
 - [ ] Resolve keyboard or other components overlap issues on different device sizes
-
-### UI/UX Enhancements
-
-- [ ] Implement dark mode support
-- [ ] Improve loading states and skeleton screens
-- [ ] Enhance accessibility features (screen reader support, contrast)
-- [ ] Add haptic feedback for important actions
-- [ ] Improve empty state designs (no messages, no chats)
-- [ ] Implement smoother animations and transitions
 
 ## Assessment Criteria
 
