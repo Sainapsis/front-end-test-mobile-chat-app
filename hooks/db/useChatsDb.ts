@@ -1,184 +1,120 @@
 import { useState, useEffect, useCallback } from 'react';
-import { db } from '../../database/db';
-import { chats, chatParticipants, messages } from '../../database/schema';
-import { eq, and, desc, sql } from 'drizzle-orm';
-
-export interface Message {
-  id: string;
-  senderId: string;
-  text: string;
-  timestamp: number;
-}
-
-export interface Chat {
-  id: string;
-  participants: string[];
-  messages: Message[];
-  lastMessage?: Message;
-}
+import { useDatabaseStatus } from '../../database/DatabaseProvider';
+import { Chat, Media } from '@/interfaces/chatTypes';
+import { ChatRepository } from '@/database/repositories/ChatRepository';
+import { ChatError } from '@/interfaces/chatRepository';
 
 export function useChatsDb(currentUserId: string | null) {
   const [userChats, setUserChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isInitialized } = useDatabaseStatus();
+  const chatRepository = new ChatRepository();
 
-  // Load chats for the current user
+  const handleError = (error: unknown, action: string) => {
+    if (error instanceof ChatError) {
+      console.error(`Error al ${action}: ${error.message}`);
+    } else {
+      console.error(`Error desconocido al ${action}:`, error);
+    }
+  };
+
+  const loadChats = useCallback(async () => {
+    if (!isInitialized || !currentUserId) {
+      setUserChats([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const chats = await chatRepository.loadChats(currentUserId);
+      setUserChats(chats);
+    } catch (error) {
+      handleError(error, 'cargar chats');
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUserId, isInitialized]);
+
   useEffect(() => {
-    const loadChats = async () => {
-      if (!currentUserId) {
-        setUserChats([]);
-        setLoading(false);
-        return;
-      }
-      
-      try {
-        // Get chat IDs where the user is a participant
-        const participantRows = await db
-          .select()
-          .from(chatParticipants)
-          .where(eq(chatParticipants.userId, currentUserId));
-          
-        const chatIds = participantRows.map(row => row.chatId);
-        
-        if (chatIds.length === 0) {
-          setUserChats([]);
-          setLoading(false);
-          return;
-        }
-        
-        // Build the complete chat objects
-        const loadedChats: Chat[] = [];
-        
-        for (const chatId of chatIds) {
-          // Get the chat
-          const chatData = await db
-            .select()
-            .from(chats)
-            .where(eq(chats.id, chatId));
-            
-          if (chatData.length === 0) continue;
-          
-          // Get participants
-          const participantsData = await db
-            .select()
-            .from(chatParticipants)
-            .where(eq(chatParticipants.chatId, chatId));
-            
-          const participantIds = participantsData.map(p => p.userId);
-          
-          // Get messages
-          const messagesData = await db
-            .select()
-            .from(messages)
-            .where(eq(messages.chatId, chatId))
-            .orderBy(messages.timestamp);
-            
-          const chatMessages = messagesData.map(m => ({
-            id: m.id,
-            senderId: m.senderId,
-            text: m.text,
-            timestamp: m.timestamp,
-          }));
-          
-          // Determine last message
-          const lastMessage = chatMessages.length > 0 
-            ? chatMessages[chatMessages.length - 1] 
-            : undefined;
-          
-          loadedChats.push({
-            id: chatId,
-            participants: participantIds,
-            messages: chatMessages,
-            lastMessage,
-          });
-        }
-        
-        setUserChats(loadedChats);
-      } catch (error) {
-        console.error('Error loading chats:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     loadChats();
-  }, [currentUserId]);
+  }, [loadChats]);
 
   const createChat = useCallback(async (participantIds: string[]) => {
-    if (!currentUserId || !participantIds.includes(currentUserId)) {
-      return null;
-    }
-    
+    if (!currentUserId || !participantIds.includes(currentUserId)) return null;
+
     try {
-      const chatId = `chat${Date.now()}`;
-      
-      // Insert new chat
-      await db.insert(chats).values({
-        id: chatId,
-      });
-      
-      // Insert participants
-      for (const userId of participantIds) {
-        await db.insert(chatParticipants).values({
-          id: `cp-${chatId}-${userId}`,
-          chatId: chatId,
-          userId: userId,
-        });
-      }
-      
-      const newChat: Chat = {
-        id: chatId,
-        participants: participantIds,
-        messages: [],
-      };
-      
-      setUserChats(prevChats => [...prevChats, newChat]);
+      const newChat = await chatRepository.createChat(participantIds);
+      if (newChat) setUserChats(prevChats => [...prevChats, newChat]);
       return newChat;
     } catch (error) {
-      console.error('Error creating chat:', error);
+      handleError(error, 'crear chat');
       return null;
     }
   }, [currentUserId]);
 
-  const sendMessage = useCallback(async (chatId: string, text: string, senderId: string) => {
-    if (!text.trim()) return false;
-    
+  const sendMessage = useCallback(async (chatId: string, text: string, senderId: string, media?: Media | null) => {
     try {
-      const messageId = `msg${Date.now()}`;
-      const timestamp = Date.now();
-      
-      // Insert new message
-      await db.insert(messages).values({
-        id: messageId,
-        chatId: chatId,
-        senderId: senderId,
-        text: text,
-        timestamp: timestamp,
-      });
-      
-      const newMessage: Message = {
-        id: messageId,
-        senderId,
-        text,
-        timestamp,
-      };
-      
-      // Update state
-      setUserChats(prevChats => {
-        return prevChats.map(chat => {
-          if (chat.id === chatId) {
-            return {
-              ...chat,
-              messages: [...chat.messages, newMessage],
-              lastMessage: newMessage,
-            };
-          }
-          return chat;
-        });
-      });
-      
+      const newMessage = await chatRepository.sendMessage(chatId, text, senderId, media);
+      // Actualizar el estado inicial con el mensaje enviado
+      setUserChats(prevChats => prevChats.map(chat => 
+        chat.id === chatId ? 
+        { ...chat, messages: [...chat.messages, newMessage], lastMessage: newMessage } 
+        : chat
+      ));
+
+      // Simular el cambio de estado a delivered después de 1 segundo
+      setTimeout(() => {
+        setUserChats(prevChats => prevChats.map(chat => 
+          chat.id === chatId ? {
+            ...chat,
+            messages: chat.messages.map(msg => 
+              msg.id === newMessage.id ? { ...msg, status: 'delivered' } : msg
+            ),
+            lastMessage: chat.lastMessage?.id === newMessage.id 
+              ? { ...chat.lastMessage, status: 'delivered' } 
+              : chat.lastMessage
+          } : chat
+        ));
+      }, 1000);
+
       return true;
     } catch (error) {
-      console.error('Error sending message:', error);
+      handleError(error, 'enviar mensaje');
+      return false;
+    }
+  }, []);
+
+  // Todo: fix this
+  const markMessageAsRead = useCallback(async (messageId: string, userId: string) => {
+    try {
+      const success = await chatRepository.markMessageAsRead(messageId, userId);
+      if (success) {
+        setUserChats(prevChats => prevChats.map(chat => {
+          const updatedMessages = chat.messages.map(msg => 
+            msg.id === messageId ? { ...msg, status: 'read' as const, reads: [...(msg.reads || []), { userId, timestamp: Date.now() }] } : msg
+          );
+          return { ...chat, messages: updatedMessages, lastMessage: chat.lastMessage?.id === messageId ? { ...chat.lastMessage, status: 'read' } : chat.lastMessage };
+        }));
+      }
+      return success;
+    } catch (error) {
+      handleError(error, 'marcar mensaje como leído');
+      return false;
+    }
+  }, []);
+
+  const deleteMessage = useCallback(async (messageId: string, chatId: string) => {
+    try {
+      const success = await chatRepository.deleteMessage(messageId, chatId);
+      if (success) {
+        setUserChats(prevChats => prevChats.map(chat => 
+          chat.id === chatId ? { ...chat, messages: chat.messages.filter(msg => msg.id !== messageId), lastMessage: chat.messages.length > 1 ? chat.messages[chat.messages.length - 2] : undefined } : chat
+        ));
+      }
+      return success;
+    } catch (error) {
+      handleError(error, 'eliminar mensaje');
       return false;
     }
   }, []);
@@ -187,6 +123,8 @@ export function useChatsDb(currentUserId: string | null) {
     chats: userChats,
     createChat,
     sendMessage,
-    loading,
+    markMessageAsRead,
+    deleteMessage,
+    loading: loading || !isInitialized,
   };
-} 
+}

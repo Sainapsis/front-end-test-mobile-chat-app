@@ -1,6 +1,6 @@
-import { useUserDb, User } from './db/useUserDb';
+import { useUserDb  } from './db/useUserDb';
 
-export { User };
+
 
 export function useUser() {
   const { 

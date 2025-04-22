@@ -1,8 +1,9 @@
 import { db } from './db';
 import { users, chats, chatParticipants, messages } from './schema';
+import { Chat, User } from '@/interfaces/chatTypes';
 
 // Mock user data from the original useUser hook
-const mockUsers = [
+const mockUsers: User[] = [
   {
     id: '1',
     name: 'John Doe',
@@ -30,34 +31,40 @@ const mockUsers = [
 ];
 
 // Initial chat data (similar to useChats)
-const initialChats = [
+const initialChats: Chat  [] = [
   {
     id: 'chat1',
-    participants: ['1', '2'],
+    participants: [mockUsers[0], mockUsers[1]],
     messages: [
       {
-        id: 'msg1',
+        id: 'msg1', 
+        chatId: 'chat1',
         senderId: '2',
         text: 'Hey, how are you?',
         timestamp: Date.now() - 3600000,
+        status: 'read' as const,
       },
       {
         id: 'msg2',
+        chatId: 'chat1',
         senderId: '1',
         text: 'I\'m good, thanks for asking!',
         timestamp: Date.now() - 1800000,
+        status: 'read' as const,
       },
     ],
   },
   {
     id: 'chat2',
-    participants: ['1', '3'],
+    participants: [mockUsers[0], mockUsers[2]],
     messages: [
       {
-        id: 'msg3',
+          id: 'msg3',
+        chatId: 'chat2',
         senderId: '3',
         text: 'Did you check the project?',
         timestamp: Date.now() - 86400000,
+        status: 'sent' as const,
       },
     ],
   },
@@ -66,6 +73,7 @@ const initialChats = [
 // Check if there's any data in the users table
 async function isDataSeeded() {
   try {
+    console.log('Checking if database is already seeded...');
     const result = await db.select().from(users);
     return result.length > 0;
   } catch (error) {
@@ -83,7 +91,7 @@ export async function seedDatabase() {
       return;
     }
     
-    console.log('Seeding database...');
+    console.log('Starting database seeding...');
     
     // Insert users
     console.log('Seeding users...');
@@ -101,9 +109,9 @@ export async function seedDatabase() {
       console.log(`Adding participants for chat ${chat.id}...`);
       for (const userId of chat.participants) {
         await db.insert(chatParticipants).values({
-          id: `cp-${chat.id}-${userId}`,
+          id: `cp-${chat.id}-${userId.id}`,
           chatId: chat.id,
-          userId,
+          userId: userId.id,
         }).onConflictDoNothing();
       }
       
@@ -116,6 +124,7 @@ export async function seedDatabase() {
           senderId: message.senderId,
           text: message.text,
           timestamp: message.timestamp,
+          status: message.status,
         }).onConflictDoNothing();
       }
     }
