@@ -1,7 +1,14 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
-import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
-import { initializeDatabase } from './db';
-import { seedDatabase } from './seed';
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useContext,
+  ReactNode,
+} from "react";
+import { Text, View, ActivityIndicator, StyleSheet } from "react-native";
+import { initializeDatabase } from "./db";
+import { seedDatabase } from "./seed";
+import { syncService } from "../services/syncService";
 
 interface DatabaseContextType {
   isInitialized: boolean;
@@ -29,30 +36,35 @@ export function DatabaseProvider({ children }: DatabaseProviderProps) {
 
     async function setupDatabase() {
       try {
-        console.log('Initializing database...');
+        console.log("Initializing database...");
         // Initialize the database schema
         await initializeDatabase();
-        console.log('Database initialized');
-        
+        console.log("Database initialized");
+
         // Seed the database with initial data
         await seedDatabase();
-        console.log('Database seeded');
-        
+        console.log("Database seeded");
+
+        // At this point syncService will be initialized separately
+        // through its own constructor
+
         if (isMounted) {
           setIsInitialized(true);
           setLoading(false);
         }
       } catch (err) {
-        console.error('Database initialization error:', err);
+        console.error("Database initialization error:", err);
         if (isMounted) {
-          setError(err instanceof Error ? err : new Error('Unknown database error'));
+          setError(
+            err instanceof Error ? err : new Error("Unknown database error")
+          );
           setLoading(false);
         }
       }
     }
-    
+
     setupDatabase();
-    
+
     return () => {
       isMounted = false;
     };
@@ -86,8 +98,8 @@ export function DatabaseProvider({ children }: DatabaseProviderProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   text: {
@@ -96,13 +108,13 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: 'red',
+    fontWeight: "bold",
+    color: "red",
     marginBottom: 10,
   },
   errorMessage: {
     fontSize: 14,
-    color: 'red',
-    textAlign: 'center',
+    color: "red",
+    textAlign: "center",
   },
-}); 
+});
