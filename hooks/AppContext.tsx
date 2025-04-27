@@ -1,6 +1,7 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useState } from 'react';
 import { useUser, User } from './useUser';
 import { useChats, Chat } from './useChats';
+import { useChat } from './useChat'; 
 import { DatabaseProvider } from '../database/DatabaseProvider';
 import { useDatabase } from './useDatabase';
 import { Message  } from '@/hooks/useChats';
@@ -14,15 +15,15 @@ type AppContextType = {
   chats: Chat[];
   createChat: (participantIds: string[]) => Promise<Chat | null>;
   sendMessage: (chatId: string, text: string, senderId: string) => Promise<boolean>;
-  updateMessage: (
-    chatId: string,
-    messageId: string,
-    updates: Partial<Message>
-  ) => Promise<boolean>;
-  deleteMessage: (chatId: string, messageId: string) => Promise<boolean>;
+
   loadChats: () => Promise<void>;
   loading: boolean;
   dbInitialized: boolean;
+  chat: Chat | null;
+  
+  loadChat: (chatId: string) => Promise<void>;
+  updateMessageInChat: (messageId: string, updates: Partial<Message>) => Promise<boolean>;
+  deleteMessageInChat: (messageId: string) => Promise<boolean>;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -31,12 +32,21 @@ function AppContent({ children }: { children: ReactNode }) {
   const { isInitialized } = useDatabase();
   const userContext = useUser();
   const chatContext = useChats(userContext.currentUser?.id || null);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const { chat, loading: chatLoading, loadChat, updateMessage, deleteMessage } = useChat(currentChatId);
   
   const loading = !isInitialized || userContext.loading || chatContext.loading;
 
   const value = {
     ...userContext,
     ...chatContext,
+    chat,
+    loadChat: async (chatId: string) => {
+      setCurrentChatId(chatId);
+      await loadChat();
+    },
+    updateMessageInChat: updateMessage,
+    deleteMessageInChat: deleteMessage,
     loading,
     dbInitialized: isInitialized,
   };
