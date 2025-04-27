@@ -230,8 +230,8 @@ export function useChatsDb(currentUserId: string | null) {
         .set(valuesToUpdate)
         .where(eq(messages.id, messageId));
 
+      
       const updated = await db.select().from(messages).where(eq(messages.id, messageId));
-
       return true;
     } catch (error) {
       console.error('Error updating message:', error);

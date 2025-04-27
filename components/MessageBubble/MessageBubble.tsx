@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Pressable, Modal } from 'react-native';
-import { Picker } from 'emoji-mart-native';
-import { ThemedText } from './ThemedText';
-import { Message,useChats  } from '@/hooks/useChats';
+import React, { useState,useEffect } from 'react';
+import { View, StyleSheet, Pressable } from 'react-native';
+import { ThemedText } from '@/components/ThemedText';
+import { Message  } from '@/hooks/useChats';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { MessageOptions } from './MessageOptions';
 
 interface MessageBubbleProps {
   message: Message;
@@ -18,31 +18,32 @@ interface MessageBubbleProps {
 }
 
 export function MessageBubble({
-    message, isCurrentUser, chatId, showEmojiPicker, onOpenEmojiPicker, onCloseEmojiPicker, setMessageText, setActiveEditMessage, onDeleteMessage }: MessageBubbleProps) {
+    message, 
+    isCurrentUser,
+    chatId, 
+    showEmojiPicker, 
+    onOpenEmojiPicker, 
+    onCloseEmojiPicker, 
+    setMessageText, 
+    setActiveEditMessage, 
+    onDeleteMessage 
+  }: MessageBubbleProps) {
+
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const { updateMessage } = useChats(null);
   const [localReaction, setLocalReaction] = useState(message.reaction || null);
-  React.useEffect(() => {
+  
+  useEffect(() => {
     setLocalReaction(message.reaction || null);
   }, [message.reaction]);
 
-  const reaction = message.reaction || null;
+  const handleEmojiSelect = (emoji: string | null) => {
+    setLocalReaction(emoji); 
+  };
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const handleEmojiSelect = async (emoji: string) => {
-      if (localReaction === emoji) {
-        await updateMessage(chatId, message.id, { reaction: null });
-        setLocalReaction(null);
-      } else {
-        await updateMessage(chatId, message.id, { reaction: emoji });
-        setLocalReaction(emoji);
-      }
-      onCloseEmojiPicker()
   };
 
   const handleDeleteMessage = async () => {
@@ -86,44 +87,21 @@ export function MessageBubble({
 
       {showEmojiPicker && (
         <View style={[
-          styles.emojiPickerInline,
-          isCurrentUser ? { right: 0 } : { left: 0 }
+          styles.optionsWrapper,
+          { alignSelf: isCurrentUser ? 'flex-end' : 'flex-start' }
         ]}>
-          {['😂', '❤️', '👍', '🔥', '😮'].map((emoji) => (
-            <Pressable
-              key={emoji}
-              onPress={() => handleEmojiSelect(emoji)}
-              style={styles.emojiButton}
-            >
-              <ThemedText style={styles.reactionText}>{emoji}</ThemedText>
-            </Pressable>
-          ))}
-
-          {isCurrentUser && (
-            <>
-              <View style={styles.separator} />
-
-              <Pressable
-                style={styles.actionButton}
-                onPress={() => {
-                  onCloseEmojiPicker();
-                  setMessageText(message.text);
-                  setActiveEditMessage(message.id);
-                }}
-              >
-                <ThemedText style={styles.actionText}>Edit</ThemedText>
-              </Pressable>
-
-              <Pressable
-                style={styles.actionButton}
-                onPress={handleDeleteMessage}
-              >
-                <ThemedText style={styles.actionText}>Delete</ThemedText>
-              </Pressable>
-            </>
-          )}
+          <MessageOptions
+            message={message}
+            chatId={chatId}
+            currentEmoji={localReaction}
+            onCloseEmojiPicker={onCloseEmojiPicker}
+            onEmojiSelect={handleEmojiSelect}
+          />
         </View>
       )}
+
+
+
     </View>
   );
 
@@ -133,6 +111,7 @@ const styles = StyleSheet.create({
   container: {
     marginVertical: 4,
     maxWidth: '80%',
+    position: 'relative',
   },
   selfContainer: {
     alignSelf: 'flex-end',
@@ -227,4 +206,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
+
+  optionsWrapper: {
+    position: 'absolute',   // clave
+    bottom: -60,            // ajusta según dónde quieras mostrar el menú
+    zIndex: 10,
+  }
+  
+  
 });

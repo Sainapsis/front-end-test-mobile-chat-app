@@ -3,6 +3,7 @@ import { useUser, User } from './useUser';
 import { useChats, Chat } from './useChats';
 import { DatabaseProvider } from '../database/DatabaseProvider';
 import { useDatabase } from './useDatabase';
+import { Message  } from '@/hooks/useChats';
 
 type AppContextType = {
   users: User[];
@@ -19,6 +20,7 @@ type AppContextType = {
     updates: Partial<Message>
   ) => Promise<boolean>;
   deleteMessage: (chatId: string, messageId: string) => Promise<boolean>;
+  loadChats: () => Promise<void>;
   loading: boolean;
   dbInitialized: boolean;
 };
