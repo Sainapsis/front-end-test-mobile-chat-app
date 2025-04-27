@@ -88,14 +88,17 @@ export function MessageBubble({
       {showEmojiPicker && (
         <View style={[
           styles.optionsWrapper,
-          { alignSelf: isCurrentUser ? 'flex-end' : 'flex-start' }
+          { alignSelf: isCurrentUser ? 'flex-end' : 'flex-start', alignItems: 'flex-start' }
         ]}>
           <MessageOptions
             message={message}
             chatId={chatId}
             currentEmoji={localReaction}
+            isCurrentUser={isCurrentUser}
             onCloseEmojiPicker={onCloseEmojiPicker}
             onEmojiSelect={handleEmojiSelect}
+            setMessageText={setMessageText}
+            setActiveEditMessage={setActiveEditMessage}
           />
         </View>
       )}
@@ -208,10 +211,13 @@ const styles = StyleSheet.create({
   },
 
   optionsWrapper: {
-    position: 'absolute',   // clave
-    bottom: -60,            // ajusta según dónde quieras mostrar el menú
+    position: 'absolute',
+    bottom: -70, // Ajusta según necesidad
     zIndex: 10,
-  }
+    maxWidth: 260, // Limita el ancho máximo
+    width: 'auto', // Importante: deja que se ajuste al contenido
+    alignItems: 'flex-start', // Alinear el contenido interno al inicio
+  },
   
   
 });

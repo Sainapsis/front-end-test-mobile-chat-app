@@ -1,18 +1,20 @@
 import React from 'react';
 import { View, StyleSheet, Dimensions  } from 'react-native';
 import { EmojiReactions } from './EmojiReaction';
+import { UpdateMessage } from './UpdateMessage';
 import { Message } from '@/hooks/useChats';
 
 interface MessageOptionsProps {
   message: Message;
   chatId: string;
   currentEmoji: string | null;
+  isCurrentUser?: boolean;
   //showEmojiPicker: boolean;
   //onOpenEmojiPicker: () => void;
   onCloseEmojiPicker: () => void;
   onEmojiSelect: (emoji: string | null) => void;
-  //setMessageText: (text: string) => void;
-  //setActiveEditMessage: (id: string | null) => void;
+  setMessageText: (text: string) => void;
+  setActiveEditMessage: (id: string | null) => void;
   //onDeleteMessage: (chatId: string, messageId: string) => Promise<void>;
 }
 
@@ -22,8 +24,11 @@ export function MessageOptions({
   message,
   chatId,
   currentEmoji,
+  isCurrentUser,
   onCloseEmojiPicker,
   onEmojiSelect,
+  setMessageText,
+  setActiveEditMessage,
 }: MessageOptionsProps) {
   return (
     <View style={styles.optionsContainer}>
@@ -34,6 +39,18 @@ export function MessageOptions({
         onCloseEmojiPicker={onCloseEmojiPicker}
         onEmojiSelect={onEmojiSelect}
       />
+      {isCurrentUser && (
+        <>
+          <View style={styles.separator} />
+
+          <UpdateMessage
+            message={message}
+            onCloseEmojiPicker={onCloseEmojiPicker}
+            setMessageText={setMessageText}
+            setActiveEditMessage={setActiveEditMessage}
+          />
+        </>
+      )}
     </View>
   );
 }
@@ -42,12 +59,20 @@ const styles = StyleSheet.create({
   optionsContainer: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 8,
-    marginTop: 10, // separarlo del mensaje
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignSelf: 'flex-start', // que siga el flujo
-    maxWidth: '100%', // para no salirse del burbuja
+    paddingVertical: 8,
+    paddingHorizontal: 8, // Un poco de espacio interno
+    marginTop: 10,
+    flexDirection: 'column', // Ojo aquí: para que los botones queden apilados si es necesario
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
     elevation: 3,
+  },
+  
+
+  separator: {
+    width: '100%',
+    height: 1,
+    backgroundColor: '#ccc',
+    marginVertical: 4,
   },
 });

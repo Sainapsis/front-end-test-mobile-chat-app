@@ -1,92 +1,57 @@
 import React, { useState } from 'react';
 import { View, TextInput, Pressable, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
+import { Message } from '@/hooks/useChats';
 
 interface UpdateMessageProps {
-  chatId: string;
-  messageId: string;
-  currentText: string;
-  onUpdateMessage: (chatId: string, messageId: string, newText: string) => Promise<void>;
-  onCloseUpdate: () => void;
+  message: Message;
+  onCloseEmojiPicker: () => void;
+  setMessageText: (text: string) => void;
+  setActiveEditMessage: (id: string | null) => void;
 }
 
 export function UpdateMessage({
-  chatId,
-  messageId,
-  currentText,
-  onUpdateMessage,
-  onCloseUpdate,
-}: UpdateMessageProps) {
-  const [newText, setNewText] = useState(currentText);
-
-  const handleUpdate = async () => {
-    if (newText.trim() === '') {
-      return; // Evitar actualizaciones con texto vacío
-    }
-    await onUpdateMessage(chatId, messageId, newText);
-    onCloseUpdate();
-  };
+  message,
+  onCloseEmojiPicker,
+  setMessageText,
+  setActiveEditMessage,
+}: UpdateMessageProps){
+  const [newText, setNewText] = useState(message.text);
 
   return (
-    <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        value={newText}
-        onChangeText={setNewText}
-        placeholder="Edit your message"
-        multiline
-      />
-      <View style={styles.actions}>
-        <Pressable onPress={onCloseUpdate} style={styles.cancelButton}>
-          <ThemedText style={styles.cancelText}>Cancel</ThemedText>
-        </Pressable>
-        <Pressable onPress={handleUpdate} style={styles.updateButton}>
-          <ThemedText style={styles.updateText}>Update</ThemedText>
-        </Pressable>
-      </View>
+    <View style={[styles.container, { width: 205 }]}>
+      <Pressable
+        style={styles.actionButton}
+        onPress={() => {
+          onCloseEmojiPicker();
+          setMessageText(newText);
+          setActiveEditMessage(message.id);
+        }}
+      >
+        <ThemedText style={styles.actionText}>Edit</ThemedText>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 12,
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderRadius: 12,
+    padding: 6,
     elevation: 5,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 8,
-    fontSize: 16,
-    marginBottom: 12,
-    backgroundColor: '#f9f9f9',
-  },
-  actions: {
+    maxWidth: 205,
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  cancelButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#f5f5f5',
-    marginRight: 8,
+  actionButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
-  cancelText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  updateButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#4CAF50',
-  },
-  updateText: {
-    fontSize: 14,
-    color: '#fff',
+  actionText: {
+    fontSize: 18,
+    textAlign: 'center',
   },
 });

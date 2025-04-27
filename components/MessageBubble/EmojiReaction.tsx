@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 6,
     elevation: 5,
-    maxWidth: 240,
+    maxWidth: 205,
   },
   emojiButton: {
     paddingHorizontal: 8,
