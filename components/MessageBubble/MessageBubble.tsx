@@ -46,49 +46,47 @@ export function MessageBubble({
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const handleDeleteMessage = async () => {
-    await onDeleteMessage(chatId, message.id);
-    onCloseEmojiPicker();
-  };
-
-
   return (
-    <View style={[
+    <View style={styles.wrapper}>
+      {/* Burbuja */}
+      <View style={[
         styles.container,
         isCurrentUser ? styles.selfContainer : styles.otherContainer
-    ]}>
-      <View style={[
-        styles.bubble,
-        isCurrentUser
-          ? [styles.selfBubble, { backgroundColor: isDark ? '#235A4A' : '#DCF8C6' }]
-          : [styles.otherBubble, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }]
       ]}>
-        <ThemedText style={[
-          styles.messageText,
-          isCurrentUser && !isDark && styles.selfMessageText
+        <View style={[
+          styles.bubble,
+          isCurrentUser
+            ? [styles.selfBubble, { backgroundColor: isDark ? '#235A4A' : '#DCF8C6' }]
+            : [styles.otherBubble, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }]
         ]}>
-          {message.text}
-        </ThemedText>
-
-        <View style={styles.timeContainer}>
-          <ThemedText style={styles.timeText}>
-            {formatTime(message.timestamp)}
+          <ThemedText style={[
+            styles.messageText,
+            isCurrentUser && !isDark && styles.selfMessageText
+          ]}>
+            {message.text}
           </ThemedText>
 
-          <Pressable onPress={onOpenEmojiPicker} style={styles.reactionButton}>
-            {localReaction ? (
-              <ThemedText style={styles.reactionText}>{localReaction}</ThemedText>
-            ) : (
-              <ThemedText style={styles.reactionText}> + </ThemedText>
-            )}
-          </Pressable>
+          <View style={styles.timeContainer}>
+            <ThemedText style={styles.timeText}>
+              {formatTime(message.timestamp)}
+            </ThemedText>
+
+            <Pressable onPress={onOpenEmojiPicker} style={styles.reactionButton}>
+              {localReaction ? (
+                <ThemedText style={styles.reactionText}>{localReaction}</ThemedText>
+              ) : (
+                <ThemedText style={styles.reactionText}> + </ThemedText>
+              )}
+            </Pressable>
+          </View>
         </View>
       </View>
 
+      {/* Opciones, totalmente separado */}
       {showEmojiPicker && (
         <View style={[
-          styles.optionsWrapper,
-          { alignSelf: isCurrentUser ? 'flex-end' : 'flex-start', alignItems: 'flex-start' }
+          styles.optionsWrapperOutside,
+          { alignSelf: isCurrentUser ? 'flex-end' : 'flex-start' }
         ]}>
           <MessageOptions
             message={message}
@@ -99,15 +97,13 @@ export function MessageBubble({
             onEmojiSelect={handleEmojiSelect}
             setMessageText={setMessageText}
             setActiveEditMessage={setActiveEditMessage}
+            onDeleteMessage={onDeleteMessage}
           />
         </View>
       )}
-
-
-
     </View>
   );
-
+  
 }
 
 const styles = StyleSheet.create({
@@ -116,12 +112,15 @@ const styles = StyleSheet.create({
     maxWidth: '80%',
     position: 'relative',
   },
+
   selfContainer: {
     alignSelf: 'flex-end',
   },
+
   otherContainer: {
     alignSelf: 'flex-start',
   },
+  
   bubble: {
     borderRadius: 16,
     paddingHorizontal: 12,
@@ -131,34 +130,41 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 1,
   },
+  
   selfBubble: {
     borderBottomRightRadius: 4,
   },
+
   otherBubble: {
     borderBottomLeftRadius: 4,
   },
+
   messageText: {
     fontSize: 16,
   },
+
   selfMessageText: {
     color: '#000000',
   },
+
   timeContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: 2,
   },
+  
   timeText: {
     fontSize: 11,
     opacity: 0.7,
   },
+
   reactionButton: {
     marginLeft: 8,
     width: 27,
     height: 27,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: '#B8B8B8', // Puedes cambiarlo por el color que quieras
+    borderColor: '#B8B8B8',
     backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
@@ -171,53 +177,22 @@ const styles = StyleSheet.create({
     lineHeight: 25,
   },
 
-  emojiPickerInline: {
-    position: 'absolute',
-    bottom: -60,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 6,
-    elevation: 5,
-    zIndex: 10,
-    maxWidth: 240,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-
-
-  emojiButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-
-  separator: {
-    width: '100%',
-    height: 1,
-    backgroundColor: '#ccc',
-    marginVertical: 4,
-  },
-
-  actionButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#F5F5F5',
-    marginHorizontal: 4,
-  },
-
-  actionText: {
-    fontSize: 14,
-    color: '#333',
-  },
-
   optionsWrapper: {
-    position: 'absolute',
-    bottom: -70, // Ajusta según necesidad
-    zIndex: 10,
-    maxWidth: 260, // Limita el ancho máximo
-    width: 'auto', // Importante: deja que se ajuste al contenido
-    alignItems: 'flex-start', // Alinear el contenido interno al inicio
+    marginTop: 8,
+    maxWidth: 260,
+    width: 'auto',
+    alignItems: 'flex-start',
+  },  
+
+  optionsWrapperOutside: {
+    marginTop: 4,
+    maxWidth: 260,
+    alignItems: 'flex-start',
   },
   
+  wrapper: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  },
   
 });

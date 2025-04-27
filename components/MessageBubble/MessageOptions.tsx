@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, Dimensions  } from 'react-native';
 import { EmojiReactions } from './EmojiReaction';
 import { UpdateMessage } from './UpdateMessage';
+import { DeleteMessage } from './DeleteMessage';
 import { Message } from '@/hooks/useChats';
 
 interface MessageOptionsProps {
@@ -9,13 +10,11 @@ interface MessageOptionsProps {
   chatId: string;
   currentEmoji: string | null;
   isCurrentUser?: boolean;
-  //showEmojiPicker: boolean;
-  //onOpenEmojiPicker: () => void;
   onCloseEmojiPicker: () => void;
   onEmojiSelect: (emoji: string | null) => void;
   setMessageText: (text: string) => void;
   setActiveEditMessage: (id: string | null) => void;
-  //onDeleteMessage: (chatId: string, messageId: string) => Promise<void>;
+  onDeleteMessage: (chatId: string, messageId: string) => Promise<void>;
 }
 
 const screenWidth = Dimensions.get('window').width;
@@ -29,6 +28,7 @@ export function MessageOptions({
   onEmojiSelect,
   setMessageText,
   setActiveEditMessage,
+  onDeleteMessage,
 }: MessageOptionsProps) {
   return (
     <View style={styles.optionsContainer}>
@@ -42,12 +42,18 @@ export function MessageOptions({
       {isCurrentUser && (
         <>
           <View style={styles.separator} />
-
           <UpdateMessage
             message={message}
             onCloseEmojiPicker={onCloseEmojiPicker}
             setMessageText={setMessageText}
             setActiveEditMessage={setActiveEditMessage}
+          />
+      
+          <DeleteMessage
+            message={message}
+            chatId={chatId}
+            onCloseEmojiPicker={onCloseEmojiPicker}
+            onDeleteMessage={onDeleteMessage}
           />
         </>
       )}
@@ -60,9 +66,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     paddingVertical: 8,
-    paddingHorizontal: 8, // Un poco de espacio interno
+    paddingHorizontal: 8,
     marginTop: 10,
-    flexDirection: 'column', // Ojo aquí: para que los botones queden apilados si es necesario
+    flexDirection: 'column',
     alignSelf: 'flex-start',
     maxWidth: '100%',
     elevation: 3,
