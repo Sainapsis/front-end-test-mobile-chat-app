@@ -4,14 +4,20 @@ Este proyecto se enfoca en mejorar significativamente la **experiencia del usuar
 
 ## Funcionalidades Implementadas
 
-###  Edición de Mensajes
-Los usuarios ahora pueden editar mensajes ya enviados. Esto permite corregir errores o actualizar información sin necesidad de enviar nuevos mensajes.
+### Edición de Mensajes
+Los usuarios ahora pueden editar mensajes ya enviados. Esto permite corregir errores o actualizar información sin necesidad de enviar nuevos mensajes. Para esta funcionalidad, se creó el componente `UpdateMessage`, que maneja la lógica y la interfaz de edición de mensajes.
 
 ### Eliminación de Mensajes
-Se añadió la opción de eliminar mensajes, brindando mayor control sobre el historial de conversación.
+Se añadió la opción de eliminar mensajes, brindando mayor control sobre el historial de conversación. Esta funcionalidad se implementó mediante el componente `DeleteMessage`, que permite a los usuarios eliminar mensajes de manera sencilla.
 
 ### Reacciones con Emojis
-Para hacer las conversaciones más expresivas e interactivas, los usuarios pueden reaccionar a mensajes con emojis como 😂, ❤️, 👍, 🔥 y 😮.
+Para hacer las conversaciones más expresivas e interactivas, los usuarios pueden reaccionar a mensajes con emojis como 😂, ❤️, 👍, 🔥 y 😮. Esto se logró mediante el componente `EmojiReaction`, que gestiona la selección y actualización de reacciones en los mensajes.
+
+### Opciones de Mensajes
+Se creó el componente `MessageOptions`, que centraliza las acciones disponibles para un mensaje, como editar, eliminar o reaccionar. Este menú contextual mejora la organización y usabilidad de las opciones.
+
+### Hook `useChat`
+Se desarrolló el hook `useChat` para optimizar la lógica de actualización y eliminación de mensajes. Este hook permite trabajar directamente con un chat específico, evitando iterar sobre todos los chats y mejorando el rendimiento general de la aplicación.
 
 ### Carga Inicial de Chats
 Se mejoró la carga de datos inicial al abrir la pantalla de chats, asegurando que el contenido siempre esté actualizado.
@@ -48,6 +54,6 @@ Se probaron todos los flujos principales para garantizar su correcto funcionamie
 
 ## Detalles técnicos
 
-Los detalles específicos de cada cambio, incluyendo las modificaciones en archivos como `ChatRoom.tsx`, `MessageBubble.tsx`, `AppContext.tsx`, y `useChatsDb.ts`, están documentados en el archivo [`IMPLEMENTATION.md`](./IMPLEMENTATION.md).
+Los detalles específicos de cada cambio, incluyendo las modificaciones en archivos como `ChatRoom.tsx`, `MessageBubble.tsx`, `AppContext.tsx`, `useChatDb.ts`, y `useChat.ts`, están documentados en el archivo [`IMPLEMENTATION.md`](./IMPLEMENTATION.md).
 
 Este trabajo busca ofrecer una experiencia moderna y agradable para los usuarios que utilizan la funcionalidad de chat, haciendo la aplicación más intuitiva, expresiva y adaptada a las necesidades de comunicación actuales.
