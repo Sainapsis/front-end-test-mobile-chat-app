@@ -61,28 +61,25 @@ export function useChatsDb(currentUserId: string | null) {
 
         const participantIds = participantsData.map(p => p.userId);
 
-        const messagesData = await db
+        const lastMessageData = await db
           .select()
           .from(messages)
           .where(eq(messages.chatId, chatId))
-          .orderBy(messages.timestamp);
+          .orderBy(desc(messages.timestamp))
+          .limit(1);
 
-        const chatMessages = messagesData.map(m => ({
-          id: m.id,
-          senderId: m.senderId,
-          text: m.text,
-          timestamp: m.timestamp,
-          reaction: m.reaction ?? undefined,
-        }));
-
-        const lastMessage = chatMessages.length > 0
-          ? chatMessages[chatMessages.length - 1]
-          : undefined;
+        const lastMessage = lastMessageData.length > 0 ? {
+          id: lastMessageData[0].id,
+          senderId: lastMessageData[0].senderId,
+          text: lastMessageData[0].text,
+          timestamp: lastMessageData[0].timestamp,
+          reaction: lastMessageData[0].reaction ?? undefined,
+        } : undefined;
 
         loadedChats.push({
           id: chatId,
           participants: participantIds,
-          messages: chatMessages,
+          messages: [],
           lastMessage,
         });
       }
@@ -180,100 +177,10 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
-  const updateMessage = useCallback(async (
-    chatId: string,
-    messageId: string,
-    updates: Partial<Message>
-
-  ): Promise<boolean> => {
-    try {
-      setUserChats(prevChats => {
-        return prevChats.map(chat => {
-          if (chat.id !== chatId) return chat;
-
-          const updatedMessages = chat.messages.map(message => {
-            if (message.id === messageId) {
-              return { ...message, ...updates };
-            }
-            return message;
-          });
-
-          return {
-            ...chat,
-            messages: updatedMessages,
-            lastMessage:
-              chat.lastMessage?.id === messageId
-                ? { ...chat.lastMessage, ...updates }
-                : chat.lastMessage,
-          };
-        });
-      });
-
-      const valuesToUpdate: Partial<Message> = {};
-
-      if (updates.text !== undefined) {
-        valuesToUpdate.text = updates.text;
-      }
-      if (updates.reaction !== undefined) {
-        valuesToUpdate.reaction = updates.reaction;
-      }
-      if (updates.timestamp !== undefined) {
-        valuesToUpdate.timestamp = updates.timestamp;
-      }
-
-      if (Object.keys(valuesToUpdate).length === 0) {
-        console.warn('No values to update');
-        return false; // o simplemente return true si no consideras esto un error
-      }
-
-      await db.update(messages)
-        .set(valuesToUpdate)
-        .where(eq(messages.id, messageId));
-
-      
-      const updated = await db.select().from(messages).where(eq(messages.id, messageId));
-      return true;
-    } catch (error) {
-      console.error('Error updating message:', error);
-      return false;
-    }
-  }, []);
-
-  const deleteMessage = useCallback(async (chatId: string, messageId: string): Promise<boolean> => {
-    try {
-      // Eliminar mensaje de la base de datos
-      await db.delete(messages).where(eq(messages.id, messageId));
-
-      // Actualizar estado local
-      setUserChats(prevChats =>
-        prevChats.map(chat => {
-          if (chat.id !== chatId) return chat;
-
-          const updatedMessages = chat.messages.filter(m => m.id !== messageId);
-          const lastMessage = updatedMessages.length > 0 ? updatedMessages[updatedMessages.length - 1] : undefined;
-
-          return {
-            ...chat,
-            messages: updatedMessages,
-            lastMessage,
-          };
-        })
-      );
-
-      return true;
-    } catch (error) {
-      console.error('Error deleting message:', error);
-      return false;
-    }
-  }, []);
-
-
   return {
     chats: userChats,
     createChat,
     sendMessage,
-    updateMessage,
-    deleteMessage,
     loadChats,
     loading,
   };

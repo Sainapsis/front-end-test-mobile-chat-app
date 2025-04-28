@@ -7,8 +7,6 @@ export function useChats(currentUserId: string | null) {
     chats, 
     createChat, 
     sendMessage,
-    updateMessage,
-    deleteMessage,
     loadChats,
     loading 
   } = useChatsDb(currentUserId);
@@ -17,8 +15,6 @@ export function useChats(currentUserId: string | null) {
     chats,
     createChat,
     sendMessage,
-    updateMessage,
-    deleteMessage,
     loadChats,
     loading,
   };

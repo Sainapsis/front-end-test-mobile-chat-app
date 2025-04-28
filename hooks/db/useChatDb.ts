@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { db } from '../../database/db';
-import { chats, messages } from '../../database/schema';
-import { eq, desc } from 'drizzle-orm';
+import { chats, messages, chatParticipants } from '../../database/schema';
+import { eq, asc } from 'drizzle-orm';
 
 export interface Message {
   id: string;
@@ -45,12 +45,20 @@ export function useChatDb(chatId: string | null) {
         return;
       }
 
+      // Fetch participants
+      const participantsData = await db
+        .select()
+        .from(chatParticipants)
+        .where(eq(chatParticipants.chatId, chatId));
+
+      const participantIds = participantsData.map(p => p.userId);
+
       // Fetch messages for the chat
       const messagesData = await db
         .select()
         .from(messages)
         .where(eq(messages.chatId, chatId))
-        .orderBy(desc(messages.timestamp));
+        .orderBy(asc(messages.timestamp));
 
       const chatMessages = messagesData.map(m => ({
         id: m.id,
@@ -62,9 +70,9 @@ export function useChatDb(chatId: string | null) {
 
       setChat({
         id: chatId,
-        participants: [], // Add participants if needed
+        participants: participantIds,
         messages: chatMessages,
-        lastMessage: chatMessages[0] || undefined,
+        lastMessage: chatMessages.length > 0 ? chatMessages[chatMessages.length - 1] : undefined,
       });
     } catch (error) {
       console.error('Error loading chat:', error);

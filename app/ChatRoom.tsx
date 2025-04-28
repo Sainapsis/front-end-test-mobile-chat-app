@@ -72,9 +72,6 @@
       }
     }, [chat?.messages.length]);
 
-    useEffect(() => {
-      loadChats();
-    }, []);
 
     useEffect(() => {
       if (chatId) {
