@@ -2,7 +2,7 @@ import React from 'react';
 import { useState } from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
-import { useChats,Message } from '@/hooks/useChats';
+import { useChat,Message } from '@/hooks/useChat';
 
 interface EmojiReactionsProps {
   message: Message;
@@ -22,14 +22,14 @@ export function EmojiReactions({
   onEmojiSelect,
   
 }: EmojiReactionsProps) {
-  const { updateMessage } = useChats(null);
+  const { updateMessage } = useChat(chatId);
   
   const handleEmojiSelect = async (emoji: string) => {
     if (currentEmoji === emoji) {
-      await updateMessage(chatId, message.id, { reaction: null });
+      await updateMessage( message.id, { reaction: null  });
       onEmojiSelect(null);
     } else {
-      await updateMessage(chatId, message.id, { reaction: emoji });
+      await updateMessage( message.id, { reaction: emoji });
       onEmojiSelect(emoji);
     }
     onCloseEmojiPicker();

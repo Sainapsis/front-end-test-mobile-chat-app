@@ -46,8 +46,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actionButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 8,
   },
   actionText: {
     fontSize: 18,
