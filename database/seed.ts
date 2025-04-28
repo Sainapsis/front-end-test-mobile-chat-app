@@ -41,7 +41,7 @@ const initialChats = [
         text: 'Hey, how are you?',
         timestamp: Date.now() - 3600000,
         status: 'read' as const,
-        readBy: ['1', '2'],
+        readBy: JSON.stringify(['1', '2']),
         reaction: '👍'
       },
       {
@@ -50,7 +50,7 @@ const initialChats = [
         text: 'I\'m good, thanks for asking!',
         timestamp: Date.now() - 1800000,
         status: 'read' as const,
-        readBy: ['2'] // Only jane has read the message
+        readBy: JSON.stringify(['2']) // Only jane has read the message
       },
     ],
   },
@@ -64,7 +64,7 @@ const initialChats = [
         text: 'Did you check the project?',
         timestamp: Date.now() - 86400000,
         status: 'delivered' as const,
-        readBy: []
+        readBy: JSON.stringify([])
       },
     ],
   },
@@ -117,15 +117,37 @@ export async function seedDatabase() {
       // Insert messages
       console.log(`Adding messages for chat ${chat.id}...`);
       for (const message of chat.messages) {
-        await db.insert(messages).values({
+        type MessageData = {
+          id: string;
+          chatId: string;
+          senderId: string;
+          text: string;
+          timestamp: number;
+          status: 'read' | 'delivered';
+          readBy: string;
+          isDeleted: number;
+          media: null;
+          reaction?: string;
+        };
+
+        const messageData: MessageData = {
           id: message.id,
           chatId: chat.id,
           senderId: message.senderId,
           text: message.text,
           timestamp: message.timestamp,
           status: message.status,
-          readBy: [JSON.stringify(message.readBy || [])]
-        }).onConflictDoNothing();
+          readBy: message.readBy,
+          isDeleted: 0,
+          media: null
+        };
+
+        // Only add reaction if it exists
+        if ('reaction' in message && message.reaction) {
+          messageData.reaction = message.reaction;
+        }
+
+        await db.insert(messages).values(messageData).onConflictDoNothing();
       }
     }
     

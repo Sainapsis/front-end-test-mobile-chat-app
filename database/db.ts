@@ -74,6 +74,16 @@ export async function initializeDatabase() {
       console.log('Column "read_by" already exists in messages table.');
     }
 
+    if (!messagesColumns.some((column : any) => column.name === 'delivered_to')) {
+      await sqlite.execAsync(`
+        ALTER TABLE messages 
+        ADD COLUMN delivered_to TEXT DEFAULT '[]';
+      `);
+      console.log('Column "delivered_to" added to messages table.');
+    } else {
+      console.log('Column "delivered_to" already exists in messages table.');
+    }
+
     if (!messagesColumns.some((column : any) => column.name === 'reaction')) {
       await sqlite.execAsync(`
         ALTER TABLE messages 

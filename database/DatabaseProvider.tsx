@@ -2,15 +2,20 @@ import React, { createContext, useState, useEffect, useContext, ReactNode } from
 import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
 import { initializeDatabase } from './db';
 import { seedDatabase } from './seed';
+import { db } from './db';
+import { messages, chats, chatParticipants, users } from './schema';
+import styles from '@/styles/DatabaseProviderStyles';
 
 interface DatabaseContextType {
   isInitialized: boolean;
   error: Error | null;
+  resetDatabase: () => Promise<void>;
 }
 
 const DatabaseContext = createContext<DatabaseContextType>({
   isInitialized: false,
   error: null,
+  resetDatabase: async () => {},
 });
 
 export const useDatabaseStatus = () => useContext(DatabaseContext);
@@ -23,6 +28,26 @@ export function DatabaseProvider({ children }: DatabaseProviderProps) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const resetDatabase = async () => {
+    try {
+      setLoading(true);
+      // First, delete all data from all tables
+      await db.delete(messages);
+      await db.delete(chatParticipants);
+      await db.delete(chats);
+      await db.delete(users);
+      
+      // Then reinitialize and seed
+      await initializeDatabase();
+      await seedDatabase();
+      setIsInitialized(true);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Unknown database error'));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -77,32 +102,8 @@ export function DatabaseProvider({ children }: DatabaseProviderProps) {
   }
 
   return (
-    <DatabaseContext.Provider value={{ isInitialized, error }}>
+    <DatabaseContext.Provider value={{ isInitialized, error, resetDatabase }}>
       {children}
     </DatabaseContext.Provider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  text: {
-    marginTop: 10,
-    fontSize: 16,
-  },
-  errorText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'red',
-    marginBottom: 10,
-  },
-  errorMessage: {
-    fontSize: 14,
-    color: 'red',
-    textAlign: 'center',
-  },
-}); 

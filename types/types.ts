@@ -11,10 +11,11 @@ export interface Message {
     timestamp: number;
     status: 'sent' | 'delivered' | 'read';
     readBy?: string[];
-    reaction?: string;
+    deliveredTo?: string[];
     editedAt?: number;
     isDeleted?: boolean;
     media?: MediaAttachment[];
+    reaction?: string | null;
 }
 
 export interface Chat {

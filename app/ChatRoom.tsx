@@ -44,7 +44,7 @@ export default function ChatRoomScreen() {
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.7,
@@ -52,23 +52,31 @@ export default function ChatRoomScreen() {
     });
   
     if (!result.canceled) {
-      const processedImages = await Promise.all(
+      const processedMedia = await Promise.all(
         result.assets.map(async (asset) => {
-          const compressedImage = await ImageManipulator.manipulateAsync(
-            asset.uri,
-            [{ resize: { width: 800 } }],
-            { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-          );
-          
-          return {
-            uri: compressedImage.uri,
-            previewUri: compressedImage.uri,
-            type: 'image' as const
-          };
+          if (asset.type === 'image') {
+            const compressedImage = await ImageManipulator.manipulateAsync(
+              asset.uri,
+              [{ resize: { width: 800 } }],
+              { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+            );
+            
+            return {
+              uri: compressedImage.uri,
+              previewUri: compressedImage.uri,
+              type: 'image' as const
+            };
+          } else {
+            return {
+              uri: asset.uri,
+              previewUri: asset.uri,
+              type: 'video' as const
+            };
+          }
         })
       );
       
-      setMediaAttachments(prev => [...prev, ...processedImages]);
+      setMediaAttachments(prev => [...prev, ...processedMedia]);
     }
   };
 
@@ -83,7 +91,7 @@ export default function ChatRoomScreen() {
         const lastMessage = newMessages[newMessages.length - 1];
         
         if (lastMessage) {
-          await updateMessageStatus(chat.id, lastMessage.id, 'delivered');
+          await updateMessageStatus(chat.id, 'delivered', currentUser.id);
         }
       }
     }
@@ -109,17 +117,23 @@ export default function ChatRoomScreen() {
     const markAsRead = async () => {
       if (!currentUser || !chat) return;
       
+      // Get all unread messages from other users
       const unreadMessages = chat.messages.filter(
-        (msg: Message) => msg.senderId !== currentUser.id && 
-              (!msg.readBy || !msg.readBy.includes(currentUser.id))
+        (msg: Message) => msg.senderId !== currentUser.id && msg.status !== 'read'
       );
       
-      for (const msg of unreadMessages) {
-        await updateMessageStatus(chat.id, msg.id, 'read', currentUser.id);
+      if (unreadMessages.length > 0) {
+        await updateMessageStatus(chat.id, 'read', currentUser.id);
       }
     };
     
+    // Mark messages as read when entering the chat
     markAsRead();
+    
+    // Check every 5 seconds if there are unread messages
+    const interval = setInterval(markAsRead, 5000);
+    
+    return () => clearInterval(interval);
   }, [chat, currentUser]);
 
   useLayoutEffect(() => {

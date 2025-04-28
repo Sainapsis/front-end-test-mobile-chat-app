@@ -1,11 +1,12 @@
-import React, { useState, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput, Alert, Modal, Pressable, Text, Image, ScrollView} from 'react-native';
+import React, { useState, useRef, memo } from 'react';
+import { View, StyleSheet, TouchableOpacity, TextInput, Alert, Modal, Pressable, Text, Image, ScrollView, Dimensions} from 'react-native';
 import { ThemedText } from './ThemedText';
 import { Message } from '@/hooks/useChats';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { IconSymbol, IconSymbolName } from './ui/IconSymbol';
 import * as Haptics from 'expo-haptics';
 import { MediaAttachment } from '@/types/types';
+import { Video, ResizeMode } from 'expo-av';
 import styles from '@/styles/MessageBubbleStyles';
 
 interface MessageBubbleProps {
@@ -19,7 +20,22 @@ interface MessageBubbleProps {
   scrollViewRef?: React.RefObject<any>;
 }
 
-export function MessageBubble({ message, isCurrentUser, chatId, onReact, onDelete, onEdit }: MessageBubbleProps) {
+const arePropsEqual = (prevProps: MessageBubbleProps, nextProps: MessageBubbleProps) => {
+  return (
+    prevProps.message.id === nextProps.message.id &&
+    prevProps.message.text === nextProps.message.text &&
+    prevProps.message.timestamp === nextProps.message.timestamp &&
+    prevProps.message.editedAt === nextProps.message.editedAt &&
+    prevProps.message.status === nextProps.message.status &&
+    prevProps.message.reaction === nextProps.message.reaction &&
+    prevProps.message.readBy === nextProps.message.readBy &&
+    prevProps.message.media === nextProps.message.media &&
+    prevProps.isCurrentUser === nextProps.isCurrentUser &&
+    prevProps.chatId === nextProps.chatId
+  );
+};
+
+export const MessageBubble = memo(function MessageBubble({ message, isCurrentUser, chatId, onReact, onDelete, onEdit }: MessageBubbleProps) {
   const bubbleColor = useThemeColor({}, isCurrentUser ? 'selfBubble' : 'otherBubble');
   const bubbleTextColor = useThemeColor({}, 'bubbleText');
   const iconThemeColor = useThemeColor({}, 'icon');
@@ -28,7 +44,16 @@ export function MessageBubble({ message, isCurrentUser, chatId, onReact, onDelet
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState(message.text);
+  const [selectedImage, setSelectedImage] = useState<MediaAttachment | null>(null);
   const anchorRef = useRef(null);
+
+  const isMessageEditable = () => {
+    if (!isCurrentUser) return false;
+    const now = Date.now();
+    const messageTime = message.timestamp;
+    const maxMinutes = 5 * 60 * 1000;
+    return (now - messageTime) <= maxMinutes;
+  };
 
   const handleDelete = () => {
     if (onDelete) {
@@ -60,6 +85,9 @@ export function MessageBubble({ message, isCurrentUser, chatId, onReact, onDelet
   };
   
   const startEditing = () => {
+    if (!isMessageEditable()) {
+      return;
+    }
     setIsEditing(true);
     setShowContextMenu(false);
   };
@@ -140,8 +168,10 @@ export function MessageBubble({ message, isCurrentUser, chatId, onReact, onDelet
           </View>
         </View>
       ) : (
-        // Modo normal (mensaje)
-        <>
+        <View style={[
+          styles.messageWrapper,
+          { position: 'relative' }
+        ]}>
           <TouchableOpacity
             ref={anchorRef}
             onLongPress={() => {
@@ -164,35 +194,54 @@ export function MessageBubble({ message, isCurrentUser, chatId, onReact, onDelet
                   contentContainerStyle={styles.mediaContainer}
                 >
                   {message.media.map((media: MediaAttachment, index: number) => (
-                    <Image
+                    <TouchableOpacity
                       key={`media-${index}`}
-                      source={{ uri: media.previewUri }}
-                      style={styles.mediaPreview}
-                      resizeMode="cover"
-                    />
+                      onPress={() => {
+                        setSelectedImage(media);
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                    >
+                      {media.type === 'video' ? (
+                        <Video
+                          source={{ uri: media.previewUri }}
+                          style={styles.mediaPreview}
+                          resizeMode={ResizeMode.COVER}
+                          useNativeControls
+                          isLooping
+                        />
+                      ) : (
+                        <Image
+                          source={{ uri: media.previewUri }}
+                          style={styles.mediaPreview}
+                          resizeMode="cover"
+                        />
+                      )}
+                    </TouchableOpacity>
                   ))}
                 </ScrollView>
               )}
-              <ThemedText style={[
-                styles.messageText,
-                { color: bubbleTextColor }
-              ]}>
-                {message.text}
-              </ThemedText>
-    
+              {message.text && (
+                <ThemedText style={[
+                  styles.messageText,
+                  { color: bubbleTextColor }
+                ]}>
+                  {message.text}
+                </ThemedText>
+              )}
+
               {/* Editado */}
               {message.editedAt && message.editedAt > message.timestamp && (
                 <ThemedText style={styles.editedIndicator}>(edited)</ThemedText>
               )}
-    
+
               {/* Hora y estado */}
               <View style={styles.timeContainer}>
                 <ThemedText style={styles.timeText}>
-                  {formatTime(message.timestamp)}
+                  {formatTime(message.editedAt || message.timestamp)}
                 </ThemedText>
                 {getStatusIcon()}
               </View>
-    
+
               {/* Reacción actual */}
               {message.reaction && (
                 <View style={[
@@ -204,7 +253,7 @@ export function MessageBubble({ message, isCurrentUser, chatId, onReact, onDelet
               )}
             </View>
           </TouchableOpacity>
-    
+
           {/* Botón de reacción */}
           <TouchableOpacity 
             onPress={() => {setShowReactions(!showReactions), Haptics.selectionAsync();}}
@@ -217,8 +266,37 @@ export function MessageBubble({ message, isCurrentUser, chatId, onReact, onDelet
               {message.reaction ? '🔄' : '➕'}
             </ThemedText>
           </TouchableOpacity>
-        </>
+        </View>
       )}
+
+      {/* Full Screen Media Viewer */}
+      <Modal
+        visible={!!selectedImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSelectedImage(null)}
+      >
+        <Pressable 
+          style={styles.fullScreenImageContainer}
+          onPress={() => setSelectedImage(null)}
+        >
+          {selectedImage?.type === 'video' ? (
+            <Video
+              source={{ uri: selectedImage.uri }}
+              style={styles.fullScreenImage}
+              resizeMode={ResizeMode.CONTAIN}
+              useNativeControls
+              isLooping
+            />
+          ) : (
+            <Image
+              source={{ uri: selectedImage?.uri }}
+              style={styles.fullScreenImage}
+              resizeMode="contain"
+            />
+          )}
+        </Pressable>
+      </Modal>
 
       <Modal
         visible={showContextMenu}
@@ -232,12 +310,14 @@ export function MessageBubble({ message, isCurrentUser, chatId, onReact, onDelet
         >
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
-              <TouchableOpacity 
-                style={styles.modalButton}
-                onPress={startEditing}
-              >
-                <Text style={styles.modalButtonText}>Edit Message</Text>
-              </TouchableOpacity>
+              {isMessageEditable() && (
+                <TouchableOpacity 
+                  style={styles.modalButton}
+                  onPress={startEditing}
+                >
+                  <Text style={styles.modalButtonText}>Edit Message</Text>
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity 
                 style={styles.modalButton}
@@ -275,4 +355,4 @@ export function MessageBubble({ message, isCurrentUser, chatId, onReact, onDelet
       </Modal>
     </View>
   );
-}
+}, arePropsEqual);

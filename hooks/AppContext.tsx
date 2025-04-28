@@ -16,7 +16,7 @@ type AppContextType = {
   sendMessage: (chatId: string, text: string, senderId: string, media?: MediaAttachment[]) => Promise<boolean>;
   loading: boolean;
   dbInitialized: boolean;
-  updateMessageStatus: (chatId: string, messageId: string, status: 'delivered' | 'read', userId?: string) => Promise<boolean>;
+  updateMessageStatus: (chatId: string, status: 'delivered' | 'read', userId?: string) => Promise<boolean>;
   addReaction: (chatId: string, messageId: string, emoji: string) => Promise<boolean>;
   deleteMessage: (chatId: string, messageId: string) => Promise<boolean>;
   editMessage: (chatId: string, messageId: string, newText: string) => Promise<boolean>;

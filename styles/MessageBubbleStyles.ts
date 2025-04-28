@@ -1,4 +1,6 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
@@ -45,12 +47,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: 'rgba(0,0,0,0.05)',
     marginTop: 4,
+    position: 'absolute',
+    bottom: 0,
   },
   selfReactionButton: {
-    alignSelf: 'flex-end',
+    left: -40,
   },
   otherReactionButton: {
-    alignSelf: 'flex-start',
+    right: -40,
   },
   reactionIcon: {
     fontSize: 16,
@@ -163,6 +167,21 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 8,
     marginRight: 8,
+  },
+  fullScreenImageContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenImage: {
+    width: screenWidth,
+    height: screenHeight,
+  },
+  messageWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    maxWidth: '100%',
   },
 });
 
