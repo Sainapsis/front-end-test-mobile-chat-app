@@ -128,6 +128,8 @@ export const MessageBubble = memo(function MessageBubble({ message, isCurrentUse
     let iconName: IconSymbolName = 'checkmark';
     let iconColor = iconThemeColor;
     
+    console.log(`Message ${message.id} status:`, message.status);
+    
     if (message.status === 'delivered') {
       iconName = 'checkmark.diamond';
     } else if (message.status === 'read') {

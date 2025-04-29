@@ -351,127 +351,134 @@ const fetchParticipantIds = async (chatId: string): Promise<string[]> => {
   }
 };
 
-const updateMessageStatusInDb = useCallback(async (
-chatId: string, 
-userId: string, 
-  participantIds: string[],
-  status: 'delivered' | 'read'
-): Promise<void> => {
-  const fieldToUpdate = status === 'delivered' ? 'deliveredTo' : 'readBy';
-  const statusToCheck = status === 'delivered' ? 'sent' : ['sent', 'delivered'];
-  
-  const messagesToUpdate = await db
-  .select()
-  .from(messages)
-  .where(
-    and(
-      eq(messages.chatId, chatId),
-        Array.isArray(statusToCheck) 
-          ? sql`${messages.status} IN (${statusToCheck.join(',')})` 
-          : eq(messages.status, statusToCheck),
-        ne(messages.senderId, userId) // Not my messages
-      )
-    );
-
-  await Promise.all(messagesToUpdate.map(async (message) => {
-    const existingStatusArray = safeParseArray(message[fieldToUpdate]);
-    
-    if (existingStatusArray.includes(userId)) {
-      return;
-    }
-    
-    const newStatusArray = [...existingStatusArray, userId];
-    
-    const allParticipantsUpdated = participantIds
-    .filter(id => id !== message.senderId)
-      .every(id => newStatusArray.includes(id));
-    
-    const newStatus = status === 'delivered'
-      ? (allParticipantsUpdated ? 'delivered' : 'sent')
-      : (allParticipantsUpdated ? 'read' : 'delivered');
-    
-  return db
-    .update(messages)
-    .set({ 
-        status: newStatus,
-        [fieldToUpdate]: JSON.stringify(newStatusArray),
-    })
-    .where(eq(messages.id, message.id));
-  }));
-  }, []);
-
-  const updateMessageInLocalState = useCallback((
-    message: Message,
-    userId: string, 
-    status: 'delivered' | 'read',
-    allParticipants: string[]
-  ): Message => {
-    if ((status === 'delivered' && message.status !== 'sent') || 
-        message.senderId === userId ||
-        (status === 'read' && message.status === 'read')) {
-      return message;
-    }
-
-    if (status === 'delivered') {
-      const deliveredTo = [...(message.deliveredTo || [])];
-      
-      if (!deliveredTo.includes(userId)) {
-        deliveredTo.push(userId);
-        const allReceived = allParticipants
-          .filter(id => id !== message.senderId)
-          .every(id => deliveredTo.includes(id));
-            
-        return {
-          ...message,
-          status: allReceived ? 'delivered' : 'sent',
-          deliveredTo
-        };
-      }
-    } else {
-      const readBy = [...(message.readBy || [])];
-      
-      if (!readBy.includes(userId)) {
-        readBy.push(userId);
-        const allRead = allParticipants
-      .filter(id => id !== message.senderId)
-          .every(id => readBy.includes(id));
-            
-        return {
-          ...message,
-          status: allRead ? 'read' : 'delivered',
-          readBy
-        };
-      }
-    }
-    
+const updateMessageInLocalState = useCallback((
+  message: Message,
+  userId: string, 
+  status: 'delivered' | 'read',
+  allParticipants: string[]
+): Message => {
+  // Skip if it's the user's own message
+  if (message.senderId === userId) {
     return message;
-  }, []);
+  }
+
+  const fieldToUpdate = status === 'delivered' ? 'deliveredTo' : 'readBy';
+  const currentArray = [...(message[fieldToUpdate] || [])];
+  
+  // Skip if already marked
+  if (currentArray.includes(userId)) {
+    return message;
+  }
+
+  // Add user to the array
+  const newArray = [...currentArray, userId];
+  
+  // Check if all participants have marked this status
+  const allParticipantsUpdated = allParticipants
+    .filter(id => id !== message.senderId)
+    .every(id => newArray.includes(id));
+  
+  // Determine new status
+  let newStatus = message.status;
+  if (status === 'delivered') {
+    newStatus = allParticipantsUpdated ? 'delivered' : 'sent';
+  } else if (status === 'read') {
+    newStatus = allParticipantsUpdated ? 'read' : 'delivered';
+  }
+
+  return {
+    ...message,
+    status: newStatus,
+    [fieldToUpdate]: newArray
+  };
+}, []);
 
 const updateLocalChatState = useCallback((
   chatId: string, 
   status: 'delivered' | 'read',
   userId: string
 ): void => {
-  setUserChats((prevChats) =>
-    prevChats.map((chat) => {
+  setUserChats((prevChats) => {
+    const updatedChats = prevChats.map((chat) => {
       if (chat.id !== chatId) return chat;
 
-        const updatedMessages = chat.messages.map((msg) => 
-          updateMessageInLocalState(msg, userId, status, chat.participants)
-        );
+      const updatedMessages = chat.messages.map((msg) => 
+        updateMessageInLocalState(msg, userId, status, chat.participants)
+      );
 
-        const lastMessage = chat.lastMessage 
-          ? updatedMessages.find(m => m.id === chat.lastMessage?.id) || chat.lastMessage
-          : undefined;
+      const lastMessage = chat.lastMessage 
+        ? updatedMessages.find(m => m.id === chat.lastMessage?.id) || chat.lastMessage
+        : undefined;
 
       return {
         ...chat,
         messages: updatedMessages,
         lastMessage
       };
-    })
-  );
+    });
+
+    return updatedChats;
+  });
 }, [updateMessageInLocalState]);
+
+const updateMessageStatusInDb = useCallback(async (
+  chatId: string, 
+  userId: string, 
+  participantIds: string[],
+  status: 'delivered' | 'read'
+): Promise<void> => {
+  try {
+    // First, get all messages that need updating
+    const messagesToUpdate = await db
+      .select()
+      .from(messages)
+      .where(
+        and(
+          eq(messages.chatId, chatId),
+          ne(messages.senderId, userId), // Not my messages
+          eq(messages.isDeleted, 0) // Not deleted messages
+        )
+      );
+
+    // Update each message
+    for (const message of messagesToUpdate) {
+      const fieldToUpdate = status === 'delivered' ? 'deliveredTo' : 'readBy';
+      const existingStatusArray = safeParseArray(message[fieldToUpdate]);
+      
+      // Skip if already marked with this status
+      if (existingStatusArray.includes(userId)) {
+        continue;
+      }
+
+      // Add user to the status array
+      const newStatusArray = [...existingStatusArray, userId];
+      
+      // Check if all participants have marked this status
+      const allParticipantsUpdated = participantIds
+        .filter(id => id !== message.senderId)
+        .every(id => newStatusArray.includes(id));
+      
+      // Determine new status
+      let newStatus = message.status;
+      if (status === 'delivered') {
+        newStatus = allParticipantsUpdated ? 'delivered' : 'sent';
+      } else if (status === 'read') {
+        newStatus = allParticipantsUpdated ? 'read' : 'delivered';
+      }
+
+      // Update the message in the database
+      await db
+        .update(messages)
+        .set({ 
+          status: newStatus,
+          [fieldToUpdate]: JSON.stringify(newStatusArray),
+        })
+        .where(eq(messages.id, message.id));
+    }
+  } catch (error) {
+    console.error('Error in updateMessageStatusInDb:', error);
+  }
+}, []);
 
   // Main function to update message status
 const updateMessageStatus = useCallback(async (

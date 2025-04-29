@@ -117,12 +117,23 @@ export default function ChatRoomScreen() {
     const markAsRead = async () => {
       if (!currentUser || !chat) return;
       
-      // Get all unread messages from other users
-      const unreadMessages = chat.messages.filter(
-        (msg: Message) => msg.senderId !== currentUser.id && msg.status !== 'read'
+      // Get all messages that could potentially be marked as read
+      const messagesToCheck = chat.messages.filter(
+        (msg: Message) => {
+          // Skip if it's the user's own message
+          if (msg.senderId === currentUser.id) return false;
+          
+          // Skip if already read
+          if (msg.status === 'read') return false;
+          
+          // Skip if deleted
+          if (msg.isDeleted) return false;
+          
+          return true;
+        }
       );
       
-      if (unreadMessages.length > 0) {
+      if (messagesToCheck.length > 0) {
         await updateMessageStatus(chat.id, 'read', currentUser.id);
       }
     };
@@ -130,11 +141,11 @@ export default function ChatRoomScreen() {
     // Mark messages as read when entering the chat
     markAsRead();
     
-    // Check every 5 seconds if there are unread messages
-    const interval = setInterval(markAsRead, 5000);
+    // Check every 3 seconds if there are unread messages
+    const interval = setInterval(markAsRead, 3000);
     
     return () => clearInterval(interval);
-  }, [chat, currentUser]);
+  }, [chat, currentUser, updateMessageStatus]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
