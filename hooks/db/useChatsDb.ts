@@ -357,7 +357,6 @@ const updateMessageInLocalState = useCallback((
   status: 'delivered' | 'read',
   allParticipants: string[]
 ): Message => {
-  // Skip if it's the user's own message
   if (message.senderId === userId) {
     return message;
   }
@@ -365,20 +364,16 @@ const updateMessageInLocalState = useCallback((
   const fieldToUpdate = status === 'delivered' ? 'deliveredTo' : 'readBy';
   const currentArray = [...(message[fieldToUpdate] || [])];
   
-  // Skip if already marked
   if (currentArray.includes(userId)) {
     return message;
   }
 
-  // Add user to the array
   const newArray = [...currentArray, userId];
   
-  // Check if all participants have marked this status
   const allParticipantsUpdated = allParticipants
     .filter(id => id !== message.senderId)
     .every(id => newArray.includes(id));
   
-  // Determine new status
   let newStatus = message.status;
   if (status === 'delivered') {
     newStatus = allParticipantsUpdated ? 'delivered' : 'sent';
@@ -428,7 +423,6 @@ const updateMessageStatusInDb = useCallback(async (
   status: 'delivered' | 'read'
 ): Promise<void> => {
   try {
-    // First, get all messages that need updating
     const messagesToUpdate = await db
       .select()
       .from(messages)
@@ -436,29 +430,24 @@ const updateMessageStatusInDb = useCallback(async (
         and(
           eq(messages.chatId, chatId),
           ne(messages.senderId, userId), // Not my messages
-          eq(messages.isDeleted, 0) // Not deleted messages
+          eq(messages.isDeleted, 0)
         )
       );
 
-    // Update each message
     for (const message of messagesToUpdate) {
       const fieldToUpdate = status === 'delivered' ? 'deliveredTo' : 'readBy';
       const existingStatusArray = safeParseArray(message[fieldToUpdate]);
       
-      // Skip if already marked with this status
       if (existingStatusArray.includes(userId)) {
         continue;
       }
 
-      // Add user to the status array
       const newStatusArray = [...existingStatusArray, userId];
       
-      // Check if all participants have marked this status
       const allParticipantsUpdated = participantIds
         .filter(id => id !== message.senderId)
         .every(id => newStatusArray.includes(id));
       
-      // Determine new status
       let newStatus = message.status;
       if (status === 'delivered') {
         newStatus = allParticipantsUpdated ? 'delivered' : 'sent';
@@ -466,7 +455,6 @@ const updateMessageStatusInDb = useCallback(async (
         newStatus = allParticipantsUpdated ? 'read' : 'delivered';
       }
 
-      // Update the message in the database
       await db
         .update(messages)
         .set({ 
