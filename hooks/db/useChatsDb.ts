@@ -10,169 +10,232 @@ export function useChatsDb(currentUserId: string | null) {
   const [messagePagination, setMessagePagination] = useState<Record<string, { page: number; hasMore: boolean }>>({});
   const MESSAGES_PER_PAGE = 20;
 
-  // Load chats for the current user
   useEffect(() => {
-    const loadChats = async () => {
-      if (!currentUserId) {
+    loadChats();
+  }, [currentUserId]);
+
+  // =================================================
+  // Helper functions for loadChats
+  // =================================================
+
+const getUserChatIds = async (userId: string): Promise<string[]> => {
+  try {
+    const participantRows = await db
+      .select({ chatId: chatParticipants.chatId })
+      .from(chatParticipants)
+      .where(eq(chatParticipants.userId, userId));
+      
+    return participantRows.map(row => row.chatId);
+  } catch (error) {
+      console.error('Error fetching user chat IDs');
+    return [];
+  }
+};
+
+const getChatData = async (chatId: string): Promise<any | null> => {
+  try {
+    const chatData = await db
+      .select()
+      .from(chats)
+      .where(eq(chats.id, chatId));
+      
+    return chatData.length > 0 ? chatData[0] : null;
+  } catch (error) {
+      console.error(`Error fetching chat ${chatId}`);
+    return null;
+  }
+};
+
+const getChatParticipantIds = async (chatId: string): Promise<string[]> => {
+  try {
+    const participantsData = await db
+      .select({ userId: chatParticipants.userId })
+      .from(chatParticipants)
+      .where(eq(chatParticipants.chatId, chatId));
+      
+    return participantsData.map(p => p.userId);
+  } catch (error) {
+      console.error(`Error fetching participants for chat ${chatId}`);
+    return [];
+  }
+};
+
+const getChatMessages = async (chatId: string, limit: number): Promise<Message[]> => {
+  try {
+    const messagesData = await db
+      .select()
+      .from(messages)
+        .where(and(eq(messages.chatId, chatId), ne(messages.isDeleted, 1)))  // Dont show deleted messages
+      .orderBy(desc(messages.timestamp))
+      .limit(limit);
+      
+    return messagesData.map(m => ({
+      id: m.id,
+      senderId: m.senderId,
+      text: m.text,
+      timestamp: m.timestamp,
+      status: m.status as 'sent' | 'delivered' | 'read',
+      readBy: safeParseArray(m.readBy),
+      deliveredTo: safeParseArray(m.deliveredTo),
+      reaction: m.reaction || undefined,
+      media: m.media ? JSON.parse(m.media.toString()) : undefined,
+      editedAt: m.editedAt || undefined
+    })).reverse(); // Reverse to show oldest first
+  } catch (error) {
+      console.error(`Error fetching messages for chat ${chatId}`);
+    return [];
+  }
+};
+
+const getMessageCount = async (chatId: string): Promise<number> => {
+  try {
+    const totalMessages = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(messages)
+      .where(and(eq(messages.chatId, chatId), ne(messages.isDeleted, 1)))
+      .then(rows => rows[0]?.count || 0);
+    
+    return totalMessages;
+  } catch (error) {
+      console.error(`Error counting messages for chat ${chatId}`);
+    return 0;
+  }
+};
+
+  const transformChatData = async (chatId: string, chatData: any): Promise<Chat | null> => {
+      if (!chatData) return null;
+      
+      const [participantIds, chatMessages, totalMessages] = await Promise.all([
+        getChatParticipantIds(chatId),
+        getChatMessages(chatId, MESSAGES_PER_PAGE),
+        getMessageCount(chatId)
+      ]);
+      
+      const hasMore = totalMessages > MESSAGES_PER_PAGE;
+      
+      setMessagePagination(prev => ({
+        ...prev,
+        [chatId]: { page: 1, hasMore }
+      }));
+      
+      const lastMessage = chatMessages.length > 0 
+        ? chatMessages[chatMessages.length - 1] 
+        : undefined;
+      
+      return {
+        id: chatId,
+        participants: participantIds,
+        messages: chatMessages,
+        lastMessage,
+      } as Chat;
+  };
+
+  // Load all chats for the current user
+  const loadChats = async () => {
+    if (!currentUserId) {
+      setUserChats([]);
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      const chatIds = await getUserChatIds(currentUserId);
+      
+      if (chatIds.length === 0) {
         setUserChats([]);
         setLoading(false);
         return;
       }
       
+      const chatPromises = chatIds.map(async (chatId) => {
+        const chatData = await getChatData(chatId);
+        return await transformChatData(chatId, chatData);
+    });
+    
+    const loadedChats = (await Promise.all(chatPromises)).filter(Boolean) as Chat[];
+    setUserChats(loadedChats);
+  } catch (error) {
+      console.error('Error loading chats');
+  } finally {
+    setLoading(false);
+  }
+};
+
+  // =================================================
+  // Helper functions for loadMoreMessages
+  // =================================================
+
+const fetchPaginatedMessages = async (
+  chatId: string,
+  page: number,
+  messagesPerPage: number
+): Promise<Message[]> => {
+  try {
+    const offset = (page - 1) * messagesPerPage;
+    
+    const messagesData = await db
+      .select()
+      .from(messages)
+        .where(and(eq(messages.chatId, chatId), ne(messages.isDeleted, 1)))
+      .orderBy(desc(messages.timestamp))
+      .limit(messagesPerPage)
+      .offset(offset);
+    
+    return messagesData.map(m => ({
+      id: m.id,
+      senderId: m.senderId,
+      text: m.text,
+      timestamp: m.timestamp,
+      status: m.status as 'sent' | 'delivered' | 'read',
+      readBy: safeParseArray(m.readBy),
+      deliveredTo: safeParseArray(m.deliveredTo),
+      reaction: m.reaction || undefined,
+      media: m.media ? JSON.parse(m.media.toString()) : undefined,
+      editedAt: m.editedAt || undefined
+        })).reverse();
+      } catch (error) {
+      console.error(`Error fetching paginated messages for chat ${chatId}`);
+        return [];
+      }
+    };
+
+    const loadMoreMessages = useCallback(async (chatId: string) => {
+      const pagination = messagePagination[chatId];
+      if (!pagination || !pagination.hasMore) return;
+
       try {
-        // Get chat IDs where the user is a participant
-        const participantRows = await db
-          .select()
-          .from(chatParticipants)
-          .where(eq(chatParticipants.userId, currentUserId));
-          
-        const chatIds = participantRows.map(row => row.chatId);
+        const nextPage = pagination.page + 1;
         
-        if (chatIds.length === 0) {
-          setUserChats([]);
-          setLoading(false);
+        const newMessages = await fetchPaginatedMessages(chatId, nextPage, MESSAGES_PER_PAGE);
+        
+        if (newMessages.length === 0) {
+          setMessagePagination(prev => ({
+          ...prev, [chatId]: { ...pagination, hasMore: false }
+          }));
           return;
         }
         
-        // Build the complete chat objects
-        const loadedChats: Chat[] = [];
-        
-        for (const chatId of chatIds) {
-          // Get the chat
-          const chatData = await db
-            .select()
-            .from(chats)
-            .where(eq(chats.id, chatId));
-            
-          if (chatData.length === 0) continue;
-          
-          // Get participants
-          const participantsData = await db
-            .select()
-            .from(chatParticipants)
-            .where(eq(chatParticipants.chatId, chatId));
-            
-          const participantIds = participantsData.map(p => p.userId);
-          
-          // Get initial messages (most recent first)
-          const messagesData = await db
-            .select()
-            .from(messages)
-            .where(and(eq(messages.chatId, chatId), ne(messages.isDeleted, 1)))
-            .orderBy(desc(messages.timestamp))
-            .limit(MESSAGES_PER_PAGE);
-            
-          const chatMessages = messagesData.map(m => ({
-            id: m.id,
-            senderId: m.senderId,
-            text: m.text,
-            timestamp: m.timestamp,
-            status: m.status as 'sent' | 'delivered' | 'read',
-            readBy: m.readBy ? JSON.parse(m.readBy.toString()) : [],
-            reaction: m.reaction || undefined,
-            media: m.media ? JSON.parse(m.media.toString()) : undefined,
-            editedAt: m.editedAt || undefined
-          })).reverse(); // Reverse to show oldest first
-          
-          // Check if there are more messages
-          const totalMessages = await db
-            .select()
-            .from(messages)
-            .where(and(eq(messages.chatId, chatId), ne(messages.isDeleted, 1)))
-            .then(rows => rows.length);
-          
-          const hasMore = totalMessages > MESSAGES_PER_PAGE;
-          
-          // Initialize pagination state for this chat
-          setMessagePagination(prev => ({
-            ...prev,
-            [chatId]: { page: 1, hasMore }
-          }));
-          
-          // Determine last message
-          const lastMessage = chatMessages.length > 0 
-            ? chatMessages[chatMessages.length - 1] 
-            : undefined;
-          
-          loadedChats.push({
-            id: chatId,
-            participants: participantIds,
-            messages: chatMessages,
-            lastMessage,
-          });
-        }
-        
-        setUserChats(loadedChats);
+        const totalMessages = await getMessageCount(chatId);
+        const hasMore = totalMessages > nextPage * MESSAGES_PER_PAGE;
+
+        setMessagePagination(prev => ({
+          ...prev,
+          [chatId]: { page: nextPage, hasMore }
+        }));
+
+        setUserChats(prevChats => 
+          prevChats.map(chat => {
+            if (chat.id !== chatId) return chat;
+            return {
+              ...chat,
+              messages: [...newMessages, ...chat.messages]
+            };
+          })
+        );
       } catch (error) {
-        console.error('Error loading chats:', error);
-      } finally {
-        setLoading(false);
+      console.error('Error loading more messages');
       }
-    };
-    
-    loadChats();
-  }, [currentUserId]);
-
-  // Add new function to load more messages
-  const loadMoreMessages = useCallback(async (chatId: string) => {
-    const pagination = messagePagination[chatId];
-    if (!pagination || !pagination.hasMore) return;
-
-    try {
-      const nextPage = pagination.page + 1;
-      const offset = (nextPage - 1) * MESSAGES_PER_PAGE;
-
-      const messagesData = await db
-        .select()
-        .from(messages)
-        .where(and(
-          eq(messages.chatId, chatId),
-          ne(messages.isDeleted, 1),
-          sql`1=1 LIMIT ${MESSAGES_PER_PAGE} OFFSET ${offset}`
-        ))
-        .orderBy(desc(messages.timestamp));
-
-      const newMessages = messagesData.map(m => ({
-        id: m.id,
-        senderId: m.senderId,
-        text: m.text,
-        timestamp: m.timestamp,
-        status: m.status as 'sent' | 'delivered' | 'read',
-        readBy: m.readBy ? JSON.parse(m.readBy.toString()) : [],
-        reaction: m.reaction || undefined,
-        media: m.media ? JSON.parse(m.media.toString()) : undefined,
-        editedAt: m.editedAt || undefined
-      })).reverse();
-
-      // Check if there are more messages
-      const totalMessages = await db
-        .select()
-        .from(messages)
-        .where(and(eq(messages.chatId, chatId), ne(messages.isDeleted, 1)))
-        .then(rows => rows.length);
-
-      const hasMore = totalMessages > nextPage * MESSAGES_PER_PAGE;
-
-      // Update pagination state
-      setMessagePagination(prev => ({
-        ...prev,
-        [chatId]: { page: nextPage, hasMore }
-      }));
-
-      // Update chat messages
-      setUserChats(prevChats => 
-        prevChats.map(chat => {
-          if (chat.id !== chatId) return chat;
-          return {
-            ...chat,
-            messages: [...newMessages, ...chat.messages]
-          };
-        })
-      );
-    } catch (error) {
-      console.error('Error loading more messages:', error);
-    }
-  }, [messagePagination]);
+    }, [messagePagination]);
 
   const createChat = useCallback(async (participantIds: string[]) => {
     if (!currentUserId || !participantIds.includes(currentUserId)) {
@@ -182,12 +245,10 @@ export function useChatsDb(currentUserId: string | null) {
     try {
       const chatId = `chat${Date.now()}`;
       
-      // Insert new chat
       await db.insert(chats).values({
         id: chatId,
       });
       
-      // Insert participants
       for (const userId of participantIds) {
         await db.insert(chatParticipants).values({
           id: `cp-${chatId}-${userId}`,
@@ -205,7 +266,7 @@ export function useChatsDb(currentUserId: string | null) {
       setUserChats(prevChats => [...prevChats, newChat]);
       return newChat;
     } catch (error) {
-      console.error('Error creating chat:', error);
+      console.error('Error creating chat');
       return null;
     }
   }, [currentUserId]);
@@ -216,8 +277,7 @@ export function useChatsDb(currentUserId: string | null) {
     try {
       const messageId = `msg${Date.now()}`;
       const timestamp = Date.now();
-      
-      // Insert new message
+
       await db.insert(messages).values({
         id: messageId,
         chatId: chatId,
@@ -238,8 +298,7 @@ export function useChatsDb(currentUserId: string | null) {
         readBy: [senderId],
         media: media
       };
-      
-      // Update state
+
       setUserChats(prevChats => {
         return prevChats.map(chat => {
           if (chat.id === chatId) {
@@ -255,220 +314,194 @@ export function useChatsDb(currentUserId: string | null) {
       
       return true;
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error sending message');
       return false;
     }
   }, []);
 
-  const updateMessageStatus = useCallback(async (
-    chatId: string,
+  // =================================================
+  // Helper functions for updateMessageStatus
+  // =================================================
+
+const safeParseArray = (jsonString: unknown): string[] => {
+  if (!jsonString) return [];
+  
+  try {
+    return typeof jsonString === 'string' 
+      ? JSON.parse(jsonString) as string[]
+      : (Array.isArray(jsonString) ? jsonString : []);
+  } catch (error) {
+      console.error('Error parsing JSON array:');
+    return [];
+  }
+};
+
+// Function to get ONLY participant IDs
+const fetchParticipantIds = async (chatId: string): Promise<string[]> => {
+  try {
+    const participantRows = await db
+      .select({ userId: chatParticipants.userId })
+      .from(chatParticipants)
+      .where(eq(chatParticipants.chatId, chatId));
+    
+    return participantRows.map(row => row.userId);
+  } catch (error) {
+      console.error('Error fetching participant IDs');
+    return [];
+  }
+};
+
+const updateMessageStatusInDb = useCallback(async (
+chatId: string, 
+userId: string, 
+  participantIds: string[],
+  status: 'delivered' | 'read'
+): Promise<void> => {
+  const fieldToUpdate = status === 'delivered' ? 'deliveredTo' : 'readBy';
+  const statusToCheck = status === 'delivered' ? 'sent' : ['sent', 'delivered'];
+  
+  const messagesToUpdate = await db
+  .select()
+  .from(messages)
+  .where(
+    and(
+      eq(messages.chatId, chatId),
+        Array.isArray(statusToCheck) 
+          ? sql`${messages.status} IN (${statusToCheck.join(',')})` 
+          : eq(messages.status, statusToCheck),
+        ne(messages.senderId, userId) // Not my messages
+      )
+    );
+
+  await Promise.all(messagesToUpdate.map(async (message) => {
+    const existingStatusArray = safeParseArray(message[fieldToUpdate]);
+    
+    if (existingStatusArray.includes(userId)) {
+      return;
+    }
+    
+    const newStatusArray = [...existingStatusArray, userId];
+    
+    const allParticipantsUpdated = participantIds
+    .filter(id => id !== message.senderId)
+      .every(id => newStatusArray.includes(id));
+    
+    const newStatus = status === 'delivered'
+      ? (allParticipantsUpdated ? 'delivered' : 'sent')
+      : (allParticipantsUpdated ? 'read' : 'delivered');
+    
+  return db
+    .update(messages)
+    .set({ 
+        status: newStatus,
+        [fieldToUpdate]: JSON.stringify(newStatusArray),
+    })
+    .where(eq(messages.id, message.id));
+  }));
+  }, []);
+
+  const updateMessageInLocalState = useCallback((
+    message: Message,
+    userId: string, 
     status: 'delivered' | 'read',
-    userId?: string
-  ) => {
-    try {
-      if (status === 'delivered' && userId) {
-        // Get all participants in the chat
-        const participants = await db
-          .select()
-          .from(chatParticipants)
-          .where(eq(chatParticipants.chatId, chatId));
-        
-        const participantIds = participants.map(p => p.userId);
+    allParticipants: string[]
+  ): Message => {
+    if ((status === 'delivered' && message.status !== 'sent') || 
+        message.senderId === userId ||
+        (status === 'read' && message.status === 'read')) {
+      return message;
+    }
 
-        // Get all sent messages from other users
-        const sentMessages = await db
-          .select()
-          .from(messages)
-          .where(
-            and(
-              eq(messages.chatId, chatId),
-              eq(messages.status, 'sent'),
-              ne(messages.senderId, userId)
-            )
-          );
-
-        // Update messages to delivered status
-        for (const message of sentMessages) {
-          let existingDeliveredTo: string[] = [];
-          try {
-            existingDeliveredTo = message.deliveredTo 
-              ? JSON.parse(message.deliveredTo.toString())
-              : [];
-          } catch (error) {
-            console.warn('Error parsing deliveredTo:', error);
-            existingDeliveredTo = [];
-          }
-          
-          // Add current user to deliveredTo array
-          if (!existingDeliveredTo.includes(userId)) {
-            const newDeliveredTo = [...existingDeliveredTo, userId];
+    if (status === 'delivered') {
+      const deliveredTo = [...(message.deliveredTo || [])];
+      
+      if (!deliveredTo.includes(userId)) {
+        deliveredTo.push(userId);
+        const allReceived = allParticipants
+          .filter(id => id !== message.senderId)
+          .every(id => deliveredTo.includes(id));
             
-            // Check if all participants (except sender) have received the message
-            const allParticipantsReceived = participantIds
-              .filter(id => id !== message.senderId)
-              .every(id => newDeliveredTo.includes(id));
-            
-            await db
-              .update(messages)
-              .set({ 
-                status: allParticipantsReceived ? 'delivered' : 'sent',
-                deliveredTo: JSON.stringify(newDeliveredTo),
-              })
-              .where(eq(messages.id, message.id));
-          }
-        }
-
-        // Update local state
-        setUserChats((prevChats) =>
-          prevChats.map((chat) => {
-            if (chat.id !== chatId) return chat;
-
-            const updatedMessages = chat.messages.map((msg) => {
-              if (msg.status === 'sent' && msg.senderId !== userId) {
-                let currentDeliveredTo: string[] = [];
-                try {
-                  currentDeliveredTo = typeof msg.deliveredTo === 'string' 
-                    ? JSON.parse(msg.deliveredTo) as string[]
-                    : (msg.deliveredTo || []);
-                } catch (error) {
-                  console.warn('Error parsing deliveredTo in local state:', error);
-                  currentDeliveredTo = [];
-                }
-
-                if (!currentDeliveredTo.includes(userId)) {
-                  const newDeliveredTo = [...currentDeliveredTo, userId];
-                  const allParticipantsReceived = chat.participants
-                    .filter(id => id !== msg.senderId)
-                    .every(id => newDeliveredTo.includes(id));
-
-                  return {
-                    ...msg,
-                    status: allParticipantsReceived ? 'delivered' as const : 'sent' as const,
-                    deliveredTo: newDeliveredTo
-                  };
-                }
-              }
-              return msg;
-            });
-
-            const lastMessage = updatedMessages.find(
-              m => m.id === chat.lastMessage?.id
-            ) || chat.lastMessage;
-
-            return {
-              ...chat,
-              messages: updatedMessages,
-              lastMessage
-            };
-          })
-        );
-      } else if (status === 'read' && userId) {
-        // Get all unread messages from other users
-        const unreadMessages = await db
-          .select()
-          .from(messages)
-          .where(
-            and(
-              eq(messages.chatId, chatId),
-              ne(messages.status, 'read'),
-              ne(messages.senderId, userId)
-            )
-          );
-
-        // Get all participants in the chat
-        const participants = await db
-          .select()
-          .from(chatParticipants)
-          .where(eq(chatParticipants.chatId, chatId));
-        
-        const participantIds = participants.map(p => p.userId);
-
-        // Update all unread messages to read status
-        for (const message of unreadMessages) {
-          let existingReadBy: string[] = [];
-          try {
-            existingReadBy = message.readBy 
-              ? JSON.parse(message.readBy.toString())
-              : [];
-          } catch (error) {
-            console.warn('Error parsing readBy:', error);
-            existingReadBy = [];
-          }
-          
-          // Add current user to readBy array
-          if (!existingReadBy.includes(userId)) {
-            const newReadBy = [...existingReadBy, userId];
-            
-            // Check if all participants (except sender) have read the message
-            const allParticipantsRead = participantIds
-              .filter(id => id !== message.senderId)
-              .every(id => newReadBy.includes(id));
-            
-            await db
-              .update(messages)
-              .set({ 
-                status: allParticipantsRead ? 'read' : 'delivered',
-                readBy: JSON.stringify(newReadBy),
-              })
-              .where(eq(messages.id, message.id));
-          }
-        }
-
-        // Update local state
-        setUserChats((prevChats) =>
-          prevChats.map((chat) => {
-            if (chat.id !== chatId) return chat;
-
-            const updatedMessages = chat.messages.map((msg) => {
-              if (msg.senderId !== userId && msg.status !== 'read') {
-                let currentReadBy: string[] = [];
-                try {
-                  currentReadBy = typeof msg.readBy === 'string' 
-                    ? JSON.parse(msg.readBy) as string[]
-                    : (msg.readBy || []);
-                } catch (error) {
-                  console.warn('Error parsing readBy in local state:', error);
-                  currentReadBy = [];
-                }
-
-                if (!currentReadBy.includes(userId)) {
-                  const newReadBy = [...currentReadBy, userId];
-                  const allParticipantsRead = chat.participants
-                    .filter(id => id !== msg.senderId)
-                    .every(id => newReadBy.includes(id));
-
-                  return {
-                    ...msg,
-                    status: allParticipantsRead ? 'read' as const : 'delivered' as const,
-                    readBy: newReadBy
-                  };
-                }
-              }
-              return msg;
-            });
-
-            const lastMessage = updatedMessages.find(
-              m => m.id === chat.lastMessage?.id
-            ) || chat.lastMessage;
-
-            return {
-              ...chat,
-              messages: updatedMessages,
-              lastMessage
-            };
-          })
-        );
+        return {
+          ...message,
+          status: allReceived ? 'delivered' : 'sent',
+          deliveredTo
+        };
       }
-      return true;
-    } catch (error) {
-      console.error('Error updating message status:', error);
+    } else {
+      const readBy = [...(message.readBy || [])];
+      
+      if (!readBy.includes(userId)) {
+        readBy.push(userId);
+        const allRead = allParticipants
+      .filter(id => id !== message.senderId)
+          .every(id => readBy.includes(id));
+            
+        return {
+          ...message,
+          status: allRead ? 'read' : 'delivered',
+          readBy
+        };
+      }
+    }
+    
+    return message;
+  }, []);
+
+const updateLocalChatState = useCallback((
+  chatId: string, 
+  status: 'delivered' | 'read',
+  userId: string
+): void => {
+  setUserChats((prevChats) =>
+    prevChats.map((chat) => {
+      if (chat.id !== chatId) return chat;
+
+        const updatedMessages = chat.messages.map((msg) => 
+          updateMessageInLocalState(msg, userId, status, chat.participants)
+        );
+
+        const lastMessage = chat.lastMessage 
+          ? updatedMessages.find(m => m.id === chat.lastMessage?.id) || chat.lastMessage
+          : undefined;
+
+      return {
+        ...chat,
+        messages: updatedMessages,
+        lastMessage
+      };
+    })
+  );
+}, [updateMessageInLocalState]);
+
+  // Main function to update message status
+const updateMessageStatus = useCallback(async (
+  chatId: string,
+  status: 'delivered' | 'read',
+  userId?: string
+) => {
+  try {
+    if (!userId) return false;
+
+    const participantIds = await fetchParticipantIds(chatId);
+    
+    if (participantIds.length === 0) {
+      console.warn('No participants found for chat:', chatId);
       return false;
     }
-  }, []);
+
+      await updateMessageStatusInDb(chatId, userId, participantIds, status);
+
+      updateLocalChatState(chatId, status, userId);
+    
+    return true;
+  } catch (error) {
+      console.error(`Error updating message ${status} status`);
+    return false;
+  }
+  }, [updateMessageStatusInDb, updateLocalChatState, fetchParticipantIds]);
 
   const addReaction = useCallback(async (chatId: string, messageId: string, emoji: string) => {
     try {
-      // Get current message to check existing reaction
       const currentMessage = await db
         .select()
         .from(messages)
@@ -478,10 +511,8 @@ export function useChatsDb(currentUserId: string | null) {
         ))
         .then(rows => rows[0]);
 
-      // If the same emoji is selected, remove the reaction
       const newReaction = currentMessage?.reaction === emoji ? null : emoji;
 
-      // Update database
       await db.update(messages)
         .set({ reaction: newReaction })
         .where(and(
@@ -489,7 +520,6 @@ export function useChatsDb(currentUserId: string | null) {
           eq(messages.id, messageId)
         ));
 
-      // Update local state
       setUserChats(prevChats => prevChats.map(chat => {
         if (chat.id !== chatId) return chat;
         return {
@@ -502,7 +532,7 @@ export function useChatsDb(currentUserId: string | null) {
   
       return true;
     } catch (error) {
-      console.error('Error adding/removing reaction:', error);
+      console.error('Error adding/removing reaction');
       return false;
     }
   }, []);
@@ -526,7 +556,7 @@ export function useChatsDb(currentUserId: string | null) {
   
       return true;
     } catch (error) {
-      console.error("Error deleting message:", error);
+      console.error("Error deleting message");
       return false;
     }
   }, []);
@@ -557,7 +587,7 @@ export function useChatsDb(currentUserId: string | null) {
   
       return true;
     } catch (error) {
-      console.error("Error editing message:", error);
+      console.error("Error editing message");
       return false;
     }
   }, []);
