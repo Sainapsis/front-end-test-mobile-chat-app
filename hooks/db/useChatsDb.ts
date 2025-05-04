@@ -203,7 +203,7 @@ export function useChatsDb(currentUserId: string | null) {
 
   const markMessageAsRead = useCallback(async (messageId: string, userId: string) => {
     try {
-      const message = await db
+      const message = db
         .select()
         .from(messages)
         .where(eq(messages.id, messageId))
