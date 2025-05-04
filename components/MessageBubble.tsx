@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { Message } from '@/hooks/useChats';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { IconSymbol } from './ui/IconSymbol';
 
 interface MessageBubbleProps {
   message: Message;
@@ -16,6 +17,19 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getStatusIcon = () => {
+    if (!isCurrentUser) return null;
+
+    switch (message.status) {
+      case 'sent':
+        return <IconSymbol name="checkmark" size={12} color={isDark ? '#FFFFFF' : '#000000'} />;
+      case 'read':
+        return <IconSymbol name="checkmark.square" size={12} color="#4CAF50" />;
+      default:
+        return null;
+    }
   };
 
   return (
@@ -39,6 +53,7 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
           <ThemedText style={styles.timeText}>
             {formatTime(message.timestamp)}
           </ThemedText>
+          {getStatusIcon()}
         </View>
       </View>
     </View>
@@ -80,7 +95,9 @@ const styles = StyleSheet.create({
   timeContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    alignItems: 'center',
     marginTop: 2,
+    gap: 4,
   },
   timeText: {
     fontSize: 11,
