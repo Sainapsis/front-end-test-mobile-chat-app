@@ -8,6 +8,8 @@ export interface Message {
   senderId: string;
   text: string;
   timestamp: number;
+  status: 'sent' | 'delivered' | 'read';
+  readBy: string[];
 }
 
 export interface Chat {
@@ -72,12 +74,24 @@ export function useChatsDb(currentUserId: string | null) {
             .where(eq(messages.chatId, chatId))
             .orderBy(messages.timestamp);
             
-          const chatMessages = messagesData.map(m => ({
-            id: m.id,
-            senderId: m.senderId,
-            text: m.text,
-            timestamp: m.timestamp,
-          }));
+          const chatMessages = messagesData.map(m => {
+            let readBy: string[] = [];
+            try {
+              readBy = JSON.parse(m.readBy || '[]');
+            } catch (error) {
+              console.warn('Error parsing readBy for message:', m.id, error);
+              readBy = [];
+            }
+            
+            return {
+              id: m.id,
+              senderId: m.senderId,
+              text: m.text,
+              timestamp: m.timestamp,
+              status: m.status || 'sent',
+              readBy,
+            };
+          });
           
           // Determine last message
           const lastMessage = chatMessages.length > 0 
@@ -153,6 +167,8 @@ export function useChatsDb(currentUserId: string | null) {
         senderId: senderId,
         text: text,
         timestamp: timestamp,
+        status: 'sent',
+        readBy: JSON.stringify([senderId]), // El remitente siempre ha leído su propio mensaje
       });
       
       const newMessage: Message = {
@@ -160,6 +176,8 @@ export function useChatsDb(currentUserId: string | null) {
         senderId,
         text,
         timestamp,
+        status: 'sent',
+        readBy: [senderId],
       };
       
       // Update state
@@ -183,10 +201,65 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  const markMessageAsRead = useCallback(async (messageId: string, userId: string) => {
+    try {
+      const message = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.id, messageId))
+        .get();
+
+      if (!message) return false;
+
+      let readBy: string[] = [];
+      try {
+        readBy = JSON.parse(message.readBy || '[]');
+      } catch (error) {
+        console.warn('Error parsing readBy for message:', messageId, error);
+        readBy = [];
+      }
+
+      if (!readBy.includes(userId)) {
+        readBy.push(userId);
+      }
+
+      await db
+        .update(messages)
+        .set({
+          status: 'read',
+          readBy: JSON.stringify(readBy),
+        })
+        .where(eq(messages.id, messageId));
+
+      // Update state
+      setUserChats(prevChats => {
+        return prevChats.map(chat => ({
+          ...chat,
+          messages: chat.messages.map(msg => {
+            if (msg.id === messageId) {
+              return {
+                ...msg,
+                status: 'read',
+                readBy: readBy,
+              };
+            }
+            return msg;
+          }),
+        }));
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+      return false;
+    }
+  }, []);
+
   return {
     chats: userChats,
     createChat,
     sendMessage,
+    markMessageAsRead,
     loading,
   };
 } 
