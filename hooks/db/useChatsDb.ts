@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../database/db';
 import { chats, chatParticipants, messages } from '../../database/schema';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
+import { MessageStatus } from '@/components/MessageStatus'
 
 export interface Message {
   id: string;
   senderId: string;
   text: string;
   timestamp: number;
-  status: 'sent' | 'delivered' | 'read';
+  status: MessageStatus;
   readBy: string[];
 }
 
