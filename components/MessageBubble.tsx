@@ -4,6 +4,8 @@ import { ThemedText } from './ThemedText';
 import { Message } from '@/hooks/useChats';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { IconSymbol } from './ui/IconSymbol';
+import { useMessageStatus } from '@/hooks/useMessageStatus';
+import { MessageStatusIcon } from './MessageStatus';
 
 interface MessageBubbleProps {
   message: Message;
@@ -13,23 +15,11 @@ interface MessageBubbleProps {
 export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const {getStatusIcon, shouldShowStatus} = useMessageStatus(message, isCurrentUser);
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const getStatusIcon = () => {
-    if (!isCurrentUser) return null;
-
-    switch (message.status) {
-      case 'sent':
-        return <IconSymbol name="checkmark" size={12} color={isDark ? '#FFFFFF' : '#000000'} />;
-      case 'read':
-        return <IconSymbol name="checkmark.square" size={12} color="#4CAF50" />;
-      default:
-        return null;
-    }
   };
 
   return (
@@ -53,7 +43,14 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
           <ThemedText style={styles.timeText}>
             {formatTime(message.timestamp)}
           </ThemedText>
-          {getStatusIcon()}
+          {shouldShowStatus 
+          && getStatusIcon() 
+          && (
+            <MessageStatusIcon 
+              status={message.status}
+              isDark={isDark}
+            />
+          )}
         </View>
       </View>
     </View>
