@@ -60,7 +60,7 @@ export default function ChatRoomScreen() {
         markMessageAsRead(msg.id, currentUser.id);
       });
     }
-  }, [chat, currentUser, markMessageAsRead]);
+  }, []);
 
   if (!chat || !currentUser) {
     return (
