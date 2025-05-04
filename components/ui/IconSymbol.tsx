@@ -16,6 +16,7 @@ const MAPPING = {
   'arrow.up.circle.fill': 'arrow-upward',
   'checkmark': 'check',
   'checkmark.square': 'check-box',
+  'plus': 'add'
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],
