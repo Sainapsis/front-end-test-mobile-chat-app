@@ -54,7 +54,33 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
     }
   }, [chat.lastMessage]);
 
-  const isCurrentUserLastSender = chat.lastMessage?.senderId === currentUserId;
+  const renderLastMessage = () => {
+    if (!chat.lastMessage) return null;
+    
+    if (chat.lastMessage.isDeleted) {
+      return (
+        <ThemedText 
+          numberOfLines={1}
+          style={styles.lastMessage}
+        >
+          This message was deleted
+        </ThemedText>
+      );
+    }
+
+    const isCurrentUserLastSender = chat.lastMessage.senderId === currentUserId;
+    return (
+      <ThemedText 
+        numberOfLines={1}
+        style={[
+          styles.lastMessage,
+          isCurrentUserLastSender && styles.currentUserMessage
+        ]}
+      >
+        {isCurrentUserLastSender && 'You: '}{chat.lastMessage.text}
+      </ThemedText>
+    );
+  };
 
   return (
     <Pressable style={styles.container} onPress={handlePress}>
@@ -72,17 +98,7 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
           )}
         </View>
         <View style={styles.bottomRow}>
-          {chat.lastMessage && (
-            <ThemedText 
-              numberOfLines={1}
-              style={[
-                styles.lastMessage,
-                isCurrentUserLastSender && styles.currentUserMessage
-              ]}
-            >
-              {isCurrentUserLastSender && 'You: '}{chat.lastMessage.text}
-            </ThemedText>
-          )}
+          {renderLastMessage()}
         </View>
       </View>
     </Pressable>

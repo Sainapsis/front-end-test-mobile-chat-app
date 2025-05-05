@@ -1,13 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../database/db';
 import { chats, chatParticipants, messages } from '../../database/schema';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
+import { MessageStatus } from '@/components/messages/MessageStatus'
 
 export interface Message {
   id: string;
   senderId: string;
   text: string;
   timestamp: number;
+  status: MessageStatus;
+  readBy: string[];
+  isEdited: boolean;
+  isDeleted: boolean;
+  editedAt?: number;
+  deletedAt?: number;
+  originalText?: string;
 }
 
 export interface Chat {
@@ -72,12 +80,29 @@ export function useChatsDb(currentUserId: string | null) {
             .where(eq(messages.chatId, chatId))
             .orderBy(messages.timestamp);
             
-          const chatMessages = messagesData.map(m => ({
-            id: m.id,
-            senderId: m.senderId,
-            text: m.text,
-            timestamp: m.timestamp,
-          }));
+          const chatMessages = messagesData.map(m => {
+            let readBy: string[] = [];
+            try {
+              readBy = JSON.parse(m.readBy || '[]');
+            } catch (error) {
+              console.warn('Error parsing readBy for message:', m.id, error);
+              readBy = [];
+            }
+            
+            return {
+              id: m.id,
+              senderId: m.senderId,
+              text: m.text,
+              timestamp: m.timestamp,
+              status: m.status || 'sent',
+              readBy,
+              isEdited: m.isEdited || false,
+              isDeleted: m.isDeleted || false,
+              editedAt: m.editedAt || undefined,
+              deletedAt: m.deletedAt || undefined,
+              originalText: m.originalText || undefined,
+            };
+          });
           
           // Determine last message
           const lastMessage = chatMessages.length > 0 
@@ -153,6 +178,9 @@ export function useChatsDb(currentUserId: string | null) {
         senderId: senderId,
         text: text,
         timestamp: timestamp,
+        status: 'sent',
+        readBy: JSON.stringify([senderId]), // The sender has always read his own message.
+        originalText: text,
       });
       
       const newMessage: Message = {
@@ -160,6 +188,10 @@ export function useChatsDb(currentUserId: string | null) {
         senderId,
         text,
         timestamp,
+        status: 'sent',
+        readBy: [senderId],
+        isEdited: false,
+        isDeleted: false,
       };
       
       // Update state
@@ -183,10 +215,168 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  const markMessageAsRead = useCallback(async (messageId: string, userId: string) => {
+    try {
+      const message = db
+        .select()
+        .from(messages)
+        .where(eq(messages.id, messageId))
+        .get();
+
+      if (!message) return false;
+
+      let readBy: string[] = [];
+      try {
+        readBy = JSON.parse(message.readBy || '[]');
+      } catch (error) {
+        console.warn('Error parsing readBy for message:', messageId, error);
+        readBy = [];
+      }
+
+      if (!readBy.includes(userId)) {
+        readBy.push(userId);
+      }
+
+      await db
+        .update(messages)
+        .set({
+          status: 'read',
+          readBy: JSON.stringify(readBy),
+        })
+        .where(eq(messages.id, messageId));
+
+      // Update state
+      setUserChats(prevChats => {
+        return prevChats.map(chat => ({
+          ...chat,
+          messages: chat.messages.map(msg => {
+            if (msg.id === messageId) {
+              return {
+                ...msg,
+                status: 'read',
+                readBy: readBy,
+              };
+            }
+            return msg;
+          }),
+        }));
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+      return false;
+    }
+  }, []);
+
+  const editMessage = useCallback(async (messageId: string, newText: string) => {
+    try {
+      const message = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.id, messageId))
+        .get();
+
+      if (!message) return false;
+
+      // Only allow editing of own messages
+      if (message.senderId !== currentUserId) return false;
+
+      // Do not allow editing deleted messages
+      if (message.isDeleted) return false;
+
+      // Time limit for editing (1 hour)
+      const oneHourAgo = Date.now() - (60 * 60 * 1000);
+      if (message.timestamp < oneHourAgo) return false;
+
+      await db
+        .update(messages)
+        .set({
+          text: newText,
+          isEdited: true,
+          editedAt: Date.now(),
+          originalText: message.text,
+        })
+        .where(eq(messages.id, messageId));
+
+      // Update state
+      setUserChats(prevChats => {
+        return prevChats.map(chat => ({
+          ...chat,
+          messages: chat.messages.map(msg => {
+            if (msg.id === messageId) {
+              return {
+                ...msg,
+                text: newText,
+                isEdited: true,
+                editedAt: Date.now(),
+                originalText: msg.text,
+              };
+            }
+            return msg;
+          }),
+        }));
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error editing message:', error);
+      return false;
+    }
+  }, [currentUserId]);
+
+  const deleteMessage = useCallback(async (messageId: string) => {
+    try {
+      const message = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.id, messageId))
+        .get();
+
+      if (!message) return false;
+
+      // Only allow deleting own messages
+      if (message.senderId !== currentUserId) return false;
+
+      await db
+        .update(messages)
+        .set({
+          isDeleted: true,
+          deletedAt: Date.now(),
+        })
+        .where(eq(messages.id, messageId));
+
+      // Update state
+      setUserChats(prevChats => {
+        return prevChats.map(chat => ({
+          ...chat,
+          messages: chat.messages.map(msg => {
+            if (msg.id === messageId) {
+              return {
+                ...msg,
+                isDeleted: true,
+                deletedAt: Date.now(),
+              };
+            }
+            return msg;
+          }),
+        }));
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      return false;
+    }
+  }, [currentUserId]);
+
   return {
     chats: userChats,
     createChat,
     sendMessage,
+    markMessageAsRead,
+    editMessage,
+    deleteMessage,
     loading,
   };
 } 
