@@ -6,6 +6,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { IconSymbol } from './ui/IconSymbol';
 import { useMessageStatus } from '@/hooks/useMessageStatus';
 import { MessageStatusIcon } from './MessageStatus';
+import { useAppContext } from '@/hooks/AppContext';
 
 interface MessageBubbleProps {
   message: Message;
@@ -15,7 +16,8 @@ interface MessageBubbleProps {
 export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const {getStatusIcon, shouldShowStatus} = useMessageStatus(message, isCurrentUser);
+  const { getStatusIcon, shouldShowStatus } = useMessageStatus(message, isCurrentUser);
+  const { deleteMessage } = useAppContext();
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
