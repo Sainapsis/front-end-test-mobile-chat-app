@@ -46,9 +46,28 @@ export async function initializeDatabase() {
         sender_id TEXT NOT NULL,
         text TEXT NOT NULL,
         timestamp INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'sent',
+        read_by TEXT NOT NULL DEFAULT '[]',
         FOREIGN KEY (chat_id) REFERENCES chats (id)
       );
     `);
+
+    // Migración: Agregar columnas status y read_by si no existen
+    try {
+      await sqlite.execAsync(`
+        ALTER TABLE messages ADD COLUMN status TEXT NOT NULL DEFAULT 'sent';
+      `);
+    } catch (error) {
+      console.log('Column status might already exist');
+    }
+
+    try {
+      await sqlite.execAsync(`
+        ALTER TABLE messages ADD COLUMN read_by TEXT NOT NULL DEFAULT '[]';
+      `);
+    } catch (error) {
+      console.log('Column read_by might already exist');
+    }
     
     console.log('All tables created successfully!');
   } catch (error) {

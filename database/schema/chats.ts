@@ -16,4 +16,6 @@ export const messages = sqliteTable("messages", {
   senderId: text("sender_id").notNull(),
   text: text("text").notNull(),
   timestamp: integer("timestamp").notNull(),
+  status: text("status", { enum: ["sent", "read"] }).notNull().default("sent"),
+  readBy: text("read_by").notNull().default("[]"), // JSON array of user IDs
 }); 

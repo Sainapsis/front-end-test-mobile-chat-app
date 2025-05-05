@@ -19,7 +19,7 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, users, chats, sendMessage } = useAppContext();
+  const { currentUser, users, chats, sendMessage, markMessageAsRead } = useAppContext();
   const [messageText, setMessageText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
@@ -49,6 +49,18 @@ export default function ChatRoomScreen() {
       }, 100);
     }
   }, [chat?.messages.length]);
+
+  useEffect(() => {
+    if (chat && currentUser) {
+      const unreadMessages = chat.messages.filter(
+        msg => msg.senderId !== currentUser.id && !msg.readBy.includes(currentUser.id)
+      );
+      
+      unreadMessages.forEach(msg => {
+        markMessageAsRead(msg.id, currentUser.id);
+      });
+    }
+  }, []);
 
   if (!chat || !currentUser) {
     return (
