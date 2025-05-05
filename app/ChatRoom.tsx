@@ -197,6 +197,9 @@ const styles = StyleSheet.create({
     padding: 10,
     flexGrow: 1,
   },
+  messagesContainerWithEdit: {
+    paddingBottom: 50,
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -209,6 +212,26 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     borderTopWidth: 1,
     borderTopColor: '#E1E1E1',
+    backgroundColor: '#FFFFFF',
+  },
+  editModeContainer: {
+    position: 'absolute',
+    bottom: '120%',
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F0F0F0',
+    padding: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E1E1E1',
+  },
+  editModeText: {
+    fontSize: 12,
+    color: '#666',
+    flex: 1,
+    marginRight: 8,
   },
   input: {
     flex: 1,
