@@ -269,11 +269,114 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  const editMessage = useCallback(async (messageId: string, newText: string) => {
+    try {
+      const message = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.id, messageId))
+        .get();
+
+      if (!message) return false;
+
+      // Only allow editing of own messages
+      if (message.senderId !== currentUserId) return false;
+
+      // Do not allow editing deleted messages
+      if (message.isDeleted) return false;
+
+      // Time limit for editing (1 hour)
+      const oneHourAgo = Date.now() - (60 * 60 * 1000);
+      if (message.timestamp < oneHourAgo) return false;
+
+      await db
+        .update(messages)
+        .set({
+          text: newText,
+          isEdited: true,
+          editedAt: Date.now(),
+          originalText: message.text,
+        })
+        .where(eq(messages.id, messageId));
+
+      // Update state
+      setUserChats(prevChats => {
+        return prevChats.map(chat => ({
+          ...chat,
+          messages: chat.messages.map(msg => {
+            if (msg.id === messageId) {
+              return {
+                ...msg,
+                text: newText,
+                isEdited: true,
+                editedAt: Date.now(),
+                originalText: msg.text,
+              };
+            }
+            return msg;
+          }),
+        }));
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error editing message:', error);
+      return false;
+    }
+  }, []);
+
+  const deleteMessage = useCallback(async (messageId: string) => {
+    try {
+      const message = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.id, messageId))
+        .get();
+
+      if (!message) return false;
+
+      // Only allow deleting own messages
+      if (message.senderId !== currentUserId) return false;
+
+      await db
+        .update(messages)
+        .set({
+          isDeleted: true,
+          deletedAt: Date.now(),
+        })
+        .where(eq(messages.id, messageId));
+
+      // Update state
+      setUserChats(prevChats => {
+        return prevChats.map(chat => ({
+          ...chat,
+          messages: chat.messages.map(msg => {
+            if (msg.id === messageId) {
+              return {
+                ...msg,
+                isDeleted: true,
+                deletedAt: Date.now(),
+              };
+            }
+            return msg;
+          }),
+        }));
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      return false;
+    }
+  }, []);
+
   return {
     chats: userChats,
     createChat,
     sendMessage,
     markMessageAsRead,
+    editMessage,
+    deleteMessage,
     loading,
   };
 } 
