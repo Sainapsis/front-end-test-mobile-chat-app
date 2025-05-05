@@ -100,4 +100,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     opacity: 0.7,
   },
+  editedIndicator: {
+    fontSize: 11,
+    opacity: 0.7,
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  deletedMessage: {
+    fontStyle: 'italic',
+    opacity: 0.7,
+  },
 }); 
