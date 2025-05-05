@@ -131,9 +131,13 @@ export default function ChatRoomScreen() {
           <MessageBubble
             message={item}
             isCurrentUser={item.senderId === currentUser.id}
+            onEditMessage={handleEditMessage}
           />
         )}
-        contentContainerStyle={styles.messagesContainer}
+        contentContainerStyle={[
+          styles.messagesContainer,
+          editingMessage && styles.messagesContainerWithEdit
+        ]}
         ListEmptyComponent={() => (
           <ThemedView style={styles.emptyContainer}>
             <ThemedText>No messages yet. Say hello!</ThemedText>
@@ -142,6 +146,16 @@ export default function ChatRoomScreen() {
       />
 
       <ThemedView style={styles.inputContainer}>
+        {editingMessage && (
+          <View style={styles.editModeContainer}>
+            <ThemedText style={styles.editModeText} numberOfLines={1}>
+              {editingMessage.text}
+            </ThemedText>
+            <Pressable onPress={handleCancelEdit}>
+              <IconSymbol name="xmark.circle.fill" size={20} color="#FF3B30" />
+            </Pressable>
+          </View>
+        )}
         <TextInput
           style={styles.input}
           value={messageText}
@@ -154,7 +168,11 @@ export default function ChatRoomScreen() {
           onPress={handleSendMessage}
           disabled={!messageText.trim()}
         >
-          <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />
+          <IconSymbol 
+            name="arrow.up.circle.fill"
+            size={32} 
+            color="#007AFF" 
+          />
         </Pressable>
       </ThemedView>
     </KeyboardAvoidingView>
