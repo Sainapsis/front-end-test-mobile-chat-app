@@ -166,6 +166,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9F9F9',
   },
   sendButton: {
+    width: 32,
+    backgroundColor: '#000000',
+    borderRadius: 100,
     marginLeft: 10,
     marginBottom: 5,
   },
