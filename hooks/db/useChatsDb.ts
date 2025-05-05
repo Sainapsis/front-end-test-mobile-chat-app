@@ -174,7 +174,8 @@ export function useChatsDb(currentUserId: string | null) {
         text: text,
         timestamp: timestamp,
         status: 'sent',
-        readBy: JSON.stringify([senderId]), // El remitente siempre ha leído su propio mensaje
+        readBy: JSON.stringify([senderId]), // The sender has always read his own message.
+        originalText: text,
       });
       
       const newMessage: Message = {
