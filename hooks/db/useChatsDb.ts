@@ -11,6 +11,11 @@ export interface Message {
   timestamp: number;
   status: MessageStatus;
   readBy: string[];
+  isEdited: boolean;
+  isDeleted: boolean;
+  editedAt?: number;
+  deletedAt?: number;
+  originalText?: string;
 }
 
 export interface Chat {
