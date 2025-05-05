@@ -11,6 +11,8 @@ export interface AppContextType {
   createChat: (participantIds: string[]) => Promise<Chat | null>;
   sendMessage: (chatId: string, text: string, senderId: string) => Promise<boolean>;
   markMessageAsRead: (messageId: string, userId: string) => Promise<boolean>;
+  editMessage: (messageId: string, newText: string) => Promise<boolean>;
+  deleteMessage: (messageId: string) => Promise<boolean>;
   loading: boolean;
   dbInitialized: boolean;
   isLoggedIn: boolean;
@@ -31,7 +33,15 @@ export function useAppContext() {
 function AppContent({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const { users, loading: usersLoading } = useUser();
-  const { chats, createChat, sendMessage, markMessageAsRead, loading: chatsLoading } = useChats(currentUser?.id || null);
+  const { 
+    chats, 
+    createChat, 
+    sendMessage, 
+    markMessageAsRead,
+    editMessage,
+    deleteMessage,
+    loading: chatsLoading 
+  } = useChats(currentUser?.id || null);
   const { isInitialized: dbInitialized } = useDatabase();
 
   const login = async (userId: string) => {
@@ -47,19 +57,21 @@ function AppContent({ children }: { children: ReactNode }) {
     setCurrentUser(null);
   };
 
-  const value= {
-      currentUser,
-      users,
-      chats,
-      createChat,
-      sendMessage,
-      markMessageAsRead,
-      loading: usersLoading || chatsLoading,
-      dbInitialized,
-      isLoggedIn: !!currentUser,
-      login,
-      logout,
-    }
+  const value = {
+    currentUser,
+    users,
+    chats,
+    createChat,
+    sendMessage,
+    markMessageAsRead,
+    editMessage,
+    deleteMessage,
+    loading: usersLoading || chatsLoading,
+    dbInitialized,
+    isLoggedIn: !!currentUser,
+    login,
+    logout,
+  }
 
   return (
     <AppContext.Provider value={value}>
