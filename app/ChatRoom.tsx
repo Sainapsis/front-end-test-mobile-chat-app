@@ -16,11 +16,13 @@ import { ThemedView } from '@/components/ThemedView';
 import { MessageBubble } from '@/components/MessageBubble';
 import { Avatar } from '@/components/Avatar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { Message } from '@/hooks/useChats';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, users, chats, sendMessage, markMessageAsRead } = useAppContext();
+  const { currentUser, users, chats, sendMessage, markMessageAsRead, editMessage } = useAppContext();
   const [messageText, setMessageText] = useState('');
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
   
@@ -35,11 +37,33 @@ export default function ChatRoomScreen() {
     ? chatParticipants[0]?.name 
     : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
 
-  const handleSendMessage = () => {
-    if (messageText.trim() && currentUser && chat) {
-      sendMessage(chat.id, messageText.trim(), currentUser.id);
-      setMessageText('');
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || !currentUser || !chat) return;
+
+    if (editingMessage) {
+      // Mode edition
+      const success = await editMessage(editingMessage.id, messageText.trim());
+      if (success) {
+        setMessageText('');
+        setEditingMessage(null);
+      }
+    } else {
+      // Mode normal send
+      const success = await sendMessage(chat.id, messageText.trim(), currentUser.id);
+      if (success) {
+        setMessageText('');
+      }
     }
+  };
+
+  const handleEditMessage = (message: Message) => {
+    setEditingMessage(message);
+    setMessageText(message.text);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+    setMessageText('');
   };
 
   useEffect(() => {
