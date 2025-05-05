@@ -323,7 +323,7 @@ export function useChatsDb(currentUserId: string | null) {
       console.error('Error editing message:', error);
       return false;
     }
-  }, []);
+  }, [currentUserId]);
 
   const deleteMessage = useCallback(async (messageId: string) => {
     try {
@@ -368,7 +368,7 @@ export function useChatsDb(currentUserId: string | null) {
       console.error('Error deleting message:', error);
       return false;
     }
-  }, []);
+  }, [currentUserId]);
 
   return {
     chats: userChats,
