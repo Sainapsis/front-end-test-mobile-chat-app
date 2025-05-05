@@ -190,6 +190,8 @@ export function useChatsDb(currentUserId: string | null) {
         timestamp,
         status: 'sent',
         readBy: [senderId],
+        isEdited: false,
+        isDeleted: false,
       };
       
       // Update state
