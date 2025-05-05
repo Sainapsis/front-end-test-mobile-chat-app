@@ -1,11 +1,12 @@
 import React from 'react';
 import { View, StyleSheet, Pressable, Alert } from 'react-native';
-import { ThemedText } from './ThemedText';
+import { ThemedText } from '../ThemedText';
 import { Message } from '@/hooks/useChats';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useMessageStatus } from '@/hooks/useMessageStatus';
 import { MessageStatusIcon } from './MessageStatus';
 import { useAppContext } from '@/hooks/AppContext';
+import { MessageContent } from './MessageContent';
 
 interface MessageBubbleProps {
   message: Message;
@@ -65,32 +66,6 @@ export function MessageBubble({ message, isCurrentUser, onEditMessage }: Message
     );
   };
 
-  const renderMessageContent = () => {
-    if (message.isDeleted) {
-      return (
-        <ThemedText style={[styles.messageText, styles.deletedMessage]}>
-          This message was deleted
-        </ThemedText>
-      );
-    }
-
-    return (
-      <>
-        <ThemedText style={[
-          styles.messageText,
-          isCurrentUser && !isDark && styles.selfMessageText
-        ]}>
-          {message.text}
-        </ThemedText>
-        {message.isEdited && (
-          <ThemedText style={styles.editedIndicator}>
-            (editado)
-          </ThemedText>
-        )}
-      </>
-    );
-  };
-
   return (
     <Pressable
       onLongPress={handleLongPress}
@@ -105,7 +80,11 @@ export function MessageBubble({ message, isCurrentUser, onEditMessage }: Message
           ? [styles.selfBubble, { backgroundColor: isDark ? '#235A4A' : '#DCF8C6' }]
           : [styles.otherBubble, { backgroundColor: isDark ? '#2A2C33' : '#FFFFFF' }]
       ]}>
-        {renderMessageContent()}
+        <MessageContent 
+          message={message} 
+          isDark={isDark} 
+          isCurrentUser={isCurrentUser} 
+        />
         <View style={styles.timeContainer}>
           <ThemedText style={styles.timeText}>
             {formatTime(message.timestamp)}
