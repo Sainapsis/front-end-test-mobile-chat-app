@@ -96,6 +96,11 @@ export function useChatsDb(currentUserId: string | null) {
               timestamp: m.timestamp,
               status: m.status || 'sent',
               readBy,
+              isEdited: m.isEdited || false,
+              isDeleted: m.isDeleted || false,
+              editedAt: m.editedAt || undefined,
+              deletedAt: m.deletedAt || undefined,
+              originalText: m.originalText || undefined,
             };
           });
           
