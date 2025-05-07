@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
-import { FlatList, StyleSheet, Pressable, Modal } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { FlatList, Pressable } from 'react-native';
 import { useAppContext } from '@/hooks/AppContext';
-import { ThemedText } from '@/components/ThemedText';
+import { TextType, ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { ChatListItem } from '@/components/ChatListItem';
-import { UserListItem } from '@/components/UserListItem';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import ModalNewChat from '@/components/ModalNewChat';
+import { ThemeColors } from '@/constants/Colors';
+import styles from '@/styles/index.style';
+import { MessageStatus } from '@/database/interface/message';
 
 export default function ChatsScreen() {
-  const { currentUser, users, chats, createChat } = useAppContext();
+  const { currentUser, users, chats, createChat, updateMessageStatus } = useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
@@ -36,20 +39,47 @@ export default function ChatsScreen() {
     </ThemedView>
   );
 
+  const sortedChats = [...chats].sort((a, b) => {
+    const aLast = a.messages[a.messages.length - 1];
+    const bLast = b.messages[b.messages.length - 1];
+
+    const aTime = aLast ? new Date(aLast.timestamp).getTime() : 0;
+    const bTime = bLast ? new Date(bLast.timestamp).getTime() : 0;
+
+    return bTime - aTime;
+  });
+
+
+  useEffect(() => {
+    if (chats && currentUser) {
+      chats.forEach(chat => {
+        const undeliveredMessages = chat.messages.filter(
+          msg =>
+            msg.senderId !== currentUser.id &&
+            (msg.status === MessageStatus.SENT || msg.status === MessageStatus.DELIVERED)
+        );
+
+        undeliveredMessages.forEach(msg => {
+          updateMessageStatus(chat.id, msg.id, MessageStatus.DELIVERED);
+        });
+      });
+    }
+  }, [chats, currentUser, updateMessageStatus])
+
   return (
     <ThemedView style={styles.container}>
       <ThemedView style={styles.header}>
-        <ThemedText type="title">Chats</ThemedText>
+        <ThemedText type={TextType.TITLE}>Chats</ThemedText>
         <Pressable
           style={styles.newChatButton}
           onPress={() => setModalVisible(true)}
         >
-          <IconSymbol name="plus" size={24} color="#007AFF" />
+          <IconSymbol name="plus" size={24} color={ThemeColors.blue} />
         </Pressable>
       </ThemedView>
 
       <FlatList
-        data={chats}
+        data={sortedChats}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <ChatListItem
@@ -62,139 +92,16 @@ export default function ChatsScreen() {
         contentContainerStyle={styles.listContainer}
       />
 
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => {
-          setModalVisible(false);
-          setSelectedUsers([]);
-        }}
-      >
-        <ThemedView style={styles.modalContainer}>
-          <ThemedView style={styles.modalContent}>
-            <ThemedView style={styles.modalHeader}>
-              <ThemedText type="subtitle">New Chat</ThemedText>
-              <Pressable onPress={() => {
-                setModalVisible(false);
-                setSelectedUsers([]);
-              }}>
-                <IconSymbol name="xmark" size={24} color="#007AFF" />
-              </Pressable>
-            </ThemedView>
-
-            <ThemedText style={styles.modalSubtitle}>
-              Select users to chat with
-            </ThemedText>
-
-            <FlatList
-              data={users.filter(user => user.id !== currentUser?.id)}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <UserListItem
-                  user={item}
-                  onSelect={() => toggleUserSelection(item.id)}
-                  isSelected={selectedUsers.includes(item.id)}
-                />
-              )}
-              style={styles.userList}
-            />
-
-            <Pressable
-              style={[
-                styles.createButton,
-                selectedUsers.length === 0 && styles.disabledButton
-              ]}
-              onPress={handleCreateChat}
-              disabled={selectedUsers.length === 0}
-            >
-              <ThemedText style={styles.createButtonText}>
-                Create Chat
-              </ThemedText>
-            </Pressable>
-          </ThemedView>
-        </ThemedView>
-      </Modal>
+      <ModalNewChat
+        users={users}
+        currentUser={currentUser}
+        modalVisible={modalVisible}
+        selectedUsers={selectedUsers}
+        setModalVisible={setModalVisible}
+        setSelectedUsers={setSelectedUsers}
+        handleCreateChat={handleCreateChat}
+        toggleUserSelection={toggleUserSelection}
+      />
     </ThemedView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 60,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  newChatButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
-  },
-  listContainer: {
-    flexGrow: 1,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    marginTop: 40,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    width: '90%',
-    maxHeight: '80%',
-    borderRadius: 10,
-    padding: 20,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalSubtitle: {
-    marginBottom: 10,
-  },
-  userList: {
-    maxHeight: 400,
-  },
-  createButton: {
-    backgroundColor: '#007AFF',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  disabledButton: {
-    backgroundColor: '#CCCCCC',
-  },
-  createButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-});

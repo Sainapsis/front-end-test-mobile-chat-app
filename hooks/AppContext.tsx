@@ -3,8 +3,9 @@ import { useUser, User } from './useUser';
 import { useChats, Chat } from './useChats';
 import { DatabaseProvider } from '../database/DatabaseProvider';
 import { useDatabase } from './useDatabase';
+import { Message, MessageStatus } from '@/database/interface/message';
 
-type AppContextType = {
+interface AppContextType {
   users: User[];
   currentUser: User | null;
   isLoggedIn: boolean;
@@ -12,7 +13,10 @@ type AppContextType = {
   logout: () => void;
   chats: Chat[];
   createChat: (participantIds: string[]) => Promise<Chat | null>;
-  sendMessage: (chatId: string, text: string, senderId: string) => Promise<boolean>;
+  sendMessage: (chatId: string, message: Message) => Promise<boolean>;
+  editMessage: (chatId: string, messageId: string, newText: string) => Promise<boolean>;
+  deleteMessage: (chatId: string, messageId: string) => Promise<boolean>;
+  updateMessageStatus: (chatId: string, messageId: string, status: MessageStatus) => Promise<void>;
   loading: boolean;
   dbInitialized: boolean;
 };
@@ -29,6 +33,9 @@ function AppContent({ children }: { children: ReactNode }) {
   const value = {
     ...userContext,
     ...chatContext,
+    editMessage: chatContext.editMessage,
+    deleteMessage: chatContext.deleteMessage,
+    updateMessageStatus: chatContext.updateMessageStatus,
     loading,
     dbInitialized: isInitialized,
   };

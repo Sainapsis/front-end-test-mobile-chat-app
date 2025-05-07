@@ -1,21 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../database/db';
 import { chats, chatParticipants, messages } from '../../database/schema';
-import { eq, and, desc, sql } from 'drizzle-orm';
-
-export interface Message {
-  id: string;
-  senderId: string;
-  text: string;
-  timestamp: number;
-}
-
-export interface Chat {
-  id: string;
-  participants: string[];
-  messages: Message[];
-  lastMessage?: Message;
-}
+import { desc, eq } from 'drizzle-orm';
+import { Message, MessageStatus } from '@/database/interface/message';
+import { Chat } from '@/database/interface/chat';
 
 export function useChatsDb(currentUserId: string | null) {
   const [userChats, setUserChats] = useState<Chat[]>([]);
@@ -23,85 +11,85 @@ export function useChatsDb(currentUserId: string | null) {
 
   // Load chats for the current user
   useEffect(() => {
-    const loadChats = async () => {
-      if (!currentUserId) {
+  const loadChats = async () => {
+    if (!currentUserId) {
+      setUserChats([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Get chat IDs where the user is a participant
+      const participantRows = await db
+        .select()
+        .from(chatParticipants)
+        .where(eq(chatParticipants.userId, currentUserId));
+
+      const chatIds = participantRows.map(row => row.chatId);
+
+      if (chatIds.length === 0) {
         setUserChats([]);
         setLoading(false);
         return;
       }
-      
-      try {
-        // Get chat IDs where the user is a participant
-        const participantRows = await db
+
+      const loadedChats: Chat[] = [];
+
+      for (const chatId of chatIds) {
+        // Get the chat
+        const chatData = await db
+          .select()
+          .from(chats)
+          .where(eq(chats.id, chatId));
+
+        if (chatData.length === 0) continue;
+
+        // Get participants
+        const participantsData = await db
           .select()
           .from(chatParticipants)
-          .where(eq(chatParticipants.userId, currentUserId));
-          
-        const chatIds = participantRows.map(row => row.chatId);
-        
-        if (chatIds.length === 0) {
-          setUserChats([]);
-          setLoading(false);
-          return;
-        }
-        
-        // Build the complete chat objects
-        const loadedChats: Chat[] = [];
-        
-        for (const chatId of chatIds) {
-          // Get the chat
-          const chatData = await db
-            .select()
-            .from(chats)
-            .where(eq(chats.id, chatId));
-            
-          if (chatData.length === 0) continue;
-          
-          // Get participants
-          const participantsData = await db
-            .select()
-            .from(chatParticipants)
-            .where(eq(chatParticipants.chatId, chatId));
-            
-          const participantIds = participantsData.map(p => p.userId);
-          
-          // Get messages
-          const messagesData = await db
-            .select()
-            .from(messages)
-            .where(eq(messages.chatId, chatId))
-            .orderBy(messages.timestamp);
-            
-          const chatMessages = messagesData.map(m => ({
-            id: m.id,
-            senderId: m.senderId,
-            text: m.text,
-            timestamp: m.timestamp,
-          }));
-          
-          // Determine last message
-          const lastMessage = chatMessages.length > 0 
-            ? chatMessages[chatMessages.length - 1] 
-            : undefined;
-          
-          loadedChats.push({
-            id: chatId,
-            participants: participantIds,
-            messages: chatMessages,
-            lastMessage,
-          });
-        }
-        
-        setUserChats(loadedChats);
-      } catch (error) {
-        console.error('Error loading chats:', error);
-      } finally {
-        setLoading(false);
+          .where(eq(chatParticipants.chatId, chatId));
+
+        const participantIds = participantsData.map(p => p.userId);
+
+        // Get messages
+        const messagesData = await db
+          .select()
+          .from(messages)
+          .where(eq(messages.chatId, chatId))
+          .orderBy(desc(messages.timestamp));
+
+        const chatMessages = messagesData.map(message => ({
+          id: message.id,
+          senderId: message.senderId,
+          text: message.text,
+          imageUri: message.imageUri ?? null,
+          timestamp: message.timestamp,
+          status: message.status as MessageStatus,
+        }));
+
+        const lastMessage = chatMessages.length > 0
+          ? chatMessages[0]
+          : undefined;
+
+        loadedChats.push({
+          id: chatId,
+          participants: participantIds,
+          messages: chatMessages as Message[],
+          lastMessage: lastMessage as Message | undefined,
+        });
       }
-    };
-    
-    loadChats();
-  }, [currentUserId]);
+
+      setUserChats(loadedChats);
+    } catch (error) {
+      console.error('Error loading chats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  loadChats();
+}, [currentUserId]);
 
   const createChat = useCallback(async (participantIds: string[]) => {
     if (!currentUserId || !participantIds.includes(currentUserId)) {
@@ -139,43 +127,35 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, [currentUserId]);
 
-  const sendMessage = useCallback(async (chatId: string, text: string, senderId: string) => {
-    if (!text.trim()) return false;
-    
+  const sendMessage = useCallback(async (chatId: string, message: Message) => {
+    if (!message.text?.trim() && !message.imageUri) return false;
+
     try {
-      const messageId = `msg${Date.now()}`;
-      const timestamp = Date.now();
-      
       // Insert new message
       await db.insert(messages).values({
-        id: messageId,
+        id: message.id,
         chatId: chatId,
-        senderId: senderId,
-        text: text,
-        timestamp: timestamp,
+        senderId: message.senderId,
+        text: message.text,
+        imageUri: message.imageUri,
+        timestamp: message.timestamp,
+        status: message.status,
       });
-      
-      const newMessage: Message = {
-        id: messageId,
-        senderId,
-        text,
-        timestamp,
-      };
-      
+
       // Update state
       setUserChats(prevChats => {
         return prevChats.map(chat => {
           if (chat.id === chatId) {
             return {
               ...chat,
-              messages: [...chat.messages, newMessage],
-              lastMessage: newMessage,
+              messages: [message, ...chat.messages],
+              lastMessage: message,
             };
           }
           return chat;
         });
       });
-      
+
       return true;
     } catch (error) {
       console.error('Error sending message:', error);
@@ -183,10 +163,123 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  const handleLoadMore = async () => {
+    console.log('handleLoadMore called');
+//     if (loading /*|| noMoreMessages*/) return;
+// 
+//     setLoading(true);
+//     const olderMessages = await fetchOlderMessages(lastMessageId);
+//     setUserChats(prev => [...prev, ...olderMessages]);
+//     setLoading(false);
+// 
+//     if (olderMessages.length === 0) {
+//       setNoMoreMessages(true);
+//     }
+  };
+
+  const editMessage = useCallback(async (chatId: string, messageId: string, newText: string) => {
+    if (!newText.trim()) return false;
+
+    try {
+      // Actualiza en la base de datos
+      await db.update(messages)
+        .set({ text: newText })
+        .where(eq(messages.id, messageId));
+
+      // Actualiza en el estado local
+      setUserChats(prevChats => {
+        return prevChats.map(chat => {
+          if (chat.id === chatId) {
+            const updatedMessages = chat.messages.map(msg =>
+              msg.id === messageId ? { ...msg, text: newText } : msg
+            );
+
+            const lastMessage = updatedMessages.length > 0 ? updatedMessages[updatedMessages.length - 1] : undefined;
+
+            return {
+              ...chat,
+              messages: updatedMessages,
+              lastMessage,
+            };
+          }
+          return chat;
+        });
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error editing message:', error);
+      return false;
+    }
+  }, []);
+
+  const deleteMessage = useCallback(async (chatId: string, messageId: string) => {
+    try {
+      // Elimina de la base de datos
+      await db.delete(messages).where(eq(messages.id, messageId));
+
+      // Actualiza en el estado local
+      setUserChats(prevChats => {
+        return prevChats.map(chat => {
+          if (chat.id === chatId) {
+            const updatedMessages = chat.messages.filter(msg => msg.id !== messageId);
+
+            const lastMessage = updatedMessages.length > 0 ? updatedMessages[updatedMessages.length - 1] : undefined;
+
+            return {
+              ...chat,
+              messages: updatedMessages,
+              lastMessage,
+            };
+          }
+          return chat;
+        });
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      return false;
+    }
+  }, []);
+
+  const updateMessageStatus = useCallback(async (chatId: string, messageId: string, status: MessageStatus) => {
+    try {
+      await db.update(messages)
+        .set({ status })
+        .where(eq(messages.id, messageId));
+
+      setUserChats(prevChats => {
+        return prevChats.map(chat => {
+          if (chat.id === chatId) {
+            const updatedMessages = chat.messages.map(msg =>
+              msg.id === messageId ? { ...msg, status } : msg
+            );
+
+            const lastMessage = updatedMessages.length > 0 ? updatedMessages[updatedMessages.length - 1] : undefined;
+
+            return {
+              ...chat,
+              messages: updatedMessages,
+              lastMessage,
+            };
+          }
+          return chat;
+        });
+      });
+    } catch (error) {
+      console.error('Error updating message status:', error);
+    }
+  }, []);
+
   return {
     chats: userChats,
     createChat,
     sendMessage,
+    editMessage,
+    deleteMessage,
+    updateMessageStatus,
     loading,
+    handleLoadMore,
   };
 } 

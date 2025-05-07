@@ -1,4 +1,5 @@
-import { useUserDb, User } from './db/useUserDb';
+import { useUserDb } from './db/useUserDb';
+import { User } from '@/database/interface/user';
 
 export { User };
 

@@ -1,19 +1,23 @@
 import React from 'react';
-import { StyleSheet, FlatList, SafeAreaView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { FlatList, SafeAreaView } from 'react-native';
+import { RelativePathString, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAppContext } from '@/hooks/AppContext';
-import { ThemedText } from '@/components/ThemedText';
+import { TextType, ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { UserListItem } from '@/components/UserListItem';
+import styles from '@/styles/login.style';
+import { Routes } from '@/constants/Routes';
 
 export default function LoginScreen() {
   const { users, login } = useAppContext();
   const router = useRouter();
 
-  const handleUserSelect = (userId: string) => {
-    if (login(userId)) {
-      router.replace('/(tabs)');
+  const handleUserSelect = async (userId: string) => {
+    const user = await login(userId);
+    
+    if (user) {
+      router.replace(`/${Routes.TABS}` as RelativePathString);
     }
   };
 
@@ -22,7 +26,7 @@ export default function LoginScreen() {
       <StatusBar style="auto" />
       <ThemedView style={styles.container}>
         <ThemedView style={styles.header}>
-          <ThemedText type="title">Welcome to Chat App</ThemedText>
+          <ThemedText type={TextType.TITLE}>Welcome to Chat App</ThemedText>
           <ThemedText style={styles.subtitle}>
             Select a user to continue
           </ThemedText>
@@ -43,26 +47,3 @@ export default function LoginScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-    paddingTop: 20,
-  },
-  header: {
-    alignItems: 'center',
-    padding: 20,
-    marginBottom: 20,
-  },
-  subtitle: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#8F8F8F',
-  },
-  listContainer: {
-    paddingBottom: 20,
-  },
-}); 
