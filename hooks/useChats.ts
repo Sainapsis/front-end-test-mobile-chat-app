@@ -1,4 +1,6 @@
-import { useChatsDb, Chat, Message } from './db/useChatsDb';
+import { useChatsDb } from './db/useChatsDb';
+import { Message } from '@/database/interface/message';
+import { Chat } from '@/database/interface/chat';
 
 export { Chat, Message };
 
@@ -7,13 +9,21 @@ export function useChats(currentUserId: string | null) {
     chats, 
     createChat, 
     sendMessage, 
-    loading 
+    editMessage, 
+    deleteMessage, 
+    updateMessageStatus,
+    loading,
+    handleLoadMore
   } = useChatsDb(currentUserId);
 
   return {
     chats,
     createChat,
     sendMessage,
+    editMessage,
+    deleteMessage,
+    updateMessageStatus,
     loading,
+    handleLoadMore
   };
-} 
+}

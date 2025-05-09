@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
-import { ThemedText } from './ThemedText';
+import { TextType, ThemedText } from './ThemedText';
 import { Avatar } from './Avatar';
 import { User } from '@/hooks/useUser';
+import { ThemeColors } from '@/constants/Colors';
+import { transformText } from '@/utils/helpers/text_func';
 
 interface UserListItemProps {
   user: User;
@@ -24,9 +26,9 @@ export function UserListItem({ user, onSelect, isSelected }: UserListItemProps) 
     >
       <Avatar user={user} size={50} />
       <View style={styles.infoContainer}>
-        <ThemedText type="defaultSemiBold">{user.name}</ThemedText>
+        <ThemedText type={TextType.DEFAULT_SEMI_BOLD}>{user.name}</ThemedText>
         <ThemedText style={styles.statusText}>
-          {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+          {transformText.firstLetterUpperCase(user.status)}
         </ThemedText>
       </View>
     </Pressable>
@@ -42,7 +44,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E1E1E1',
   },
   selectedContainer: {
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    backgroundColor: '#007aff19',
   },
   infoContainer: {
     marginLeft: 12,
@@ -50,7 +52,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 14,
-    color: '#8F8F8F',
+    color: ThemeColors.gray,
     marginTop: 4,
   },
 }); 

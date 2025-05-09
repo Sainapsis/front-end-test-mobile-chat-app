@@ -1,4 +1,6 @@
 import { db } from './db';
+import { MessageStatus } from './interface/message';
+import { UserStatus } from './interface/user';
 import { users, chats, chatParticipants, messages } from './schema';
 
 // Mock user data from the original useUser hook
@@ -7,25 +9,25 @@ const mockUsers = [
     id: '1',
     name: 'John Doe',
     avatar: 'https://i.pravatar.cc/150?img=1',
-    status: 'online' as const,
+    status: UserStatus.ONLINE,
   },
   {
     id: '2',
     name: 'Jane Smith',
     avatar: 'https://i.pravatar.cc/150?img=2',
-    status: 'offline' as const,
+    status: UserStatus.OFFLINE,
   },
   {
     id: '3',
     name: 'Mike Johnson',
     avatar: 'https://i.pravatar.cc/150?img=3',
-    status: 'away' as const,
+    status: UserStatus.AWAY,
   },
   {
     id: '4',
     name: 'Sarah Williams',
     avatar: 'https://i.pravatar.cc/150?img=4',
-    status: 'online' as const,
+    status: UserStatus.ONLINE,
   },
 ];
 
@@ -39,13 +41,17 @@ const initialChats = [
         id: 'msg1',
         senderId: '2',
         text: 'Hey, how are you?',
+        imageUri: null,
         timestamp: Date.now() - 3600000,
+        status: MessageStatus.SENT,
       },
       {
         id: 'msg2',
         senderId: '1',
         text: 'I\'m good, thanks for asking!',
+        imageUri: null,
         timestamp: Date.now() - 1800000,
+        status: MessageStatus.READ,
       },
     ],
   },
@@ -57,7 +63,9 @@ const initialChats = [
         id: 'msg3',
         senderId: '3',
         text: 'Did you check the project?',
+        imageUri: null,
         timestamp: Date.now() - 86400000,
+        status: MessageStatus.SENT,
       },
     ],
   },
@@ -116,6 +124,7 @@ export async function seedDatabase() {
           senderId: message.senderId,
           text: message.text,
           timestamp: message.timestamp,
+          status: message.status,
         }).onConflictDoNothing();
       }
     }

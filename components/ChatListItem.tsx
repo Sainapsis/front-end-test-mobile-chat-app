@@ -1,10 +1,16 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Chat } from '@/hooks/useChats';
 import { Avatar } from './Avatar';
-import { ThemedText } from './ThemedText';
+import { TextType, ThemedText } from './ThemedText';
 import { User } from '@/hooks/useUser';
+import styles from '@/styles/chatListItem.style';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { transformTime } from '@/utils/helpers/time_func';
+import { Routes } from '@/constants/Routes';
+import { messageFunc } from '@/utils/helpers/message_func';
+import { MessageStatus } from '@/database/interface/message';
 
 interface ChatListItemProps {
   chat: Chat;
@@ -12,8 +18,14 @@ interface ChatListItemProps {
   users: User[];
 }
 
+export type RootStackParamList = {
+  ChatRoom: { chatId: string };
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
 export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp>();
   
   const otherParticipants = useMemo(() => {
     return chat.participants
@@ -33,25 +45,16 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
   }, [otherParticipants]);
 
   const handlePress = () => {
-    navigation.navigate('ChatRoom' as never, { chatId: chat.id } as never);
+    navigation.navigate(
+      Routes.CHATROOM as keyof RootStackParamList,
+      { chatId: chat.id },
+    );
   };
 
   const timeString = useMemo(() => {
     if (!chat.lastMessage) return '';
     
-    const date = new Date(chat.lastMessage.timestamp);
-    const now = new Date();
-    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffInDays === 0) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } else if (diffInDays === 1) {
-      return 'Yesterday';
-    } else if (diffInDays < 7) {
-      return date.toLocaleDateString([], { weekday: 'short' });
-    } else {
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
+    return transformTime.getDiffInDays(chat.lastMessage.timestamp);
   }, [chat.lastMessage]);
 
   const isCurrentUserLastSender = chat.lastMessage?.senderId === currentUserId;
@@ -64,7 +67,7 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
       />
       <View style={styles.contentContainer}>
         <View style={styles.topRow}>
-          <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.name}>
+          <ThemedText type={TextType.DEFAULT_SEMI_BOLD} numberOfLines={1} style={styles.name}>
             {chatName}
           </ThemedText>
           {timeString && (
@@ -75,12 +78,19 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
           {chat.lastMessage && (
             <ThemedText 
               numberOfLines={1}
+              // type='defaultSemiBold'
               style={[
                 styles.lastMessage,
-                isCurrentUserLastSender && styles.currentUserMessage
+                isCurrentUserLastSender && styles.currentUserMessage,
+                chat.lastMessage.status !== MessageStatus.READ && styles.unreadMessage,
               ]}
             >
-              {isCurrentUserLastSender && 'You: '}{chat.lastMessage.text}
+              {isCurrentUserLastSender && 'You: '}{chat.lastMessage.imageUri ? '📷' : chat.lastMessage.text}
+            </ThemedText>
+          )}
+          {chat.lastMessage && isCurrentUserLastSender && (
+            <ThemedText style={styles.time}>
+              {messageFunc.getMessageStatusIcon(chat.lastMessage.status, true)}
             </ThemedText>
           )}
         </View>
@@ -88,44 +98,3 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    padding: 12,
-    alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E1E1E1',
-  },
-  contentContainer: {
-    flex: 1,
-    marginLeft: 12,
-    justifyContent: 'center',
-  },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  bottomRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  name: {
-    flex: 1,
-    marginRight: 8,
-  },
-  time: {
-    fontSize: 12,
-    color: '#8F8F8F',
-  },
-  lastMessage: {
-    fontSize: 14,
-    color: '#8F8F8F',
-    flex: 1,
-  },
-  currentUserMessage: {
-    fontStyle: 'italic',
-  },
-}); 

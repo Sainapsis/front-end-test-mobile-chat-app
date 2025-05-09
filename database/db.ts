@@ -18,14 +18,17 @@ export async function initializeDatabase() {
         name TEXT NOT NULL,
         avatar TEXT NOT NULL,
         status TEXT NOT NULL
-      );
+      ) WITHOUT ROWID;
+      CREATE INDEX IF NOT EXISTS idx_users_id ON users (id);
+      CREATE INDEX IF NOT EXISTS idx_users_name ON users (name);
     `);
     
     console.log('Creating chats table...');
     await sqlite.execAsync(`
       CREATE TABLE IF NOT EXISTS chats (
         id TEXT PRIMARY KEY
-      );
+      ) WITHOUT ROWID;
+      CREATE INDEX IF NOT EXISTS idx_chats_id ON chats (id);
     `);
     
     console.log('Creating chat_participants table...');
@@ -35,7 +38,9 @@ export async function initializeDatabase() {
         chat_id TEXT NOT NULL,
         user_id TEXT NOT NULL,
         FOREIGN KEY (chat_id) REFERENCES chats (id)
-      );
+      ) WITHOUT ROWID;
+      CREATE INDEX IF NOT EXISTS idx_chat_participants_chat_id ON chat_participants (chat_id);
+      CREATE INDEX IF NOT EXISTS idx_chat_participants_user_id ON chat_participants (user_id);
     `);
     
     console.log('Creating messages table...');
@@ -44,10 +49,15 @@ export async function initializeDatabase() {
         id TEXT PRIMARY KEY,
         chat_id TEXT NOT NULL,
         sender_id TEXT NOT NULL,
-        text TEXT NOT NULL,
+        text TEXT,
+        image_uri TEXT,
         timestamp INTEGER NOT NULL,
+        status TEXT NOT NULL,
         FOREIGN KEY (chat_id) REFERENCES chats (id)
-      );
+      ) WITHOUT ROWID;
+      CREATE INDEX IF NOT EXISTS idx_messages_id ON messages (id);
+      CREATE INDEX IF NOT EXISTS idx_messages_chat_id ON messages (chat_id);
+      CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages (sender_id);
     `);
     
     console.log('All tables created successfully!');
@@ -55,4 +65,4 @@ export async function initializeDatabase() {
     console.error('Error initializing database:', error);
     throw error;
   }
-} 
+}
