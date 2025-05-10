@@ -1,20 +1,30 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useUser, User } from './useUser';
-import { useChats, Chat } from './useChats';
-import { DatabaseProvider } from '../database/DatabaseProvider';
-import { useDatabase } from './useDatabase';
+import { useUser, User } from '@/hooks/user/useUser';
+import { useChats, Chat, Message } from '@/hooks/chats/useChats';
+import { DatabaseProvider } from '@/providers/database/DatabaseProvider';
+import { useDatabase } from '@/hooks//db/useDatabase';
+import { Socket } from 'socket.io-client';
 
 type AppContextType = {
   users: User[];
   currentUser: User | null;
   isLoggedIn: boolean;
-  login: (userId: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   chats: Chat[];
-  createChat: (participantIds: string[]) => Promise<Chat | null>;
-  sendMessage: (chatId: string, text: string, senderId: string) => Promise<boolean>;
+  createChat: (participantIds: string[]) => Promise<void>;
+  sendMessage: (chatId: string, message: any) => Promise<boolean>;
+  updateReadStatus: (chatId: string, userId: string) => Promise<void>;
   loading: boolean;
   dbInitialized: boolean;
+  socket: Socket | null;
+  offline: boolean;
+  userMessages: Message[];
+  messageIdToScroll: string | undefined;
+  setMessageId: (messageId: string | undefined) => void;
+  registerUser: (userdata: any) => void;
+  getPublicProfileData: () => void;
+  profiles: User[]
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -23,7 +33,7 @@ function AppContent({ children }: { children: ReactNode }) {
   const { isInitialized } = useDatabase();
   const userContext = useUser();
   const chatContext = useChats(userContext.currentUser?.id || null);
-  
+
   const loading = !isInitialized || userContext.loading || chatContext.loading;
 
   const value = {
