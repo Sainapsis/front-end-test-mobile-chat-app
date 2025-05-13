@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { FlatList, Pressable } from "react-native";
-import { useAppContext } from "@/hooks/AppContext";
 import { TextType, ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { ChatListItem } from "@/components/ChatListItem";
@@ -10,12 +9,16 @@ import { ThemeColors } from "@/constants/Colors";
 import styles from "@/styles/index.style";
 import { MessageStatus } from "@/src/domain/entities/message";
 import { useChat } from "@/src/presentation/hooks/useChat";
+import { useAppContext } from '@/hooks/AppContext';
 
 export default function ChatsScreen() {
-  const { updateStatus } = useChat();
-  const { currentUser, users, chats, createChat } = useAppContext();
+  const { users, currentUser } = useAppContext();
+  const { userChats, updateStatus, createChat } = useChat({
+    currentUserId: currentUser?.id || null,
+  });
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  
 
   const toggleUserSelection = (userId: string) => {
     if (selectedUsers.includes(userId)) {
@@ -27,8 +30,9 @@ export default function ChatsScreen() {
 
   const handleCreateChat = () => {
     if (currentUser && selectedUsers.length > 0) {
+      const chatId = `chat${Date.now()}`;
       const participants = [currentUser.id, ...selectedUsers];
-      createChat(participants);
+      createChat({ chatId, participantIds: participants });
       setModalVisible(false);
       setSelectedUsers([]);
     }
@@ -41,7 +45,7 @@ export default function ChatsScreen() {
     </ThemedView>
   );
 
-  const sortedChats = [...chats].sort((a, b) => {
+  const sortedChats = [...userChats].sort((a, b) => {
     const aLast = a.messages[a.messages.length - 1];
     const bLast = b.messages[b.messages.length - 1];
 
@@ -52,12 +56,12 @@ export default function ChatsScreen() {
   });
 
   useEffect(() => {
-    if (chats && currentUser) {
-      chats.forEach((chat) => {
+    if (userChats && currentUser) {
+      userChats.forEach((chat) => {
         updateStatus(currentUser.id, chat, MessageStatus.Delivered);
       });
     }
-  }, [chats]);
+  }, [userChats, currentUser]);
 
   return (
     <ThemedView style={styles.container}>

@@ -1,13 +1,12 @@
 import React, { memo } from 'react';
-import { Text, View } from 'react-native';
+import { useColorScheme, View } from 'react-native';
 import { ThemedText } from './ThemedText';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { transformTime } from '@/utils/helpers/time_func';
 import { Avatar } from './Avatar';
-import { useAppContext } from '@/hooks/AppContext';
 import styles from '@/styles/messageBubble.style';
 import { messageFunc } from '@/utils/helpers/message_func';
 import { Message } from '@/src/domain/entities/message';
+import { useUser } from '@/src/presentation/hooks/useUser';
 
 interface MessageBubbleProps {
   isAGroup: boolean;
@@ -16,7 +15,7 @@ interface MessageBubbleProps {
 }
 
 export const MessageBubble = memo(function MessageBubble({ isAGroup, message, isCurrentUser }: MessageBubbleProps) {
-  const { users } = useAppContext();
+  const { users } = useUser();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 

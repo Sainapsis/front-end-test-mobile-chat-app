@@ -1,21 +1,21 @@
-import React from 'react';
-import { FlatList, SafeAreaView } from 'react-native';
-import { RelativePathString, useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import React from "react";
+import { FlatList, SafeAreaView } from "react-native";
+import { RelativePathString, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { TextType, ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { UserListItem } from "@/components/UserListItem";
+import styles from "@/styles/login.style";
+import { Routes } from "@/constants/Routes";
 import { useAppContext } from '@/hooks/AppContext';
-import { TextType, ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { UserListItem } from '@/components/UserListItem';
-import styles from '@/styles/login.style';
-import { Routes } from '@/constants/Routes';
 
 export default function LoginScreen() {
   const { users, login } = useAppContext();
   const router = useRouter();
 
   const handleUserSelect = async (userId: string) => {
-    const user = await login(userId);
-    
+    const user = await login({ userId });
+
     if (user) {
       router.replace(`/${Routes.TABS}` as RelativePathString);
     }
@@ -31,7 +31,7 @@ export default function LoginScreen() {
             Select a user to continue
           </ThemedText>
         </ThemedView>
-        
+
         <FlatList
           data={users}
           keyExtractor={(item) => item.id}

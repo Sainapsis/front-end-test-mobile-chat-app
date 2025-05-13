@@ -1,41 +1,26 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack, useSegments, useRouter, RelativePathString } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { AppProvider, useAppContext } from '@/hooks/AppContext';
 import { DrizzleStudioDevTool } from '@/database/DrizzleStudio';
 import { Routes } from '@/constants/Routes';
+import { useChat } from '@/src/presentation/hooks/useChat';
+import { useAuth } from '@/src/presentation/hooks/useAuth';
+import { useColorScheme } from 'react-native';
 
 SplashScreen.preventAutoHideAsync();
 
-function useProtectedRoute(isLoggedIn: boolean, loading: boolean) {
-  const segments = useSegments();
-  const router = useRouter();
-  
-  useEffect(() => {
-    if (loading) return;
-    
-    const inAuthGroup = segments[0] === 'login';
-    
-    if (!isLoggedIn && !inAuthGroup) {
-      router.replace(`/${Routes.LOGIN}` as RelativePathString);
-    } else if (isLoggedIn && inAuthGroup) {
-      router.replace(`/${Routes.TABS}` as RelativePathString);
-    }
-  }, [isLoggedIn, segments, loading]);
-}
-
 function RootLayoutNav() {
-  const { isLoggedIn, loading } = useAppContext();
+  const { currentUser, isLoggedIn } = useAppContext();
+  const { loading } = useChat({ currentUserId: currentUser?.id || null });
 
-  // Call the hook unconditionally
-  useProtectedRoute(isLoggedIn, loading);
-
+  useAuth({ isLoggedIn, loading });
+  
   return (
     <>
       <Stack>

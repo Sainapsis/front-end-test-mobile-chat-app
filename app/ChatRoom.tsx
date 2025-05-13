@@ -11,7 +11,6 @@ import {
 } from "react-native";
 import { useLocalSearchParams, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useAppContext } from "@/hooks/AppContext";
 import { TextType, ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { MessageBubble } from "@/components/MessageBubble";
@@ -19,7 +18,6 @@ import { Avatar } from "@/components/Avatar";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { ThemeColors } from "@/constants/Colors";
 import styles from "@/styles/chatRoom.style";
-import { useChats } from "@/hooks/useChats";
 
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
@@ -28,23 +26,23 @@ import { Image } from "react-native-expo-image-cache";
 import { transformTime } from "@/utils/helpers/time_func";
 import { Message, MessageStatus } from "@/src/domain/entities/message";
 import { useChat } from "@/src/presentation/hooks/useChat";
+import { useAppContext } from '@/hooks/AppContext';
 
 export default function ChatRoomScreen() {
-  const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { updateStatus } = useChat();
-  const { currentUser, users, chats, sendMessage, editMessage, deleteMessage } =
-    useAppContext();
+  const { chatId } = useLocalSearchParams<{ chatId: string; }>();
+  const { users, currentUser } = useAppContext();
+  const { userChats, updateStatus, deleteMessage, editMessage, sendMessage } = useChat({currentUserId: currentUser?.id || null});
   const [messageText, setMessageText] = useState("");
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
-  const { handleLoadMore } = useChats(currentUser?.id || "");
+  // const { handleLoadMore } = useChats();
   const [inputSearchdVisible, setInputSearchdVisible] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [images, setImages] = useState<
     Array<{ uri: string; previewUri: string }>
   >([]);
 
-  const chat = chats.find((c) => c.id === chatId);
+  const chat = userChats.find((chat) => chat.id === chatId);
   const filteredMessages = useMemo(() => {
     if (searchText.trim()) {
       return chat?.messages.filter((msg: Message) =>
@@ -73,7 +71,11 @@ export default function ChatRoomScreen() {
 
     // Si está editando mensaje
     if (editingMessageId) {
-      editMessage(chat.id, editingMessageId, messageText.trim());
+      editMessage({
+        chatId: chat.id,
+        messageId: editingMessageId,
+        newText: messageText.trim(),
+      });
       setEditingMessageId(null);
     } else {
       // Si hay texto, enviamos mensaje de texto
@@ -118,7 +120,7 @@ export default function ChatRoomScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => deleteMessage(chat?.id || "", messageId),
+          onPress: () => deleteMessage({ chatId: chat?.id || "", messageId }),
         },
       ]
     );
@@ -192,7 +194,7 @@ export default function ChatRoomScreen() {
     if (chat && currentUser) {
       updateStatus(currentUser.id, chat, MessageStatus.Read);
     }
-  }, [chat]);
+  }, [chat, currentUser]);
 
   if (!chat || !currentUser) {
     return (
@@ -273,7 +275,7 @@ export default function ChatRoomScreen() {
         maxToRenderPerBatch={5}
         windowSize={5}
         removeClippedSubviews
-        onEndReached={handleLoadMore}
+        // onEndReached={handleLoadMore}
         renderItem={({ item }) => {
           const isCurrentUser = item.senderId === currentUser.id;
 

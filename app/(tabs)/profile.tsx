@@ -1,12 +1,12 @@
 import React from 'react';
 import { Pressable, SafeAreaView } from 'react-native';
-import { useAppContext } from '@/hooks/AppContext';
 import { TextType, ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Avatar } from '@/components/Avatar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { transformText } from '@/utils/helpers/text_func';
 import styles from '@/styles/profile.style';
+import { useAppContext } from '@/hooks/AppContext';
 
 export default function ProfileScreen() {
   const { currentUser, logout } = useAppContext();
