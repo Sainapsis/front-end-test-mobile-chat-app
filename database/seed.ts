@@ -1,7 +1,7 @@
+import { UserStatus } from '@/src/domain/entities/user';
 import { db } from './db';
-import { MessageStatus } from './interface/message';
-import { UserStatus } from './interface/user';
 import { users, chats, chatParticipants, messages } from './schema';
+import { MessageStatus } from '@/src/domain/entities/message';
 
 // Mock user data from the original useUser hook
 const mockUsers = [
@@ -9,25 +9,25 @@ const mockUsers = [
     id: '1',
     name: 'John Doe',
     avatar: 'https://i.pravatar.cc/150?img=1',
-    status: UserStatus.ONLINE,
+    status: UserStatus.Online,
   },
   {
     id: '2',
     name: 'Jane Smith',
     avatar: 'https://i.pravatar.cc/150?img=2',
-    status: UserStatus.OFFLINE,
+    status: UserStatus.Offline,
   },
   {
     id: '3',
     name: 'Mike Johnson',
     avatar: 'https://i.pravatar.cc/150?img=3',
-    status: UserStatus.AWAY,
+    status: UserStatus.Away,
   },
   {
     id: '4',
     name: 'Sarah Williams',
     avatar: 'https://i.pravatar.cc/150?img=4',
-    status: UserStatus.ONLINE,
+    status: UserStatus.Online,
   },
 ];
 
@@ -43,7 +43,7 @@ const initialChats = [
         text: 'Hey, how are you?',
         imageUri: null,
         timestamp: Date.now() - 3600000,
-        status: MessageStatus.SENT,
+        status: MessageStatus.Read,
       },
       {
         id: 'msg2',
@@ -51,7 +51,7 @@ const initialChats = [
         text: 'I\'m good, thanks for asking!',
         imageUri: null,
         timestamp: Date.now() - 1800000,
-        status: MessageStatus.READ,
+        status: MessageStatus.Read,
       },
     ],
   },
@@ -65,7 +65,7 @@ const initialChats = [
         text: 'Did you check the project?',
         imageUri: null,
         timestamp: Date.now() - 86400000,
-        status: MessageStatus.SENT,
+        status: MessageStatus.Read,
       },
     ],
   },

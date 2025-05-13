@@ -2,9 +2,9 @@ import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { TextType, ThemedText } from './ThemedText';
 import { Avatar } from './Avatar';
-import { User } from '@/hooks/useUser';
 import { ThemeColors } from '@/constants/Colors';
 import { transformText } from '@/utils/helpers/text_func';
+import { User } from '@/src/domain/entities/user';
 
 interface UserListItemProps {
   user: User;

@@ -1,5 +1,5 @@
 import { ThemeColors } from '@/constants/Colors';
-import { MessageStatus } from '@/database/interface/message';
+import { MessageStatus } from '@/src/domain/entities/message';
 import { Text } from 'react-native';
 
 export const messageFunc = {
@@ -7,11 +7,11 @@ export const messageFunc = {
     if (!isCurrentUser) return null;
 
     switch (status) {
-      case MessageStatus.SENT:
+      case MessageStatus.Sent:
         return <Text>✓</Text>;
-      case MessageStatus.DELIVERED:
+      case MessageStatus.Delivered:
         return <Text>✓✓</Text>;
-      case MessageStatus.READ:
+      case MessageStatus.Read:
         return <Text style={{ color: ThemeColors.blue }}>✓✓</Text>;
       default:
         return null;

@@ -1,16 +1,16 @@
 import React, { useMemo } from 'react';
 import { View, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Chat } from '@/hooks/useChats';
 import { Avatar } from './Avatar';
 import { TextType, ThemedText } from './ThemedText';
-import { User } from '@/hooks/useUser';
 import styles from '@/styles/chatListItem.style';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { transformTime } from '@/utils/helpers/time_func';
 import { Routes } from '@/constants/Routes';
 import { messageFunc } from '@/utils/helpers/message_func';
-import { MessageStatus } from '@/database/interface/message';
+import { Chat } from '@/src/domain/entities/chat';
+import { MessageStatus } from '@/src/domain/entities/message';
+import { User } from '@/src/domain/entities/user';
 
 interface ChatListItemProps {
   chat: Chat;
@@ -29,8 +29,8 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
   
   const otherParticipants = useMemo(() => {
     return chat.participants
-      .filter(id => id !== currentUserId)
-      .map(id => users.find(user => user.id === id))
+      .filter((id: string) => id !== currentUserId)
+      .map((id: string) => users.find(user => user.id === id))
       .filter(Boolean) as User[];
   }, [chat.participants, currentUserId, users]);
 
@@ -78,11 +78,10 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
           {chat.lastMessage && (
             <ThemedText 
               numberOfLines={1}
-              // type='defaultSemiBold'
               style={[
                 styles.lastMessage,
                 isCurrentUserLastSender && styles.currentUserMessage,
-                chat.lastMessage.status !== MessageStatus.READ && styles.unreadMessage,
+                (chat.lastMessage.status === MessageStatus.Delivered && !isCurrentUserLastSender) && styles.unreadMessage,
               ]}
             >
               {isCurrentUserLastSender && 'You: '}{chat.lastMessage.imageUri ? '📷' : chat.lastMessage.text}

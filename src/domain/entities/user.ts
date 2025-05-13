@@ -1,7 +1,7 @@
 export enum UserStatus {
-  ONLINE = 'online',
-  OFFLINE = 'offline',
-  AWAY = 'away',
+  Online = 'online',
+  Offline = 'offline',
+  Away = 'away',
 }
 
 export interface User {

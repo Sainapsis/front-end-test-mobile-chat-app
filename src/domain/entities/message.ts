@@ -1,8 +1,9 @@
 export enum MessageStatus {
-  SENT = 'sent',
-  READ = 'read',
-  DELIVERED = 'delivered',
+  Sent = 'sent',
+  Read = 'read',
+  Delivered = 'delivered',
 }
+
 export interface Message {
   id: string;
   senderId: string;

@@ -1,9 +1,11 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useUser, User } from './useUser';
-import { useChats, Chat } from './useChats';
+import { useUser } from './useUser';
+import { useChats } from './useChats';
 import { DatabaseProvider } from '../database/DatabaseProvider';
 import { useDatabase } from './useDatabase';
-import { Message, MessageStatus } from '@/database/interface/message';
+import { User } from '@/src/domain/entities/user';
+import { Chat } from '@/src/domain/entities/chat';
+import { Message } from '@/src/domain/entities/message';
 
 interface AppContextType {
   users: User[];
@@ -16,7 +18,7 @@ interface AppContextType {
   sendMessage: (chatId: string, message: Message) => Promise<boolean>;
   editMessage: (chatId: string, messageId: string, newText: string) => Promise<boolean>;
   deleteMessage: (chatId: string, messageId: string) => Promise<boolean>;
-  updateMessageStatus: (chatId: string, messageId: string, status: MessageStatus) => Promise<void>;
+  // updateMessageStatus: (chatId: string, messageId: string, status: MessageStatus) => Promise<void>;
   loading: boolean;
   dbInitialized: boolean;
 };
@@ -35,7 +37,7 @@ function AppContent({ children }: { children: ReactNode }) {
     ...chatContext,
     editMessage: chatContext.editMessage,
     deleteMessage: chatContext.deleteMessage,
-    updateMessageStatus: chatContext.updateMessageStatus,
+    // updateMessageStatus: chatContext.updateMessageStatus,
     loading,
     dbInitialized: isInitialized,
   };

@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../database/db';
 import { chats, chatParticipants, messages } from '../../database/schema';
 import { desc, eq } from 'drizzle-orm';
-import { Message, MessageStatus } from '@/database/interface/message';
-import { Chat } from '@/database/interface/chat';
+import { Message, MessageStatus } from '@/src/domain/entities/message';
+import { Chat } from '@/src/domain/entities/chat';
 
 export function useChatsDb(currentUserId: string | null) {
   const [userChats, setUserChats] = useState<Chat[]>([]);
@@ -243,34 +243,34 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
-  const updateMessageStatus = useCallback(async (chatId: string, messageId: string, status: MessageStatus) => {
-    try {
-      await db.update(messages)
-        .set({ status })
-        .where(eq(messages.id, messageId));
-
-      setUserChats(prevChats => {
-        return prevChats.map(chat => {
-          if (chat.id === chatId) {
-            const updatedMessages = chat.messages.map(msg =>
-              msg.id === messageId ? { ...msg, status } : msg
-            );
-
-            const lastMessage = updatedMessages.length > 0 ? updatedMessages[updatedMessages.length - 1] : undefined;
-
-            return {
-              ...chat,
-              messages: updatedMessages,
-              lastMessage,
-            };
-          }
-          return chat;
-        });
-      });
-    } catch (error) {
-      console.error('Error updating message status:', error);
-    }
-  }, []);
+//   const updateMessageStatus = useCallback(async (chatId: string, messageId: string, status: MessageStatus) => {
+//     try {
+//       await db.update(messages)
+//         .set({ status })
+//         .where(eq(messages.id, messageId));
+// 
+//       setUserChats(prevChats => {
+//         return prevChats.map(chat => {
+//           if (chat.id === chatId) {
+//             const updatedMessages = chat.messages.map(msg =>
+//               msg.id === messageId ? { ...msg, status } : msg
+//             );
+// 
+//             const lastMessage = updatedMessages.length > 0 ? updatedMessages[updatedMessages.length - 1] : undefined;
+// 
+//             return {
+//               ...chat,
+//               messages: updatedMessages,
+//               lastMessage,
+//             };
+//           }
+//           return chat;
+//         });
+//       });
+//     } catch (error) {
+//       console.error('Error updating message status:', error);
+//     }
+//   }, []);
 
   return {
     chats: userChats,
@@ -278,7 +278,7 @@ export function useChatsDb(currentUserId: string | null) {
     sendMessage,
     editMessage,
     deleteMessage,
-    updateMessageStatus,
+    // updateMessageStatus,
     loading,
     handleLoadMore,
   };

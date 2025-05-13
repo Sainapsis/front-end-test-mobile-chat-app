@@ -42,6 +42,7 @@ export const styles = StyleSheet.create({
   },
   unreadMessage: {
     fontWeight: 'bold',
+    color: ThemeColors.black,
   },
 });
 

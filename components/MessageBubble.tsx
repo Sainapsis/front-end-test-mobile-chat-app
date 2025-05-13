@@ -1,13 +1,13 @@
 import React, { memo } from 'react';
 import { Text, View } from 'react-native';
 import { ThemedText } from './ThemedText';
-import { Message } from '@/hooks/useChats';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { transformTime } from '@/utils/helpers/time_func';
 import { Avatar } from './Avatar';
 import { useAppContext } from '@/hooks/AppContext';
 import styles from '@/styles/messageBubble.style';
 import { messageFunc } from '@/utils/helpers/message_func';
+import { Message } from '@/src/domain/entities/message';
 
 interface MessageBubbleProps {
   isAGroup: boolean;

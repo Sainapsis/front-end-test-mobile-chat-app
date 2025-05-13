@@ -1,7 +1,4 @@
 import { useUserDb } from './db/useUserDb';
-import { User } from '@/database/interface/user';
-
-export { User };
 
 export function useUser() {
   const { 

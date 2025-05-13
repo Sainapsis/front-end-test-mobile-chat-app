@@ -27,7 +27,7 @@ export function DatabaseProvider({ children }: DatabaseProviderProps) {
   useEffect(() => {
     let isMounted = true;
 
-    async function setupDatabase() {
+    async function setupDatabase() {      
       try {
         console.log('Initializing database...');
         // Initialize the database schema

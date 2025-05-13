@@ -1,7 +1,7 @@
 export const Routes = {
   LOGIN: 'login',
   TABS: '(tabs)',
-  CHATROOM: 'chatRoom',
+  CHATROOM: 'ChatRoom',
 
   NOTFOUND: '+not-found',
 };

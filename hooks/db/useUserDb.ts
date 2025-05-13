@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../database/db';
 import { users } from '../../database/schema';
 import { eq } from 'drizzle-orm';
-import { User } from '@/database/interface/user';
+import { User } from '@/src/entities/user';
 
 export function useUserDb() {
   const [allUsers, setAllUsers] = useState<User[]>([]);

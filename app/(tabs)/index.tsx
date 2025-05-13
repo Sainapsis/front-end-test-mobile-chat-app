@@ -1,23 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { FlatList, Pressable } from 'react-native';
-import { useAppContext } from '@/hooks/AppContext';
-import { TextType, ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { ChatListItem } from '@/components/ChatListItem';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import ModalNewChat from '@/components/ModalNewChat';
-import { ThemeColors } from '@/constants/Colors';
-import styles from '@/styles/index.style';
-import { MessageStatus } from '@/database/interface/message';
+import React, { useEffect, useState } from "react";
+import { FlatList, Pressable } from "react-native";
+import { useAppContext } from "@/hooks/AppContext";
+import { TextType, ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { ChatListItem } from "@/components/ChatListItem";
+import { IconSymbol } from "@/components/ui/IconSymbol";
+import ModalNewChat from "@/components/ModalNewChat";
+import { ThemeColors } from "@/constants/Colors";
+import styles from "@/styles/index.style";
+import { MessageStatus } from "@/src/domain/entities/message";
+import { useChat } from "@/src/presentation/hooks/useChat";
 
 export default function ChatsScreen() {
-  const { currentUser, users, chats, createChat, updateMessageStatus } = useAppContext();
+  const { updateStatus } = useChat();
+  const { currentUser, users, chats, createChat } = useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   const toggleUserSelection = (userId: string) => {
     if (selectedUsers.includes(userId)) {
-      setSelectedUsers(selectedUsers.filter(id => id !== userId));
+      setSelectedUsers(selectedUsers.filter((id) => id !== userId));
     } else {
       setSelectedUsers([...selectedUsers, userId]);
     }
@@ -49,22 +51,13 @@ export default function ChatsScreen() {
     return bTime - aTime;
   });
 
-
   useEffect(() => {
     if (chats && currentUser) {
-      chats.forEach(chat => {
-        const undeliveredMessages = chat.messages.filter(
-          msg =>
-            msg.senderId !== currentUser.id &&
-            (msg.status === MessageStatus.SENT || msg.status === MessageStatus.DELIVERED)
-        );
-
-        undeliveredMessages.forEach(msg => {
-          updateMessageStatus(chat.id, msg.id, MessageStatus.DELIVERED);
-        });
+      chats.forEach((chat) => {
+        updateStatus(currentUser.id, chat, MessageStatus.Delivered);
       });
     }
-  }, [chats, currentUser, updateMessageStatus])
+  }, [chats]);
 
   return (
     <ThemedView style={styles.container}>
@@ -84,7 +77,7 @@ export default function ChatsScreen() {
         renderItem={({ item }) => (
           <ChatListItem
             chat={item}
-            currentUserId={currentUser?.id || ''}
+            currentUserId={currentUser?.id || ""}
             users={users}
           />
         )}
