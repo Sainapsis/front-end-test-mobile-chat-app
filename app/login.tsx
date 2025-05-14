@@ -11,8 +11,9 @@ export default function LoginScreen() {
   const { users, login } = useAppContext();
   const router = useRouter();
 
-  const handleUserSelect = (userId: string) => {
-    if (login(userId)) {
+  const handleUserSelect = async (userId: string) => {
+    const isLoggedIn = await login(userId);
+    if (isLoggedIn) {
       router.replace('/(tabs)');
     }
   };

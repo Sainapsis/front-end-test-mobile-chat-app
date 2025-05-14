@@ -63,6 +63,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  
   safeArea: {
     flex: 1,
   },
@@ -82,7 +83,7 @@ const styles = StyleSheet.create({
   },
   profileInfo: {
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 20,
   },
   statusText: {
     fontSize: 16,
@@ -121,4 +122,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 10,
   },
+  
 });

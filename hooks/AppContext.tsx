@@ -13,11 +13,13 @@ type AppContextType = {
   chats: Chat[];
   createChat: (participantIds: string[]) => Promise<Chat | null>;
   sendMessage: (chatId: string, text: string, senderId: string) => Promise<boolean>;
+  deleteChat: (chatId: string) => Promise<boolean>;
   loading: boolean;
   dbInitialized: boolean;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
+
 
 function AppContent({ children }: { children: ReactNode }) {
   const { isInitialized } = useDatabase();
@@ -50,4 +52,9 @@ export function useAppContext() {
     throw new Error('useAppContext must be used within an AppProvider');
   }
   return context;
+
+  
 } 
+
+
+

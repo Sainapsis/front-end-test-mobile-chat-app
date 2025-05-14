@@ -1,44 +1,65 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { 
-  View, 
-  StyleSheet, 
-  FlatList, 
-  TextInput, 
-  Pressable, 
-  KeyboardAvoidingView, 
-  Platform
-} from 'react-native';
-import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useAppContext } from '@/hooks/AppContext';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { MessageBubble } from '@/components/MessageBubble';
-import { Avatar } from '@/components/Avatar';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+import React, { useState, useRef, useEffect } from "react";
+import {
+  View,
+  StyleSheet,
+  FlatList,
+  TextInput,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import { useLocalSearchParams, Stack, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useAppContext } from "@/hooks/AppContext";
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { MessageBubble } from "@/components/MessageBubble";
+import { Avatar } from "@/components/Avatar";
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const { currentUser, users, chats, sendMessage } = useAppContext();
-  const [messageText, setMessageText] = useState('');
+  const [messageText, setMessageText] = useState("");
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
-  
-  const chat = chats.find(c => c.id === chatId);
-  
-  const chatParticipants = chat?.participants
-    .filter(id => id !== currentUser?.id)
-    .map(id => users.find(user => user.id === id))
-    .filter(Boolean) || [];
-  
-  const chatName = chatParticipants.length === 1 
-    ? chatParticipants[0]?.name 
-    : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
+
+  const chat = chats.find((c) => c.id === chatId);
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      console.log(result.assets[0]);
+      if (chat && currentUser) {
+        sendMessage(chat.id, result.assets[0].uri, currentUser.id);
+      }
+    }
+  };
+
+  const chatParticipants =
+    chat?.participants
+      .filter((id) => id !== currentUser?.id)
+      .map((id) => users.find((user) => user.id === id))
+      .filter(Boolean) || [];
+
+  const chatName =
+    chatParticipants.length === 1
+      ? chatParticipants[0]?.name
+      : `${chatParticipants[0]?.name || "Unknown"} & ${
+          chatParticipants.length - 1
+        } other${chatParticipants.length > 1 ? "s" : ""}`;
 
   const handleSendMessage = () => {
     if (messageText.trim() && currentUser && chat) {
       sendMessage(chat.id, messageText.trim(), currentUser.id);
-      setMessageText('');
+      setMessageText("");
     }
   };
 
@@ -61,30 +82,26 @@ export default function ChatRoomScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
       <StatusBar style="auto" />
-      <Stack.Screen 
+      <Stack.Screen
         options={{
           headerTitle: () => (
             <View style={styles.headerContainer}>
-              <Avatar 
-                user={chatParticipants[0]} 
-                size={32} 
-                showStatus={false}
-              />
+              <Avatar user={chatParticipants[0]} size={32} showStatus={false} />
               <ThemedText type="defaultSemiBold" numberOfLines={1}>
                 {chatName}
               </ThemedText>
             </View>
           ),
           headerLeft: () => (
-            <Pressable onPress={() => router.back()}>
-              <IconSymbol name="chevron.left" size={24} color="#007AFF" />
+            <Pressable onPressIn={() => router.back()}>
+              <Ionicons name="chevron-back-outline" size={24} color="#007AFF" />
             </Pressable>
           ),
-        }} 
+        }}
       />
 
       <FlatList
@@ -106,6 +123,14 @@ export default function ChatRoomScreen() {
       />
 
       <ThemedView style={styles.inputContainer}>
+        {/* <Pressable onPressIn={pickImage} style={styles.imageButton}>
+          <Ionicons name="image-outline" size={28} color="#007AFF" />
+        </Pressable> 
+        Comented because the option to select the image was working but the
+        function to get the message was not converting the image and instead was
+        taking the route of the image.
+        */}
+                
         <TextInput
           style={styles.input}
           value={messageText}
@@ -114,11 +139,14 @@ export default function ChatRoomScreen() {
           multiline
         />
         <Pressable
-          style={[styles.sendButton, !messageText.trim() && styles.disabledButton]}
+          style={[
+            styles.sendButton,
+            !messageText.trim() && styles.disabledButton,
+          ]}
           onPress={handleSendMessage}
           disabled={!messageText.trim()}
         >
-          <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />
+          <Ionicons name="arrow-up-circle" size={32} color="#007AFF" />
         </Pressable>
       </ThemedView>
     </KeyboardAvoidingView>
@@ -131,12 +159,12 @@ const styles = StyleSheet.create({
   },
   centerContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
   messagesContainer: {
@@ -145,25 +173,25 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   inputContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 10,
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
     borderTopWidth: 1,
-    borderTopColor: '#E1E1E1',
+    borderTopColor: "#E1E1E1",
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#E1E1E1',
+    borderColor: "#E1E1E1",
     borderRadius: 20,
     padding: 10,
     maxHeight: 100,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: "#F9F9F9",
   },
   sendButton: {
     marginLeft: 10,
@@ -172,4 +200,9 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.5,
   },
-}); 
+  imageButton: {
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+});
