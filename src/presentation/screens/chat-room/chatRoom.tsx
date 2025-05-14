@@ -24,16 +24,24 @@ import * as FileSystem from "expo-file-system";
 import { Image } from "react-native-expo-image-cache";
 import { transformTime } from "@/src/utils/time.util";
 import { Message, MessageStatus } from "@/src/domain/entities/message";
-import { useAppContext } from '@/src/presentation/hooks/AppContext';
-import { MessageBubble } from '../../components/message-bubble/MessageBubble';
+import { useAppContext } from "@/src/presentation/hooks/AppContext";
+import { MessageBubble } from "../../components/message-bubble/MessageBubble";
 
 export default function ChatRoomScreen() {
-  const { chatId } = useLocalSearchParams<{ chatId: string; }>();
-  const { users, currentUser, userChats, updateStatus, deleteMessage, editMessage, sendMessage } = useAppContext();
+  const { chatId } = useLocalSearchParams<{ chatId: string }>();
+  const flatListRef = useRef<FlatList>(null);
+  const {
+    users,
+    currentUser,
+    userChats,
+    updateStatus,
+    deleteMessage,
+    editMessage,
+    sendMessage,
+    handleLoadMoreMessage,
+  } = useAppContext();
   const [messageText, setMessageText] = useState("");
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const flatListRef = useRef<FlatList>(null);
-  // const { handleLoadMore } = useChats();
   const [inputSearchdVisible, setInputSearchdVisible] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [images, setImages] = useState<
@@ -273,7 +281,7 @@ export default function ChatRoomScreen() {
         maxToRenderPerBatch={5}
         windowSize={5}
         removeClippedSubviews
-        // onEndReached={handleLoadMore}
+        onEndReached={() => handleLoadMoreMessage({ chatId })}
         renderItem={({ item }) => {
           const isCurrentUser = item.senderId === currentUser.id;
 

@@ -46,6 +46,7 @@ interface AppContextType {
     chatId: string,
     { messageId, status }: UpdateStatusMessageParams
   ) => Promise<void>;
+  handleLoadMoreMessage: ({ chatId }: { chatId: string }) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);

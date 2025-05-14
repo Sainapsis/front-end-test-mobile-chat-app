@@ -44,31 +44,23 @@ export const editMessage =
 export const participantRows =
   (repository: ChatRepository) =>
   async ({ currentUserId }: ParticipantRowsParams) => {
-    const participantRows = await repository.participantRows({ currentUserId });
-
-    return participantRows;
+    return await repository.participantRows({ currentUserId });
   };
 
 export const chatData =
   (repository: ChatRepository) =>
   async ({ chatId }: ChatDataParams) => {
-    const participantRows = await repository.chatData({ chatId });
-
-    return participantRows;
+    return await repository.chatData({ chatId });
   };
 
 export const participantData =
   (repository: ChatRepository) =>
   async ({ chatId }: ParticipantDataParams) => {
-    const participantData = await repository.participantData({ chatId });
+    return await repository.participantData({ chatId });
+  };
 
-    return participantData;
-    };
-  
 export const messagesData =
   (repository: ChatRepository) =>
   async ({ chatId }: MessageDataParams) => {
-    const messageData = await repository.messagesData({ chatId });
-
-    return messageData;
+    return await repository.messagesData({ chatId });
   };

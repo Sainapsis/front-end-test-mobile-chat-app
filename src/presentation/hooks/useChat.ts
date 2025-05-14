@@ -25,71 +25,94 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
   const [userChats, setUserChats] = useState<Chat[]>([]);
 
   useEffect(() => {
-    const loadChats = async () => {
-      if (!currentUserId) {
-        setUserChats([]);
+    loadChats();
+  }, [currentUserId]);
+
+  const loadChats = async () => {
+    if (!currentUserId) {
+      setSortedUserChats(() => []);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const rowsParticipant = await participantRows(chatRepository)({
+        currentUserId,
+      });
+
+      const chatIds = rowsParticipant.map((row) => row.chatId);
+
+      if (chatIds.length === 0) {
+        setSortedUserChats(() => []);
         setLoading(false);
         return;
       }
 
-      try {
-        const rowsParticipant = await participantRows(chatRepository)({
-          currentUserId,
+      const loadedChats: Chat[] = [];
+
+      for (const chatId of chatIds) {
+        const dataChat = await chatData(chatRepository)({ chatId });
+
+        if (dataChat.length === 0) continue;
+
+        const participantsData = await participantData(chatRepository)({
+          chatId,
         });
 
-        const chatIds = rowsParticipant.map((row) => row.chatId);
+        const participantIds = participantsData.map((p) => p.userId);
 
-        if (chatIds.length === 0) {
-          setUserChats([]);
-          setLoading(false);
-          return;
-        }
+        const dataMessages = await messagesData(chatRepository)({ chatId });
 
-        const loadedChats: Chat[] = [];
+        const chatMessages = dataMessages.map((message) => ({
+          id: message.id,
+          senderId: message.senderId,
+          text: message.text,
+          imageUri: message.imageUri ?? null,
+          timestamp: message.timestamp,
+          status: message.status as MessageStatus,
+        }));
 
-        for (const chatId of chatIds) {
-          const dataChat = await chatData(chatRepository)({ chatId });
+        const lastMessage =
+          chatMessages.length > 0 ? chatMessages[0] : undefined;
 
-          if (dataChat.length === 0) continue;
-
-          const participantsData = await participantData(chatRepository)({
-            chatId,
-          });
-
-          const participantIds = participantsData.map((p) => p.userId);
-
-          const dataMessages = await messagesData(chatRepository)({ chatId });
-
-          const chatMessages = dataMessages.map((message) => ({
-            id: message.id,
-            senderId: message.senderId,
-            text: message.text,
-            imageUri: message.imageUri ?? null,
-            timestamp: message.timestamp,
-            status: message.status as MessageStatus,
-          }));
-
-          const lastMessage =
-            chatMessages.length > 0 ? chatMessages[0] : undefined;
-
-          loadedChats.push({
-            id: chatId,
-            participants: participantIds,
-            messages: chatMessages as Message[],
-            lastMessage: lastMessage as Message | undefined,
-          });
-        }
-
-        setUserChats(loadedChats);
-      } catch (error) {
-        console.error("Error loading chats:", error);
-      } finally {
-        setLoading(false);
+        loadedChats.push({
+          id: chatId,
+          participants: participantIds,
+          messages: chatMessages as Message[],
+          lastMessage: lastMessage as Message | undefined,
+        });
       }
-    };
 
-    loadChats();
-  }, [currentUserId]);
+      setUserChats(
+        loadedChats.sort((a, b) => {
+          const aLast = a.messages[a.messages.length - 1];
+          const bLast = b.messages[b.messages.length - 1];
+          const aTime = aLast ? new Date(aLast.timestamp).getTime() : 0;
+          const bTime = bLast ? new Date(bLast.timestamp).getTime() : 0;
+          return bTime - aTime;
+        })
+      );
+    } catch (error) {
+      console.error("Error loading chats:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const setSortedUserChats = (updater: (prevChats: Chat[]) => Chat[]) => {
+    setUserChats((prevChats) => {
+      const updated = updater(prevChats);
+      return updated.sort((a, b) => {
+        const aLast = a.messages[a.messages.length - 1];
+        const bLast = b.messages[b.messages.length - 1];
+
+        const aTime = aLast ? new Date(aLast.timestamp).getTime() : 0;
+        const bTime = bLast ? new Date(bLast.timestamp).getTime() : 0;
+
+        return bTime - aTime;
+      });
+    });
+  };
 
   const updateStatus = async (
     currentUserId: string,
@@ -126,7 +149,7 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
           messages: [],
         };
 
-        setUserChats((prevChats) => [...prevChats, newChat]);
+        setSortedUserChats((prevChats) => [...prevChats, newChat]);
         return newChat;
       } catch (error) {
         console.error("Error creating chat:", error);
@@ -143,7 +166,7 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
       try {
         await sendMessage(chatRepository)({ chatId, message });
 
-        setUserChats((prevChats) => {
+        setSortedUserChats((prevChats) => {
           return prevChats.map((chat) => {
             if (chat.id === chatId) {
               return {
@@ -176,7 +199,7 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
           status,
         });
 
-        setUserChats((prevChats) => {
+        setSortedUserChats((prevChats) => {
           return prevChats.map((chat) => {
             if (chat.id === chatId) {
               const updatedMessages = chat.messages.map((msg) =>
@@ -212,7 +235,7 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
           messageId,
         });
 
-        setUserChats((prevChats) => {
+        setSortedUserChats((prevChats) => {
           return prevChats.map((chat) => {
             if (chat.id === chatId) {
               const updatedMessages = chat.messages.filter(
@@ -252,7 +275,7 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
           newText,
         });
 
-        setUserChats((prevChats) => {
+        setSortedUserChats((prevChats) => {
           return prevChats.map((chat) => {
             if (chat.id === chatId) {
               const updatedMessages = chat.messages.map((msg) =>
@@ -283,13 +306,16 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
     []
   );
 
-  const handleLoadMoreMessageImpl = useCallback(async (chatId: string) => {
-    try {
-      console.log("handleLoadMoreMessage called");
-    } catch (error) {
-      console.error("Error loading older messages:", error);
-    }
-  }, []);
+  const handleLoadMoreMessageImpl = useCallback(
+    async ({ chatId }: { chatId: string }) => {
+      try {
+        console.log("handleLoadMoreMessage called");
+      } catch (error) {
+        console.error("Error loading older messages:", error);
+      }
+    },
+    []
+  );
 
   return {
     loading,

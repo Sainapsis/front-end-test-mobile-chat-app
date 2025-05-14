@@ -41,16 +41,6 @@ export default function ChatsScreen() {
     </ThemedView>
   );
 
-  const sortedChats = [...userChats].sort((a, b) => {
-    const aLast = a.messages[a.messages.length - 1];
-    const bLast = b.messages[b.messages.length - 1];
-
-    const aTime = aLast ? new Date(aLast.timestamp).getTime() : 0;
-    const bTime = bLast ? new Date(bLast.timestamp).getTime() : 0;
-
-    return bTime - aTime;
-  });
-
   useEffect(() => {;
     userChats.forEach((chat) => {
       const undeliveredMessages = chat.messages.filter(
@@ -80,7 +70,7 @@ export default function ChatsScreen() {
       </ThemedView>
 
       <FlatList
-        data={sortedChats}
+        data={userChats}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <ChatListItem

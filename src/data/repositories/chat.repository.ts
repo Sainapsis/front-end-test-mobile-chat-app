@@ -42,23 +42,15 @@ export const chatRepository: ChatRepository = {
     await editMessageDB({ messageId, newText });
   },
   participantRows: async ({ currentUserId }: ParticipantRowsParams) => {
-    const participantRows = await participantRowsDB({ currentUserId });
-
-    return participantRows;
+    return await participantRowsDB({ currentUserId });
   },
   chatData: async ({ chatId }: ChatDataParams) => {
-    const chatData = await chatDataDB({ chatId });
-
-    return chatData;
+    return await chatDataDB({ chatId });
   },
   participantData: async ({ chatId }: ParticipantDataParams) => {
-    const participantData = await participantDataDB({ chatId });
-
-    return participantData;
+    return await participantDataDB({ chatId });
   },
   messagesData: async ({ chatId }: MessageDataParams) => {
-    const messageData = await messagesDataDB({ chatId });
-
-    return messageData;
+    return await messagesDataDB({ chatId });
   },
 };
