@@ -11,6 +11,7 @@ import { messageFunc } from '@/utils/helpers/message_func';
 import { Chat } from '@/src/domain/entities/chat';
 import { MessageStatus } from '@/src/domain/entities/message';
 import { User } from '@/src/domain/entities/user';
+import { useAppContext } from '@/hooks/AppContext';
 
 interface ChatListItemProps {
   chat: Chat;
@@ -25,8 +26,7 @@ export type RootStackParamList = {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) {
-  const navigation = useNavigation<NavigationProp>();
-  
+  const navigation = useNavigation<NavigationProp>();  
   const otherParticipants = useMemo(() => {
     return chat.participants
       .filter((id: string) => id !== currentUserId)
@@ -50,14 +50,16 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
       { chatId: chat.id },
     );
   };
+  
+  const lastMessage = chat.messages[0];
 
   const timeString = useMemo(() => {
-    if (!chat.lastMessage) return '';
+    if (!lastMessage) return '';
     
-    return transformTime.getDiffInDays(chat.lastMessage.timestamp);
-  }, [chat.lastMessage]);
+    return transformTime.getDiffInDays(lastMessage.timestamp);
+  }, [lastMessage]);
 
-  const isCurrentUserLastSender = chat.lastMessage?.senderId === currentUserId;
+  const isCurrentUserLastSender = lastMessage?.senderId === currentUserId;
 
   return (
     <Pressable style={styles.container} onPress={handlePress}>
@@ -75,21 +77,21 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
           )}
         </View>
         <View style={styles.bottomRow}>
-          {chat.lastMessage && (
+          {lastMessage && (
             <ThemedText 
               numberOfLines={1}
               style={[
                 styles.lastMessage,
                 isCurrentUserLastSender && styles.currentUserMessage,
-                (chat.lastMessage.status === MessageStatus.Delivered && !isCurrentUserLastSender) && styles.unreadMessage,
+                (lastMessage.status === MessageStatus.Delivered && !isCurrentUserLastSender) && styles.unreadMessage,
               ]}
             >
-              {isCurrentUserLastSender && 'You: '}{chat.lastMessage.imageUri ? '📷' : chat.lastMessage.text}
+              {isCurrentUserLastSender && 'You: '}{lastMessage.imageUri ? '📷' : lastMessage.text}
             </ThemedText>
           )}
-          {chat.lastMessage && isCurrentUserLastSender && (
+          {lastMessage && isCurrentUserLastSender && (
             <ThemedText style={styles.time}>
-              {messageFunc.getMessageStatusIcon(chat.lastMessage.status, true)}
+              {messageFunc.getMessageStatusIcon(lastMessage.status, true)}
             </ThemedText>
           )}
         </View>

@@ -8,17 +8,13 @@ import ModalNewChat from "@/components/ModalNewChat";
 import { ThemeColors } from "@/constants/Colors";
 import styles from "@/styles/index.style";
 import { MessageStatus } from "@/src/domain/entities/message";
-import { useChat } from "@/src/presentation/hooks/useChat";
-import { useAppContext } from '@/hooks/AppContext';
+import { useAppContext } from "@/hooks/AppContext";
 
 export default function ChatsScreen() {
-  const { users, currentUser } = useAppContext();
-  const { userChats, updateStatus, createChat } = useChat({
-    currentUserId: currentUser?.id || null,
-  });
+  const { users, currentUser, userChats, updateMessageStatus, createChat } =
+    useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  
 
   const toggleUserSelection = (userId: string) => {
     if (selectedUsers.includes(userId)) {
@@ -55,13 +51,21 @@ export default function ChatsScreen() {
     return bTime - aTime;
   });
 
-  useEffect(() => {
-    if (userChats && currentUser) {
-      userChats.forEach((chat) => {
-        updateStatus(currentUser.id, chat, MessageStatus.Delivered);
+  useEffect(() => {;
+    userChats.forEach((chat) => {
+      const undeliveredMessages = chat.messages.filter(
+        (msg) =>
+          msg.senderId !== currentUser?.id && msg.status === MessageStatus.Sent
+      );
+
+      undeliveredMessages.forEach((msg) => {
+        updateMessageStatus(chat.id, {
+          messageId: msg.id,
+          status: MessageStatus.Delivered,
+        });
       });
-    }
-  }, [userChats, currentUser]);
+    });
+  }, [currentUser]);
 
   return (
     <ThemedView style={styles.container}>

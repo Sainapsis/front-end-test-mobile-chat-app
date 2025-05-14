@@ -25,13 +25,11 @@ import * as FileSystem from "expo-file-system";
 import { Image } from "react-native-expo-image-cache";
 import { transformTime } from "@/utils/helpers/time_func";
 import { Message, MessageStatus } from "@/src/domain/entities/message";
-import { useChat } from "@/src/presentation/hooks/useChat";
 import { useAppContext } from '@/hooks/AppContext';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string; }>();
-  const { users, currentUser } = useAppContext();
-  const { userChats, updateStatus, deleteMessage, editMessage, sendMessage } = useChat({currentUserId: currentUser?.id || null});
+  const { users, currentUser, userChats, updateStatus, deleteMessage, editMessage, sendMessage } = useAppContext();
   const [messageText, setMessageText] = useState("");
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
@@ -194,7 +192,7 @@ export default function ChatRoomScreen() {
     if (chat && currentUser) {
       updateStatus(currentUser.id, chat, MessageStatus.Read);
     }
-  }, [chat, currentUser]);
+  }, []);
 
   if (!chat || !currentUser) {
     return (

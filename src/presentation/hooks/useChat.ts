@@ -32,7 +32,6 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
       }
 
       try {
-        // Get chat IDs where the user is a participant
         const participantRows = await db
           .select()
           .from(chatParticipants)
@@ -187,7 +186,7 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
           messageId,
           status,
         });
-
+        
         setUserChats((prevChats) => {
           return prevChats.map((chat) => {
             if (chat.id === chatId) {
@@ -294,11 +293,10 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
     },
     []
   );
-  
+
   const handleLoadMoreMessageImpl = useCallback(async (chatId: string) => {
     try {
-      console.log('handleLoadMoreMessage called');
-      
+      console.log("handleLoadMoreMessage called");
     } catch (error) {
       console.error("Error loading older messages:", error);
     }

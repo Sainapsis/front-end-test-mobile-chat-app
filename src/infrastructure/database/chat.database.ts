@@ -40,7 +40,7 @@ export const sendMessageDB = async ({
 export const updateStatusMessageDB = async ({
   messageId,
   status,
-}: UpdateStatusMessageParams): Promise<void> => {
+}: UpdateStatusMessageParams): Promise<void> => {  
   await db.update(messages).set({ status }).where(eq(messages.id, messageId));
 };
 
