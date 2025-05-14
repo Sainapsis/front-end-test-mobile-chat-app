@@ -16,17 +16,22 @@ import { ThemedView } from '@/components/ThemedView';
 import { MessageBubble } from '@/components/messages/MessageBubble';
 import { Avatar } from '@/components/Avatar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { Message } from '@/hooks/useChats';
+import { Message } from '@/hooks/useChatRoomMessage';
+import { useChatRoomMessage } from '@/hooks/useChatRoomMessage';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useChatContext } from '@/contexts/ChatContext';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, users, chats, sendMessage, markMessageAsRead, editMessage } = useAppContext();
+  const { currentUser, users } = useAuthContext();
+  const { chats, } = useChatContext();
   const [messageText, setMessageText] = useState('');
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
   
   const chat = chats.find(c => c.id === chatId);
+  const {messages, markMessageAsRead, sendMessage, editMessage} = useChatRoomMessage(chatId);
   
   const chatParticipants = chat?.participants
     .filter(id => id !== currentUser?.id)
@@ -42,7 +47,7 @@ export default function ChatRoomScreen() {
 
     if (editingMessage) {
       // Mode edition
-      const success = await editMessage(editingMessage.id, messageText.trim());
+      const success = await editMessage(editingMessage.id, messageText.trim(), currentUser.id);
       if (success) {
         setMessageText('');
         setEditingMessage(null);
@@ -67,16 +72,16 @@ export default function ChatRoomScreen() {
   };
 
   useEffect(() => {
-    if (chat?.messages.length && flatListRef.current) {
+    if (messages.length && flatListRef.current) {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
-  }, [chat?.messages.length]);
+  }, [messages.length]);
 
   useEffect(() => {
     if (chat && currentUser) {
-      const unreadMessages = chat.messages.filter(
+      const unreadMessages = messages.filter(
         msg => msg.senderId !== currentUser.id && !msg.readBy.includes(currentUser.id)
       );
       
@@ -125,7 +130,7 @@ export default function ChatRoomScreen() {
 
       <FlatList
         ref={flatListRef}
-        data={chat.messages}
+        data={messages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <MessageBubble
