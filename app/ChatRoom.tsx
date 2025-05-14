@@ -31,7 +31,7 @@ export default function ChatRoomScreen() {
   const router = useRouter();
   
   const chat = chats.find(c => c.id === chatId);
-  const {messages, markMessageAsRead, sendMessage, editMessage} = useChatRoomMessage(chatId);
+  const {messages, loadingMessages, markMessageAsRead, sendMessage, editMessage} = useChatRoomMessage(chatId);
   
   const chatParticipants = chat?.participants
     .filter(id => id !== currentUser?.id)
@@ -80,16 +80,16 @@ export default function ChatRoomScreen() {
   }, [messages.length]);
 
   useEffect(() => {
-    if (chat && currentUser) {
-      const unreadMessages = messages.filter(
-        msg => msg.senderId !== currentUser.id && !msg.readBy.includes(currentUser.id)
-      );
-      
-      unreadMessages.forEach(msg => {
-        markMessageAsRead(msg.id, currentUser.id);
-      });
-    }
-  }, []);
+    if (loadingMessages || !chat || !currentUser) return;
+
+    const unreadMessages = messages.filter(
+      msg => msg.senderId !== currentUser.id && !msg.readBy.includes(currentUser.id)
+    );
+
+    unreadMessages.forEach(msg => {
+      markMessageAsRead(msg.id, currentUser.id);
+    });
+  }, [loadingMessages, chat, currentUser, messages]);
 
   if (!chat || !currentUser) {
     return (
@@ -138,7 +138,8 @@ export default function ChatRoomScreen() {
             isCurrentUser={item.senderId === currentUser.id}
             onEditMessage={handleEditMessage}
           />
-        )}
+        )
+        }
         contentContainerStyle={[
           styles.messagesContainer,
           editingMessage && styles.messagesContainerWithEdit
@@ -257,4 +258,4 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.5,
   },
-}); 
+});
