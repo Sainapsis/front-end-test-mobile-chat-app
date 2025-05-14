@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, StyleSheet, Pressable, Alert } from 'react-native';
 import { ThemedText } from '../ThemedText';
-import { Message } from '@/hooks/useChats';
+import { Message } from '@/hooks/useChatRoomMessage';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useMessageStatus } from '@/hooks/useMessageStatus';
 import { MessageStatusIcon } from './MessageStatus';
-import { useAppContext } from '@/hooks/AppContext';
 import { MessageContent } from './MessageContent';
+import { useChatRoomMessage } from '@/hooks/useChatRoomMessage';
 
 interface MessageBubbleProps {
   message: Message;
@@ -18,7 +18,7 @@ export function MessageBubble({ message, isCurrentUser, onEditMessage }: Message
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { getStatusIcon, shouldShowStatus } = useMessageStatus(message, isCurrentUser);
-  const { deleteMessage } = useAppContext();
+  const { deleteMessage } = useChatRoomMessage(message.chatId);
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
