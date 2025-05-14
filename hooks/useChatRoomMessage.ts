@@ -23,9 +23,10 @@ export interface Message {
 
 export function useChatRoomMessage(chatId: string) {
   const { currentUser, userLoading } = useAuthContext();
-  const currentUserId = userLoading ? currentUser?.id || null : null;
+  const currentUserId = !userLoading ? currentUser?.id || null : null;
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(true);
+  const [refresh, setRefresh] = useState(false);
 
   // Fetch messages for the current chat
   useEffect(() => {
@@ -41,7 +42,7 @@ export function useChatRoomMessage(chatId: string) {
           .where(eq(messageSchema.chatId, chatId)).limit(100);
         if (messagesData.length === 0) {
           setMessages([]);
-        setLoadingMessages(false);
+          setLoadingMessages(false);
           return;
         }
 
@@ -72,17 +73,18 @@ export function useChatRoomMessage(chatId: string) {
 
         setMessages(chatMessages);
         setLoadingMessages(false);
+        setRefresh(false);
       } catch (error) {
         console.error("Error fetching messages:", error);
       }
     };
     void fetchMessages();
-  }, [chatId]);
+  }, [chatId, currentUserId, refresh]);
 
   // Function to mark a message as read
   const markMessageAsRead = useCallback(async (messageId: string, userId: string) => {
     try {
-
+      console.debug('message as read:', messages);
       const message = messages.find(m => m.id === messageId);
       if (!message) {
         console.warn('Message not found:', messageId);
@@ -114,13 +116,13 @@ export function useChatRoomMessage(chatId: string) {
           return msg;
         })
       });
-
+      setRefresh(true);
       return true;
     } catch (error) {
       console.error('Error marking message as read:', error);
       return false;
     }
-  }, []);
+  }, [loadingMessages, messages]);
 
   // Function to send a message
   const sendMessage = useCallback(async (chatId: string, text: string, senderId: string) => {
@@ -155,11 +157,7 @@ export function useChatRoomMessage(chatId: string) {
       };
 
       // Update state
-      setMessages(prevMessage => {
-        prevMessage.push(newMessage);
-        return prevMessage;
-      });
-
+      setMessages(prevMessages => [...prevMessages, newMessage]);
       return true;
     } catch (error) {
       console.error('Error sending message:', error);
@@ -212,6 +210,7 @@ export function useChatRoomMessage(chatId: string) {
         });
       });
 
+      setRefresh(true);
       return true;
     } catch (error) {
       console.error('Error editing message:', error);
@@ -219,6 +218,7 @@ export function useChatRoomMessage(chatId: string) {
     }
   }, [currentUserId]);
 
+  // Function to delete a message
   const deleteMessage = useCallback(async (messageId: string) => {
     try {
 
@@ -257,6 +257,7 @@ export function useChatRoomMessage(chatId: string) {
         });
       });
 
+      setRefresh(true);
       return true;
     } catch (error) {
       console.error('Error deleting message:', error);
