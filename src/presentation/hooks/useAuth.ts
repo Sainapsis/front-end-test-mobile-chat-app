@@ -1,4 +1,4 @@
-import { Routes } from "@/constants/Routes";
+import { Routes } from "@/src/presentation/constants/Routes";
 import { RelativePathString, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
 

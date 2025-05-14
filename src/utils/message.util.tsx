@@ -1,4 +1,4 @@
-import { ThemeColors } from '@/constants/Colors';
+import { ThemeColors } from '@/src/presentation/constants/Colors';
 import { MessageStatus } from '@/src/domain/entities/message';
 import { Text } from 'react-native';
 

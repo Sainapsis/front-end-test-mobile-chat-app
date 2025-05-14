@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
-import { initializeDatabase } from './db';
-import { seedDatabase } from './seed';
+import { initializeDatabase } from '../../infrastructure/queries/db';
+import { seedDatabase } from '../../infrastructure/database/seed';
 
 interface DatabaseContextType {
   isInitialized: boolean;

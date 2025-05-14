@@ -1,6 +1,6 @@
 import { UserStatus } from '@/src/domain/entities/user';
-import { db } from './db';
-import { users, chats, chatParticipants, messages } from './schema';
+import { db } from '../queries/db';
+import { users, chats, chatParticipants, messages } from '../schema';
 import { MessageStatus } from '@/src/domain/entities/message';
 
 // Mock user data from the original useUser hook

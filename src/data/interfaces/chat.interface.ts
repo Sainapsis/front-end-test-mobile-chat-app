@@ -26,6 +26,30 @@ export interface EditMessageParams {
   newText: string;
 }
 
+export interface ParticipantRowsParams {
+  currentUserId: string;
+}
+
+export interface ParticipantRowsParamsResponse {
+  id: string;
+  chatId: string;
+  userId: string;
+};
+
+export interface ChatDataParams {
+  chatId: string;
+}
+
+export interface ChatDataResponse {
+  id: string;
+}
+
+export interface ParticipantDataParams extends ChatDataParams { }
+
+export interface ParticipantDataResponse extends ParticipantRowsParamsResponse { }
+
+export interface MessageDataParams extends ChatDataParams {}
+
 export interface ChatRepository {
   createChat: ({ chatId, participantIds }: CreateChatParams) => Promise<void>;
   sendMessage: ({ chatId, message }: SendMessageParams) => Promise<void>;
@@ -39,4 +63,8 @@ export interface ChatRepository {
     messageId,
     newText,
   }: EditMessageParams) => Promise<void>;
+  participantRows: ({ currentUserId }: ParticipantRowsParams) => Promise<ParticipantRowsParamsResponse[]>;
+  chatData: ({ chatId }: ParticipantDataParams) => Promise<ChatDataResponse[]>;
+  participantData: ({ chatId }: ChatDataParams) => Promise<ParticipantDataResponse[]>;
+  messagesData: ({ chatId }: MessageDataParams) => Promise<Message[]>;
 }

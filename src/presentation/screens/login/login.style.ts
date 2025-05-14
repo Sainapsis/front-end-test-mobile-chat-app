@@ -1,4 +1,4 @@
-import { ThemeColors } from '@/constants/Colors';
+import { ThemeColors } from '@/src/presentation/constants/Colors';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({

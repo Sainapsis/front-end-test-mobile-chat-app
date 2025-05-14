@@ -2,8 +2,8 @@ import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { TextType, ThemedText } from './ThemedText';
 import { Avatar } from './Avatar';
-import { ThemeColors } from '@/constants/Colors';
-import { transformText } from '@/utils/helpers/text_func';
+import { ThemeColors } from '@/src/presentation/constants/Colors';
+import { transformText } from '@/src/utils/text.util';
 import { User } from '@/src/domain/entities/user';
 
 interface UserListItemProps {

@@ -1,5 +1,5 @@
-import { db } from "@/database/db";
-import { users } from "@/database/schema";
+import { db } from "@/src/infrastructure/queries/db";
+import { users } from "@/src/infrastructure/schema";
 import { LoginParams } from "@/src/data/interfaces/user.interface";
 import { User } from '@/src/domain/entities/user';
 import { eq } from "drizzle-orm";

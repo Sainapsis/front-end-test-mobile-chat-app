@@ -1,10 +1,10 @@
 import { FlatList, Modal, Pressable, StyleSheet } from 'react-native';
-import { ThemedView } from './ThemedView';
-import { TextType, ThemedText } from './ThemedText';
 import { IconSymbol } from './ui/IconSymbol';
-import { ThemeColors } from '@/constants/Colors';
+import { ThemeColors } from '@/src/presentation/constants/Colors';
 import { UserListItem } from './UserListItem';
-import { User } from '@/hooks/useUser';
+import { User } from '@/src/domain/entities/user';
+import { ThemedText, TextType } from './ThemedText';
+import { ThemedView } from './ThemedView';
 
 interface ModalNewChatProps {
   modalVisible: boolean;

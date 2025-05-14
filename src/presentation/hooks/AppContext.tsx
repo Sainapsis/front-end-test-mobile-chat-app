@@ -1,5 +1,4 @@
 import React, { createContext, useContext, ReactNode } from "react";
-import { DatabaseProvider } from "../database/DatabaseProvider";
 import { useDatabase } from "./useDatabase";
 import { useChat } from "@/src/presentation/hooks/useChat";
 import { useUser } from "@/src/presentation/hooks/useUser";
@@ -13,6 +12,7 @@ import {
   EditMessageParams,
   UpdateStatusMessageParams,
 } from "@/src/data/interfaces/chat.interface";
+import { DatabaseProvider } from '@/src/presentation/context/DatabaseProvider';
 
 interface AppContextType {
   dbInitialized: boolean;

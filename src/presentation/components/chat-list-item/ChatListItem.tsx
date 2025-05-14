@@ -1,17 +1,16 @@
 import React, { useMemo } from 'react';
 import { View, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Avatar } from './Avatar';
-import { TextType, ThemedText } from './ThemedText';
-import styles from '@/styles/chatListItem.style';
+import styles from '@/src/presentation/components/chat-list-item/chatListItem.style';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { transformTime } from '@/utils/helpers/time_func';
-import { Routes } from '@/constants/Routes';
-import { messageFunc } from '@/utils/helpers/message_func';
+import { transformTime } from '@/src/utils/time.util';
+import { Routes } from '@/src/presentation/constants/Routes';
+import { messageFunc } from '@/src/utils/message.util';
 import { Chat } from '@/src/domain/entities/chat';
 import { MessageStatus } from '@/src/domain/entities/message';
 import { User } from '@/src/domain/entities/user';
-import { useAppContext } from '@/hooks/AppContext';
+import { Avatar } from '../Avatar';
+import { ThemedText, TextType } from '../ThemedText';
 
 interface ChatListItemProps {
   chat: Chat;

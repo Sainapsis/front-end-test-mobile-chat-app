@@ -1,5 +1,3 @@
-import { db } from "@/database/db";
-import { chatParticipants, chats, messages } from "@/database/schema";
 import {
   CreateChatParams,
   DeleteMessageParams,
@@ -10,13 +8,16 @@ import { chatRepository } from "@/src/data/repositories/chat.repository";
 import { Chat } from "@/src/domain/entities/chat";
 import { Message, MessageStatus } from "@/src/domain/entities/message";
 import {
+  chatData,
   createChat,
   deleteMessage,
   editMessage,
+  messagesData,
+  participantData,
+  participantRows,
   sendMessage,
   updateStatusMessage,
 } from "@/src/domain/usecases/chat.usecase";
-import { desc, eq } from "drizzle-orm";
 import { useCallback, useEffect, useState } from "react";
 
 export function useChat({ currentUserId }: { currentUserId: string | null }) {
@@ -32,12 +33,11 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
       }
 
       try {
-        const participantRows = await db
-          .select()
-          .from(chatParticipants)
-          .where(eq(chatParticipants.userId, currentUserId));
+        const rowsParticipant = await participantRows(chatRepository)({
+          currentUserId,
+        });
 
-        const chatIds = participantRows.map((row) => row.chatId);
+        const chatIds = rowsParticipant.map((row) => row.chatId);
 
         if (chatIds.length === 0) {
           setUserChats([]);
@@ -48,30 +48,19 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
         const loadedChats: Chat[] = [];
 
         for (const chatId of chatIds) {
-          // Get the chat
-          const chatData = await db
-            .select()
-            .from(chats)
-            .where(eq(chats.id, chatId));
+          const dataChat = await chatData(chatRepository)({ chatId });
 
-          if (chatData.length === 0) continue;
+          if (dataChat.length === 0) continue;
 
-          // Get participants
-          const participantsData = await db
-            .select()
-            .from(chatParticipants)
-            .where(eq(chatParticipants.chatId, chatId));
+          const participantsData = await participantData(chatRepository)({
+            chatId,
+          });
 
           const participantIds = participantsData.map((p) => p.userId);
 
-          // Get messages
-          const messagesData = await db
-            .select()
-            .from(messages)
-            .where(eq(messages.chatId, chatId))
-            .orderBy(desc(messages.timestamp));
+          const dataMessages = await messagesData(chatRepository)({ chatId });
 
-          const chatMessages = messagesData.map((message) => ({
+          const chatMessages = dataMessages.map((message) => ({
             id: message.id,
             senderId: message.senderId,
             text: message.text,
@@ -186,7 +175,7 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
           messageId,
           status,
         });
-        
+
         setUserChats((prevChats) => {
           return prevChats.map((chat) => {
             if (chat.id === chatId) {

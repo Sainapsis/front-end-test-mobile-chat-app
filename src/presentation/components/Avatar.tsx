@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { avatarFunc } from '@/src/utils/avatar.util';
+import { UserStatusColors } from '@/src/presentation/constants/Colors';
+import { User } from '@/src/domain/entities/user';
 import { ThemedText } from './ThemedText';
-import { User } from '@/hooks/useUser';
-import { avatarFunc } from '@/utils/helpers/avatar_func';
-import { UserStatusColors } from '@/constants/Colors';
 
 interface AvatarProps {
   user?: User;

@@ -1,17 +1,24 @@
-import { db } from "@/database/db";
-import { chatParticipants, chats, messages } from "@/database/schema";
+import { db } from "@/src/infrastructure/queries/db";
+import { chatParticipants, chats, messages } from "@/src/infrastructure/schema";
 import {
+  ChatDataParams,
+  ChatDataResponse,
   CreateChatParams,
+  MessageDataParams,
+  ParticipantDataResponse,
+  ParticipantRowsParams,
+  ParticipantRowsParamsResponse,
   SendMessageParams,
   UpdateStatusMessageParams,
 } from "@/src/data/interfaces/chat.interface";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
+import { Message } from '@/src/domain/entities/message';
 
 export const createChatDB = async ({
   chatId,
   participantIds,
 }: CreateChatParams): Promise<void> => {
-    await db.insert(chats).values({ id: chatId });
+  await db.insert(chats).values({ id: chatId });
 
   for (const userId of participantIds) {
     await db.insert(chatParticipants).values({
@@ -40,7 +47,7 @@ export const sendMessageDB = async ({
 export const updateStatusMessageDB = async ({
   messageId,
   status,
-}: UpdateStatusMessageParams): Promise<void> => {  
+}: UpdateStatusMessageParams): Promise<void> => {
   await db.update(messages).set({ status }).where(eq(messages.id, messageId));
 };
 
@@ -63,4 +70,46 @@ export const editMessageDB = async ({
     .update(messages)
     .set({ text: newText })
     .where(eq(messages.id, messageId));
+};
+
+export const participantRowsDB = async ({
+  currentUserId,
+}: ParticipantRowsParams): Promise<ParticipantRowsParamsResponse[]> => {
+  const participantRows = await db
+    .select()
+    .from(chatParticipants)
+    .where(eq(chatParticipants.userId, currentUserId));
+
+  return participantRows;
+};
+
+export const chatDataDB = async ({
+  chatId,
+}: ChatDataParams): Promise<ChatDataResponse[]> => {
+  const chatData = await db.select().from(chats).where(eq(chats.id, chatId));
+
+  return chatData;
+};
+
+export const participantDataDB = async ({
+  chatId,
+}: ChatDataParams): Promise<ParticipantDataResponse[]> => {
+  const participantData = await db
+    .select()
+    .from(chatParticipants)
+    .where(eq(chatParticipants.chatId, chatId));
+
+  return participantData;
+};
+
+export const messagesDataDB = async ({
+  chatId,
+}: MessageDataParams): Promise<Message[]> => {
+  const messageDatatData = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.chatId, chatId))
+    .orderBy(desc(messages.timestamp));
+
+  return messageDatatData as Message[];
 };

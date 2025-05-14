@@ -1,6 +1,6 @@
+import { useThemeColor } from '@/src/presentation/hooks/useThemeColor';
 import { Text, type TextProps, StyleSheet } from 'react-native';
 
-import { useThemeColor } from '@/hooks/useThemeColor';
 
 export enum TextType {
   DEFAULT = 'default',
