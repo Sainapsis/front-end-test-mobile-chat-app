@@ -11,8 +11,9 @@ import {
   SendMessageParams,
   UpdateStatusMessageParams,
 } from "@/src/data/interfaces/chat.interface";
-import { desc, eq } from "drizzle-orm";
-import { Message } from '@/src/domain/entities/message';
+import { and, desc, eq } from "drizzle-orm";
+import { Message, MessageStatus } from "@/src/domain/entities/message";
+import { Chat } from "@/src/domain/entities/chat";
 
 export const createChatDB = async ({
   chatId,
@@ -112,4 +113,56 @@ export const messagesDataDB = async ({
     .orderBy(desc(messages.timestamp));
 
   return messageDatatData as Message[];
+};
+
+export const getChatByIDDB = async ({
+  chatId,
+  currentUserId,
+}: {
+  chatId: string;
+  currentUserId: string;
+}): Promise<Chat> => {
+  const chatsData = await db
+    .select({
+      chatId: chats.id,
+      participantId: chatParticipants.userId,
+      messageId: messages.id,
+      senderId: messages.senderId,
+      text: messages.text,
+      imageUri: messages.imageUri,
+      timestamp: messages.timestamp,
+      status: messages.status,
+    })
+    .from(chats)
+    .innerJoin(chatParticipants, eq(chats.id, chatParticipants.chatId))
+    .innerJoin(messages, eq(chats.id, messages.chatId))
+    .where(
+      and(eq(chatParticipants.userId, currentUserId), eq(chats.id, chatId))
+    )
+    .orderBy(desc(messages.timestamp));
+
+  const chat: Chat = {
+    id: chatsData[0].chatId,
+    participants: Array.from(
+      new Set(chatsData.map((row) => row.senderId))
+    ),
+    messages: chatsData.map((row) => ({
+      id: row.messageId,
+      senderId: row.senderId,
+      text: row.text ?? "",
+      imageUri: row.imageUri ?? undefined,
+      timestamp: row.timestamp,
+      status: row.status as MessageStatus,
+    })),
+    lastMessage: {
+      id: chatsData[0].messageId,
+      senderId: chatsData[0].senderId,
+      text: chatsData[0].text ?? undefined,
+      imageUri: chatsData[0].imageUri ?? undefined,
+      timestamp: chatsData[0].timestamp,
+      status: chatsData[0].status as MessageStatus,
+    },
+  };
+
+  return chat;
 };
