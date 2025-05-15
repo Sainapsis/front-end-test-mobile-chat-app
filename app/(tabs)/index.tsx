@@ -1,20 +1,20 @@
-import React, { useState } from 'react';
-import { FlatList, StyleSheet, Pressable, Modal } from 'react-native';
-import { useAppContext } from '@/hooks/AppContext';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { ChatListItem } from '@/components/ChatListItem';
-import { UserListItem } from '@/components/UserListItem';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+import React, { useState } from "react";
+import { FlatList, StyleSheet, Pressable, Modal, Alert } from "react-native";
+import { useAppContext } from "@/hooks/AppContext";
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { ChatListItem } from "@/components/ChatListItem";
+import { UserListItem } from "@/components/UserListItem";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function ChatsScreen() {
-  const { currentUser, users, chats, createChat } = useAppContext();
+  const { currentUser, users, chats, createChat, deleteChat } = useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   const toggleUserSelection = (userId: string) => {
     if (selectedUsers.includes(userId)) {
-      setSelectedUsers(selectedUsers.filter(id => id !== userId));
+      setSelectedUsers(selectedUsers.filter((id) => id !== userId));
     } else {
       setSelectedUsers([...selectedUsers, userId]);
     }
@@ -25,6 +25,14 @@ export default function ChatsScreen() {
       const participants = [currentUser.id, ...selectedUsers];
       createChat(participants);
       setModalVisible(false);
+      setSelectedUsers([]);
+    }
+  };
+
+  const handleDeleteChat = () => {
+    if (currentUser && selectedUsers.length > 0) {
+      const participants = currentUser.id;
+      deleteChat(participants);
       setSelectedUsers([]);
     }
   };
@@ -42,9 +50,9 @@ export default function ChatsScreen() {
         <ThemedText type="title">Chats</ThemedText>
         <Pressable
           style={styles.newChatButton}
-          onPress={() => setModalVisible(true)}
+          onPressIn={() => setModalVisible(true)}
         >
-          <IconSymbol name="plus" size={24} color="#007AFF" />
+          <Ionicons name="add" size={30} color="#007AFF" />
         </Pressable>
       </ThemedView>
 
@@ -54,12 +62,13 @@ export default function ChatsScreen() {
         renderItem={({ item }) => (
           <ChatListItem
             chat={item}
-            currentUserId={currentUser?.id || ''}
+            currentUserId={currentUser?.id || ""}
             users={users}
           />
         )}
         ListEmptyComponent={renderEmptyComponent}
         contentContainerStyle={styles.listContainer}
+        style={styles.userList}
       />
 
       <Modal
@@ -75,11 +84,13 @@ export default function ChatsScreen() {
           <ThemedView style={styles.modalContent}>
             <ThemedView style={styles.modalHeader}>
               <ThemedText type="subtitle">New Chat</ThemedText>
-              <Pressable onPress={() => {
-                setModalVisible(false);
-                setSelectedUsers([]);
-              }}>
-                <IconSymbol name="xmark" size={24} color="#007AFF" />
+              <Pressable
+                onPress={() => {
+                  setModalVisible(false);
+                  setSelectedUsers([]);
+                }}
+              >
+                <Ionicons name="close" size={24} color="#007AFF" />
               </Pressable>
             </ThemedView>
 
@@ -88,7 +99,11 @@ export default function ChatsScreen() {
             </ThemedText>
 
             <FlatList
-              data={users.filter(user => user.id !== currentUser?.id)}
+              data={users.filter(
+                (user) =>
+                  user.id !== currentUser?.id &&
+                  !chats.some((chat) => chat.participants.includes(user.id))
+              )}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <UserListItem
@@ -103,7 +118,7 @@ export default function ChatsScreen() {
             <Pressable
               style={[
                 styles.createButton,
-                selectedUsers.length === 0 && styles.disabledButton
+                selectedUsers.length === 0 && styles.disabledButton,
               ]}
               onPress={handleCreateChat}
               disabled={selectedUsers.length === 0}
@@ -125,9 +140,9 @@ const styles = StyleSheet.create({
     paddingTop: 60,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
@@ -135,46 +150,46 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 122, 255, 0.1)",
   },
   listContainer: {
     flexGrow: 1,
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
     marginTop: 40,
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
   },
   modalContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    width: '90%',
-    maxHeight: '80%',
+    width: "90%",
+    maxHeight: "80%",
     borderRadius: 10,
     padding: 20,
     elevation: 5,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
   },
   modalSubtitle: {
@@ -182,19 +197,21 @@ const styles = StyleSheet.create({
   },
   userList: {
     maxHeight: 400,
+    marginBottom: 20,
+    borderRadius: 10,
   },
   createButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     padding: 15,
     borderRadius: 10,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 20,
   },
   disabledButton: {
-    backgroundColor: '#CCCCCC',
+    backgroundColor: "#CCCCCC",
   },
   createButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
+    color: "white",
+    fontWeight: "bold",
   },
 });
