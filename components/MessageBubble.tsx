@@ -22,7 +22,8 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
     <View style={[
       styles.container,
       isCurrentUser ? styles.selfContainer : styles.otherContainer
-    ]}>
+    ]}
+    >
       <View style={[
         styles.bubble,
         isCurrentUser 

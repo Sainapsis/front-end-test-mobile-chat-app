@@ -31,7 +31,6 @@ export function useChatsDb(currentUserId: string | null) {
       }
 
       try {
-        // Get chat IDs where the user is a participant
         const participantRows = await db
           .select()
           .from(chatParticipants)
@@ -45,11 +44,9 @@ export function useChatsDb(currentUserId: string | null) {
           return;
         }
 
-        // Build the complete chat objects
         const loadedChats: Chat[] = [];
 
         for (const chatId of chatIds) {
-          // Get the chat
           const chatData = await db
             .select()
             .from(chats)
@@ -57,7 +54,6 @@ export function useChatsDb(currentUserId: string | null) {
 
           if (chatData.length === 0) continue;
 
-          // Get participants
           const participantsData = await db
             .select()
             .from(chatParticipants)
@@ -65,32 +61,28 @@ export function useChatsDb(currentUserId: string | null) {
 
           const participantIds = participantsData.map(p => p.userId);
 
-          // Get messages
-          const messagesData = await db
+          const lastMessageData = await db
             .select()
             .from(messages)
             .where(eq(messages.chatId, chatId))
-            .orderBy(messages.timestamp);
+            .orderBy(desc(messages.timestamp))
+            .limit(1);
 
-          const chatMessages = messagesData.map(m => ({
-            id: m.id,
-            senderId: m.senderId,
-            text: m.text,
-            timestamp: m.timestamp,
-          }));
-
-          // Determine last message
-          const lastMessage = chatMessages.length > 0
-            ? chatMessages[chatMessages.length - 1]
-            : undefined;
+          const lastMessage = lastMessageData.length > 0 ? {
+            id: lastMessageData[0].id,
+            senderId: lastMessageData[0].senderId,
+            text: lastMessageData[0].text,
+            timestamp: lastMessageData[0].timestamp,
+          } : undefined;
 
           loadedChats.push({
             id: chatId,
             participants: participantIds,
-            messages: chatMessages,
+            messages: [], // Messages will be loaded dynamically
             lastMessage,
           });
         }
+
         setUserChats(loadedChats);
       } catch (error) {
         console.error('Error loading chats:', error);
@@ -102,6 +94,33 @@ export function useChatsDb(currentUserId: string | null) {
     loadChats();
   }, [currentUserId]);
 
+  // Function to load messages for a specific chat
+  const loadMessagesForChat = useCallback(async (chatId: string) => {
+    try {
+      const messagesData = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.chatId, chatId))
+        .orderBy(messages.timestamp);
+
+      const chatMessages = messagesData.map(m => ({
+        id: m.id,
+        senderId: m.senderId,
+        text: m.text,
+        timestamp: m.timestamp,
+      }));
+
+      setUserChats(prevChats =>
+        prevChats.map(chat =>
+          chat.id === chatId
+            ? { ...chat, messages: chatMessages }
+            : chat
+        )
+      );
+    } catch (error) {
+      console.error('Error loading messages for chat:', error);
+    }
+  }, []);
 
   const createChat = useCallback(async (participantIds: string[]) => {
     if (!currentUserId || !participantIds.includes(currentUserId)) {
@@ -195,11 +214,79 @@ export function useChatsDb(currentUserId: string | null) {
     }
   }, []);
 
+  const deleteMessage = useCallback(async (chatId: string, messageId: string) => {
+    try {
+      // Delete the message from the database
+      await db.delete(messages).where(eq(messages.id, messageId));
+
+      // Update state to remove the message
+      setUserChats(prevChats =>
+        prevChats.map(chat => {
+          if (chat.id === chatId) {
+            return {
+              ...chat,
+              messages: chat.messages.filter(message => message.id !== messageId),
+              lastMessage: chat.messages.length > 1
+                ? chat.messages[chat.messages.length - 2]
+                : undefined,
+            };
+          }
+          return chat;
+        })
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      return false;
+    }
+  }, []);
+
+  const editMessage = useCallback(async (chatId: string, messageId: string, newText: string) => {
+    if (!newText.trim()) return false;
+
+    try {
+      // Update the message in the database
+      await db
+        .update(messages)
+        .set({ text: newText })
+        .where(eq(messages.id, messageId));
+
+      // Update state to reflect the edited message
+      setUserChats(prevChats =>
+        prevChats.map(chat => {
+          if (chat.id === chatId) {
+            return {
+              ...chat,
+              messages: chat.messages.map(message =>
+                message.id === messageId
+                  ? { ...message, text: newText }
+                  : message
+              ),
+              lastMessage: chat.lastMessage?.id === messageId
+                ? { ...chat.lastMessage, text: newText }
+                : chat.lastMessage,
+            };
+          }
+          return chat;
+        })
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Error editing message:', error);
+      return false;
+    }
+  }, []);
+
   return {
     chats: userChats,
     createChat,
     sendMessage,
     deleteChat,
+    deleteMessage,
+    editMessage,
+    loadMessagesForChat,
     loading,
   };
 } 

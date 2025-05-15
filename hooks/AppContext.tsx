@@ -14,6 +14,9 @@ type AppContextType = {
   createChat: (participantIds: string[]) => Promise<Chat | null>;
   sendMessage: (chatId: string, text: string, senderId: string) => Promise<boolean>;
   deleteChat: (chatId: string) => Promise<boolean>;
+  loadMessagesForChat: (chatId: string) => Promise<void>;
+  deleteMessage: (chatId: string, messageId: string) => Promise<boolean>;
+  editMessage: (chatId: string, messageId: string, newText: string) => Promise<boolean>;
   loading: boolean;
   dbInitialized: boolean;
 };
