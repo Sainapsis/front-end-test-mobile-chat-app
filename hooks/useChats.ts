@@ -1,15 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../database/db';
-import { chats as chatsSchema, chatParticipants, messages } from '../database/schema';
-import { eq, desc } from 'drizzle-orm';
-import { Message } from './useChatRoomMessage';
+import { chats as chatsSchema, chatParticipants } from '../database/schema';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { getUserChatsWithDetails } from '../database/queries/chatQueries';
+import { mapChatFromDB, ChatWithDetails } from '../utils/chatMappers';
 
-export interface Chat {
-  id: string;
-  participants: string[];
-  lastMessage?: Message;
-}
+export type Chat = ChatWithDetails;
 
 export function useChats() {
   const { currentUser, userLoading } = useAuthContext();
@@ -17,7 +13,6 @@ export function useChats() {
   const [userChats, setUserChats] = useState<Chat[]>([]);
   const [loadingChats, setLoadingChat] = useState(true);
 
-  // Load chats for the current user
   useEffect(() => {
     const loadChats = async () => {
       if (!currentUserId) {
@@ -27,93 +22,16 @@ export function useChats() {
       }
 
       try {
-        // Get chat IDs where the user is a participant
-        const participantRows = await db
-          .select()
-          .from(chatParticipants)
-          .where(eq(chatParticipants.userId, currentUserId));
-          
-        const chatIds = participantRows.map(row => row.chatId);
-        
-        if (chatIds.length === 0) {
-          setUserChats([]);
-          setLoadingChat(false);
-          return;
-        }
-        
-        // Build the complete chat objects
-        const loadedChats: Chat[] = [];
-        
-        for (const chatId of chatIds) {
-          // Get the chat
-          const chatData = await db
-            .select()
-            .from(chatsSchema)
-            .where(eq(chatsSchema.id, chatId));
-            
-          if (chatData.length === 0) continue;
-          
-          // Get participants
-          const participantsData = await db
-            .select()
-            .from(chatParticipants)
-            .where(eq(chatParticipants.chatId, chatId));
-            
-          const participantIds = participantsData.map(p => p.userId);
-          
-          // Get messages
-          const messagesData = await db
-            .select()
-            .from(messages)
-            .where(eq(messages.chatId, chatId))
-            .orderBy(desc(messages.timestamp))
-            .limit(1);
-            
-          const chatMessages = messagesData.map(m => {
-            let readBy: string[] = [];
-            try {
-              readBy = JSON.parse(m.readBy || '[]');
-            } catch (error) {
-              console.warn('Error parsing readBy for message:', m.id, error);
-              readBy = [];
-            }
-            
-            return {
-              id: m.id,
-              senderId: m.senderId,
-              chatId: m.chatId,
-              text: m.text,
-              timestamp: m.timestamp,
-              status: m.status || 'sent',
-              readBy,
-              isEdited: m.isEdited || false,
-              isDeleted: m.isDeleted || false,
-              editedAt: m.editedAt || undefined,
-              deletedAt: m.deletedAt || undefined,
-              originalText: m.originalText || undefined,
-            };
-          });
-          
-          // Determine last message
-          const lastMessage = chatMessages.length > 0 
-            ? chatMessages[chatMessages.length - 1] 
-            : undefined;
-          
-          loadedChats.push({
-            id: chatId,
-            participants: participantIds,
-            lastMessage,
-          });
-        }
-        setUserChats(loadedChats);
-        setLoadingChat(false);
+        const chatsData = await getUserChatsWithDetails(currentUserId);
+        const mappedChats = chatsData.map(mapChatFromDB);
+        setUserChats(mappedChats);
       } catch (error) {
         console.error('Error loading chats:', error);
-        setLoadingChat(false);
       } finally {
         setLoadingChat(false);
       }
     };
+
     loadChats();
   }, [currentUserId]);
 
