@@ -23,14 +23,14 @@ import { useChatContext } from '@/contexts/ChatContext';
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const { currentUser, users } = useAuthContext();
-  const { chats, } = useChatContext();
+  const { chats, refreshChats } = useChatContext();
   const [messageText, setMessageText] = useState('');
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
   
   const chat = chats.find(c => c.id === chatId);
-  const {messages, loadingMessages, markMessageAsRead, sendMessage, editMessage} = useChatRoomMessage(chatId);
+  const {messages, loadingMessages, markMessageAsRead, sendMessage, editMessage, deleteMessage} = useChatRoomMessage(chatId);
   
   const chatParticipants = chat?.participants
     .filter(id => id !== currentUser?.id)
@@ -50,12 +50,14 @@ export default function ChatRoomScreen() {
       if (success) {
         setMessageText('');
         setEditingMessage(null);
+        void refreshChats();
       }
     } else {
       // Mode normal send
       const success = await sendMessage(chat.id, messageText.trim(), currentUser.id);
       if (success) {
         setMessageText('');
+        void refreshChats();
       }
     }
   };
@@ -68,6 +70,13 @@ export default function ChatRoomScreen() {
   const handleCancelEdit = () => {
     setEditingMessage(null);
     setMessageText('');
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    const success = await deleteMessage(messageId);
+    if (success) {
+      void refreshChats();
+    }
   };
 
   useEffect(() => {
@@ -136,9 +145,9 @@ export default function ChatRoomScreen() {
             message={item}
             isCurrentUser={item.senderId === currentUser.id}
             onEditMessage={handleEditMessage}
+            onDeleteMessage={handleDeleteMessage}
           />
-        )
-        }
+        )}
         contentContainerStyle={[
           styles.messagesContainer,
           editingMessage && styles.messagesContainerWithEdit
