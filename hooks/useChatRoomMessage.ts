@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { MESSAGE_STATUS } from "@/constants/messageStatus";
 import { MessageStatus } from "@/components/messages/MessageStatus";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { mapMessageFromDB } from "@/utils/chatMappers";
 
 export interface Message {
   id: string;
@@ -26,60 +27,37 @@ export function useChatRoomMessage(chatId: string) {
   const currentUserId = !userLoading ? currentUser?.id || null : null;
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(true);
-  const [refresh, setRefresh] = useState(false);
 
   // Fetch messages for the current chat
-  useEffect(() => {
-    const fetchMessages = async () => {
-      if (!chatId) {
+  const fetchMessages = useCallback(async () => {
+    if (!chatId) {
+      setMessages([]);
+      setLoadingMessages(false);
+      return;
+    }
+
+    try {
+      const messagesData = await db.select().from(messageSchema)
+        .where(eq(messageSchema.chatId, chatId)).limit(100);
+      if (messagesData.length === 0) {
         setMessages([]);
         setLoadingMessages(false);
         return;
       }
+      // Map the messages to the Message type
+      const chatMessages = messagesData.map(mapMessageFromDB);
 
-      try {
-        const messagesData = await db.select().from(messageSchema)
-          .where(eq(messageSchema.chatId, chatId)).limit(100);
-        if (messagesData.length === 0) {
-          setMessages([]);
-          setLoadingMessages(false);
-          return;
-        }
+      setMessages(chatMessages);
+      setLoadingMessages(false);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+    }
+  }, [chatId]);
 
-        const chatMessages = messagesData.map(m => {
-          let readBy: string[] = [];
-          try {
-            readBy = JSON.parse(m.readBy || '[]');
-          } catch (error) {
-            console.warn('Error parsing readBy for message:', m.id, error);
-            readBy = [];
-          }
-
-          return {
-            id: m.id,
-            senderId: m.senderId,
-            chatId: m.chatId,
-            text: m.text,
-            timestamp: m.timestamp,
-            status: m.status || MESSAGE_STATUS.SENT,
-            readBy,
-            isEdited: m.isEdited || false,
-            isDeleted: m.isDeleted || false,
-            editedAt: m.editedAt || undefined,
-            deletedAt: m.deletedAt || undefined,
-            originalText: m.originalText || undefined,
-          };
-        });
-
-        setMessages(chatMessages);
-        setLoadingMessages(false);
-        setRefresh(false);
-      } catch (error) {
-        console.error("Error fetching messages:", error);
-      }
-    };
+  // Effect to fetch messages when the chatId changes
+  useEffect(() => {
     void fetchMessages();
-  }, [chatId, currentUserId, refresh]);
+  }, [fetchMessages]);
 
   // Function to mark a message as read
   const markMessageAsRead = useCallback(async (messageId: string, userId: string) => {
@@ -116,13 +94,12 @@ export function useChatRoomMessage(chatId: string) {
           return msg;
         })
       });
-      setRefresh(true);
       return true;
     } catch (error) {
       console.error('Error marking message as read:', error);
       return false;
     }
-  }, [loadingMessages, messages]);
+  }, [currentUser]);
 
   // Function to send a message
   const sendMessage = useCallback(async (chatId: string, text: string, senderId: string) => {
@@ -206,22 +183,20 @@ export function useChatRoomMessage(chatId: string) {
               editedAt: Date.now(),
             };
           }
-          return msg; // Be sure to return the original message if it does not match.
+          return msg;
         });
       });
 
-      setRefresh(true);
       return true;
     } catch (error) {
       console.error('Error editing message:', error);
       return false;
     }
-  }, [currentUserId]);
+  }, [currentUser]);
 
   // Function to delete a message
   const deleteMessage = useCallback(async (messageId: string) => {
     try {
-
       console.debug('Deleting message:', messageId);
       const message = db
         .select()
@@ -242,7 +217,6 @@ export function useChatRoomMessage(chatId: string) {
         })
         .where(eq(messageSchema.id, messageId));
 
-
       // Update state
       setMessages(prevMessages => {
         return prevMessages.map(msg => {
@@ -253,26 +227,24 @@ export function useChatRoomMessage(chatId: string) {
               deletedAt: Date.now(),
             };
           }
-          return msg; // Be sure to return the original message if it does not match.
+          return msg;
         });
       });
 
-      setRefresh(true);
       return true;
     } catch (error) {
       console.error('Error deleting message:', error);
       return false;
     }
-  }, [currentUserId]);
+  }, [currentUser]);
 
   return {
     messages,
     loadingMessages,
-    markMessageAsRead,
     sendMessage,
     editMessage,
-    deleteMessage
-  }
-
-
+    deleteMessage,
+    markMessageAsRead,
+    refreshMessages: fetchMessages,
+  };
 }
