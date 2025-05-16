@@ -10,21 +10,27 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { MessageBubble } from '@/components/MessageBubble';
+import { MessageBubble } from '@/components/messages/MessageBubble';
 import { Avatar } from '@/components/Avatar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { Message } from '@/hooks/useChatRoomMessage';
+import { useChatRoomMessage } from '@/hooks/useChatRoomMessage';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useChatContext } from '@/contexts/ChatContext';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { currentUser, users, chats, sendMessage } = useAppContext();
+  const { currentUser, users } = useAuthContext();
+  const { chats, refreshChats } = useChatContext();
   const [messageText, setMessageText] = useState('');
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
   
   const chat = chats.find(c => c.id === chatId);
+  const {messages, loadingMessages, markMessageAsRead, sendMessage, editMessage, deleteMessage} = useChatRoomMessage(chatId);
   
   const chatParticipants = chat?.participants
     .filter(id => id !== currentUser?.id)
@@ -35,20 +41,70 @@ export default function ChatRoomScreen() {
     ? chatParticipants[0]?.name 
     : `${chatParticipants[0]?.name || 'Unknown'} & ${chatParticipants.length - 1} other${chatParticipants.length > 1 ? 's' : ''}`;
 
-  const handleSendMessage = () => {
-    if (messageText.trim() && currentUser && chat) {
-      sendMessage(chat.id, messageText.trim(), currentUser.id);
-      setMessageText('');
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || !currentUser || !chat) return;
+
+    if (editingMessage) {
+      // Mode edition
+      const success = await editMessage(editingMessage.id, messageText.trim(), currentUser.id);
+      if (success) {
+        setMessageText('');
+        setEditingMessage(null);
+        void refreshChats();
+      }
+    } else {
+      // Mode normal send
+      const success = await sendMessage(chat.id, messageText.trim(), currentUser.id);
+      if (success) {
+        setMessageText('');
+        void refreshChats();
+      }
+    }
+  };
+
+  const handleEditMessage = (message: Message) => {
+    setEditingMessage(message);
+    setMessageText(message.text);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+    setMessageText('');
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    const success = await deleteMessage(messageId);
+    if (success) {
+      void refreshChats();
     }
   };
 
   useEffect(() => {
-    if (chat?.messages.length && flatListRef.current) {
+    if (messages.length && flatListRef.current) {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
-  }, [chat?.messages.length]);
+  }, [messages.length]);
+
+  useEffect(() => {
+    const markUnreadMessages = async () => {
+      if (loadingMessages || !chat || !currentUser || messages.length === 0) return;
+
+      const unreadMessages = messages.filter(
+        msg => msg.senderId !== currentUser.id && !msg.readBy.includes(currentUser.id)
+      );
+
+      for (const msg of unreadMessages) {
+        const success = await markMessageAsRead(msg, currentUser.id);
+        if (success) {
+          void refreshChats();
+        }
+      }
+    };
+
+    void markUnreadMessages();
+  }, [loadingMessages, chat, currentUser, messages, markMessageAsRead]);
 
   if (!chat || !currentUser) {
     return (
@@ -89,15 +145,20 @@ export default function ChatRoomScreen() {
 
       <FlatList
         ref={flatListRef}
-        data={chat.messages}
+        data={messages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <MessageBubble
             message={item}
             isCurrentUser={item.senderId === currentUser.id}
+            onEditMessage={handleEditMessage}
+            onDeleteMessage={handleDeleteMessage}
           />
         )}
-        contentContainerStyle={styles.messagesContainer}
+        contentContainerStyle={[
+          styles.messagesContainer,
+          editingMessage && styles.messagesContainerWithEdit
+        ]}
         ListEmptyComponent={() => (
           <ThemedView style={styles.emptyContainer}>
             <ThemedText>No messages yet. Say hello!</ThemedText>
@@ -106,6 +167,16 @@ export default function ChatRoomScreen() {
       />
 
       <ThemedView style={styles.inputContainer}>
+        {editingMessage && (
+          <View style={styles.editModeContainer}>
+            <ThemedText style={styles.editModeText} numberOfLines={1}>
+              {editingMessage.text}
+            </ThemedText>
+            <Pressable onPress={handleCancelEdit}>
+              <IconSymbol name="xmark.circle.fill" size={20} color="#FF3B30" />
+            </Pressable>
+          </View>
+        )}
         <TextInput
           style={styles.input}
           value={messageText}
@@ -118,7 +189,11 @@ export default function ChatRoomScreen() {
           onPress={handleSendMessage}
           disabled={!messageText.trim()}
         >
-          <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />
+          <IconSymbol 
+            name="arrow.up.circle.fill"
+            size={32} 
+            color="#007AFF" 
+          />
         </Pressable>
       </ThemedView>
     </KeyboardAvoidingView>
@@ -143,6 +218,9 @@ const styles = StyleSheet.create({
     padding: 10,
     flexGrow: 1,
   },
+  messagesContainerWithEdit: {
+    paddingBottom: 50,
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -155,6 +233,26 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     borderTopWidth: 1,
     borderTopColor: '#E1E1E1',
+    backgroundColor: '#FFFFFF',
+  },
+  editModeContainer: {
+    position: 'absolute',
+    bottom: '120%',
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F0F0F0',
+    padding: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E1E1E1',
+  },
+  editModeText: {
+    fontSize: 12,
+    color: '#666',
+    flex: 1,
+    marginRight: 8,
   },
   input: {
     flex: 1,
@@ -166,10 +264,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9F9F9',
   },
   sendButton: {
+    width: 32,
+    backgroundColor: '#000000',
+    borderRadius: 100,
     marginLeft: 10,
     marginBottom: 5,
   },
   disabledButton: {
     opacity: 0.5,
   },
-}); 
+});
