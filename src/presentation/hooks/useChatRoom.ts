@@ -5,7 +5,7 @@ import {
 } from "@/src/data/interfaces/chatRoom.interface";
 import { chatRoomRepository } from "@/src/data/repositories/chatRoom.repository";
 import { Chat } from "@/src/domain/entities/chat";
-import { Message, MessageStatus } from "@/src/domain/entities/message";
+import { Message } from "@/src/domain/entities/message";
 import {
   deleteMessage,
   editMessage,
@@ -38,26 +38,6 @@ export function useChatRoom({ chatId }: { chatId: string }) {
     });
     setLoading(false);
     setChat(chat);
-  };
-
-  const updateStatus = async (
-    currentUserId: string,
-    chat: Chat,
-    statusMessage: MessageStatus
-  ) => {
-    const unreadMessages = chat.messages.filter(
-      ({ senderId, status }: Message) =>
-        senderId !== currentUserId && status !== statusMessage
-    );
-
-    await Promise.all(
-      unreadMessages.map(({ id }: Message) =>
-        updateMessageStatusImpl(chat.id, {
-          messageId: id,
-          status: statusMessage,
-        })
-      )
-    );
   };
 
   const sendMessageImpl = useCallback(
@@ -229,7 +209,6 @@ export function useChatRoom({ chatId }: { chatId: string }) {
   return {
     loading,
     chat,
-    updateStatus,
     sendMessage: sendMessageImpl,
     editMessage: editMessageImpl,
     deleteMessage: deleteMessageImpl,

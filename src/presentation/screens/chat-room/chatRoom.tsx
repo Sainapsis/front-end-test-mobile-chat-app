@@ -34,7 +34,7 @@ export default function ChatRoomScreen() {
   const {
     loading,
     chat,
-    updateStatus,
+    updateMessageStatus,
     deleteMessage,
     editMessage,
     sendMessage,
@@ -137,10 +137,20 @@ export default function ChatRoomScreen() {
   }, [chat?.messages.length]);
 
   useEffect(() => {
-    if (chat && currentUser) {
-      updateStatus(currentUser.id, chat, MessageStatus.Read);
-    }
-  }, []);
+    if (!chat || !currentUser) return;
+
+    const undeliveredMessages = chat.messages.filter(
+      ({ senderId, status }: Message) =>
+        senderId !== currentUser?.id && status === MessageStatus.Delivered
+    );
+
+    undeliveredMessages.forEach((msg) => {
+      updateMessageStatus(chat.id, {
+        messageId: msg.id,
+        status: MessageStatus.Read,
+      });
+    });
+  }, [chat]);
 
   if ((!chat || !currentUser) && !loading) {
     return (
@@ -171,34 +181,39 @@ export default function ChatRoomScreen() {
           headerShown: !loading,
           headerShadowVisible: false,
           headerBackVisible: inputSearchdVisible || loading ? false : true,
-          headerTitle: !loading ? () => {
-            const chatName =
-              chatParticipants.length === 1
-                ? chatParticipants[0]?.name
-                : `${chatParticipants[0]?.name || "Unknown"} & ${
-                    chatParticipants.length - 1
-                  } other${chatParticipants.length > 1 ? "s" : ""}`;
+          headerTitle: !loading
+            ? () => {
+                const chatName =
+                  chatParticipants.length === 1
+                    ? chatParticipants[0]?.name
+                    : `${chatParticipants[0]?.name || "Unknown"} & ${
+                        chatParticipants.length - 1
+                      } other${chatParticipants.length > 1 ? "s" : ""}`;
 
-            return inputSearchdVisible ? (
-              <TextInput
-                style={styles.searchInput}
-                value={searchText}
-                onChangeText={setSearchText}
-                placeholder="Search messages..."
-              />
-            ) : (
-              <View style={styles.headerContainer}>
-                <Avatar
-                  user={chatParticipants[0]}
-                  size={32}
-                  showStatus={false}
-                />
-                <ThemedText type={TextType.DEFAULT_SEMI_BOLD} numberOfLines={1}>
-                  {chatName}
-                </ThemedText>
-              </View>
-            );
-          } : undefined,
+                return inputSearchdVisible ? (
+                  <TextInput
+                    style={styles.searchInput}
+                    value={searchText}
+                    onChangeText={setSearchText}
+                    placeholder="Search messages..."
+                  />
+                ) : (
+                  <View style={styles.headerContainer}>
+                    <Avatar
+                      user={chatParticipants[0]}
+                      size={32}
+                      showStatus={false}
+                    />
+                    <ThemedText
+                      type={TextType.DEFAULT_SEMI_BOLD}
+                      numberOfLines={1}
+                    >
+                      {chatName}
+                    </ThemedText>
+                  </View>
+                );
+              }
+            : undefined,
           headerRight: () =>
             !inputSearchdVisible ? (
               <Pressable
