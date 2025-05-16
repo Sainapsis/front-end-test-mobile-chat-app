@@ -6,19 +6,18 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { useMessageStatus } from '@/hooks/useMessageStatus';
 import { MessageStatusIcon } from './MessageStatus';
 import { MessageContent } from './MessageContent';
-import { useChatRoomMessage } from '@/hooks/useChatRoomMessage';
 
 interface MessageBubbleProps {
   message: Message;
   isCurrentUser: boolean;
   onEditMessage?: (message: Message) => void;
+  onDeleteMessage?: (messageId: string) => void;
 }
 
-export function MessageBubble({ message, isCurrentUser, onEditMessage }: MessageBubbleProps) {
+export function MessageBubble({ message, isCurrentUser, onEditMessage, onDeleteMessage }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { getStatusIcon, shouldShowStatus } = useMessageStatus(message, isCurrentUser);
-  const { deleteMessage } = useChatRoomMessage(message.chatId);
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -51,7 +50,7 @@ export function MessageBubble({ message, isCurrentUser, onEditMessage }: Message
                 {
                   text: 'Delete',
                   style: 'destructive',
-                  onPress: () => deleteMessage(message.id),
+                  onPress: () => onDeleteMessage?.(message.id),
                 },
               ]
             );
