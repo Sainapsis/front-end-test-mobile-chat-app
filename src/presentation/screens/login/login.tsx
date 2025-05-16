@@ -7,10 +7,12 @@ import { ThemedView } from "@/src/presentation/components/ThemedView";
 import { UserListItem } from "@/src/presentation/components/UserListItem";
 import styles from "@/src/presentation/screens/login/login.style";
 import { Routes } from "@/src/presentation/constants/Routes";
-import { useAppContext } from '@/src/presentation/hooks/AppContext';
+import { useUserContext } from "../../context/UserContext";
+import { useAuthContext } from '../../context/AuthContext';
 
 export default function LoginScreen() {
-  const { users, login } = useAppContext();
+  const { users } = useUserContext();
+  const { login } = useAuthContext();
   const router = useRouter();
 
   const handleUserSelect = async (userId: string) => {

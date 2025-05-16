@@ -2,13 +2,6 @@ import { ThemeColors } from '@/src/presentation/constants/Colors';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    padding: 12,
-    alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E1E1E1',
-  },
   contentContainer: {
     flex: 1,
     marginLeft: 12,

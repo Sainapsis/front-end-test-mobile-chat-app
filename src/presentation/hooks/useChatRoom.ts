@@ -1,117 +1,43 @@
 import {
-  CreateChatParams,
   DeleteMessageParams,
   EditMessageParams,
   UpdateStatusMessageParams,
-} from "@/src/data/interfaces/chat.interface";
-import { chatRepository } from "@/src/data/repositories/chat.repository";
+} from "@/src/data/interfaces/chatRoom.interface";
+import { chatRoomRepository } from "@/src/data/repositories/chatRoom.repository";
 import { Chat } from "@/src/domain/entities/chat";
 import { Message, MessageStatus } from "@/src/domain/entities/message";
 import {
-  chatData,
-  createChat,
   deleteMessage,
   editMessage,
-  messagesData,
-  participantData,
-  participantRows,
   sendMessage,
   updateStatusMessage,
-} from "@/src/domain/usecases/chat.usecase";
+} from "@/src/domain/usecases/chatRoom.usecase";
+import { getChatByIDDB } from "@/src/infrastructure/database/chatRoom.database";
 import { useCallback, useEffect, useState } from "react";
+import { useAuthContext } from "../context/AuthContext";
+import { useChats } from "./useChats";
 
-export function useChat({ currentUserId }: { currentUserId: string | null }) {
+export function useChatRoom({ chatId }: { chatId: string }) {
+  const { currentUser } = useAuthContext();
+  const { setSortedChats } = useChats({
+    currentUserId: currentUser?.id || null,
+  });
+  const [chat, setChat] = useState<Chat | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userChats, setUserChats] = useState<Chat[]>([]);
 
   useEffect(() => {
-    loadChats();
-  }, [currentUserId]);
+    if (!chatId) return;
 
-  const loadChats = async () => {
-    if (!currentUserId) {
-      setSortedUserChats(() => []);
-      setLoading(false);
-      return;
-    }
+    loadChat({ chatId });
+  }, [currentUser]);
 
-    try {
-      const rowsParticipant = await participantRows(chatRepository)({
-        currentUserId,
-      });
-
-      const chatIds = rowsParticipant.map((row) => row.chatId);
-
-      if (chatIds.length === 0) {
-        setSortedUserChats(() => []);
-        setLoading(false);
-        return;
-      }
-
-      const loadedChats: Chat[] = [];
-
-      for (const chatId of chatIds) {
-        const dataChat = await chatData(chatRepository)({ chatId });
-
-        if (dataChat.length === 0) continue;
-
-        const participantsData = await participantData(chatRepository)({
-          chatId,
-        });
-
-        const participantIds = participantsData.map((p) => p.userId);
-
-        const dataMessages = await messagesData(chatRepository)({ chatId });
-
-        const chatMessages = dataMessages.map((message) => ({
-          id: message.id,
-          senderId: message.senderId,
-          text: message.text,
-          imageUri: message.imageUri ?? null,
-          timestamp: message.timestamp,
-          status: message.status as MessageStatus,
-        }));
-
-        const lastMessage =
-          chatMessages.length > 0 ? chatMessages[0] : undefined;
-
-        loadedChats.push({
-          id: chatId,
-          participants: participantIds,
-          messages: chatMessages as Message[],
-          lastMessage: lastMessage as Message | undefined,
-        });
-      }
-
-      setUserChats(
-        loadedChats.sort((a, b) => {
-          const aLast = a.messages[a.messages.length - 1];
-          const bLast = b.messages[b.messages.length - 1];
-          const aTime = aLast ? new Date(aLast.timestamp).getTime() : 0;
-          const bTime = bLast ? new Date(bLast.timestamp).getTime() : 0;
-          return bTime - aTime;
-        })
-      );
-    } catch (error) {
-      console.error("Error loading chats:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const setSortedUserChats = (updater: (prevChats: Chat[]) => Chat[]) => {
-    setUserChats((prevChats) => {
-      const updated = updater(prevChats);
-      return updated.sort((a, b) => {
-        const aLast = a.messages[a.messages.length - 1];
-        const bLast = b.messages[b.messages.length - 1];
-
-        const aTime = aLast ? new Date(aLast.timestamp).getTime() : 0;
-        const bTime = bLast ? new Date(bLast.timestamp).getTime() : 0;
-
-        return bTime - aTime;
-      });
+  const loadChat = async ({ chatId }: { chatId: string }) => {
+    const chat = await getChatByIDDB({
+      chatId: chatId,
+      currentUserId: currentUser?.id || "",
     });
+    setLoading(false);
+    setChat(chat);
   };
 
   const updateStatus = async (
@@ -134,39 +60,14 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
     );
   };
 
-  const createChatImpl = useCallback(
-    async ({ chatId, participantIds }: CreateChatParams) => {
-      if (!currentUserId || !participantIds.includes(currentUserId)) {
-        return null;
-      }
-
-      try {
-        await createChat(chatRepository)({ chatId, participantIds });
-
-        const newChat: Chat = {
-          id: chatId,
-          participants: participantIds,
-          messages: [],
-        };
-
-        setSortedUserChats((prevChats) => [...prevChats, newChat]);
-        return newChat;
-      } catch (error) {
-        console.error("Error creating chat:", error);
-        return null;
-      }
-    },
-    []
-  );
-
   const sendMessageImpl = useCallback(
     async (chatId: string, message: Message) => {
       if (!message.text?.trim() && !message.imageUri) return false;
 
       try {
-        await sendMessage(chatRepository)({ chatId, message });
+        await sendMessage(chatRoomRepository)({ chatId, message });
 
-        setSortedUserChats((prevChats) => {
+        setSortedChats((prevChats) => {
           return prevChats.map((chat) => {
             if (chat.id === chatId) {
               return {
@@ -179,6 +80,14 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
           });
         });
 
+        setChat(
+          (prevChat) =>
+            prevChat && {
+              ...prevChat,
+              messages: [message, ...prevChat.messages],
+              lastMessage: message,
+            }
+        );
         return true;
       } catch (error) {
         console.error("Error sending message:", error);
@@ -194,12 +103,12 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
       { messageId, status }: UpdateStatusMessageParams
     ) => {
       try {
-        await updateStatusMessage(chatRepository)({
+        await updateStatusMessage(chatRoomRepository)({
           messageId,
           status,
         });
 
-        setSortedUserChats((prevChats) => {
+        setSortedChats((prevChats) => {
           return prevChats.map((chat) => {
             if (chat.id === chatId) {
               const updatedMessages = chat.messages.map((msg) =>
@@ -230,12 +139,12 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
   const deleteMessageImpl = useCallback(
     async ({ chatId, messageId }: DeleteMessageParams) => {
       try {
-        await deleteMessage(chatRepository)({
+        await deleteMessage(chatRoomRepository)({
           chatId,
           messageId,
         });
 
-        setSortedUserChats((prevChats) => {
+        setSortedChats((prevChats) => {
           return prevChats.map((chat) => {
             if (chat.id === chatId) {
               const updatedMessages = chat.messages.filter(
@@ -269,13 +178,13 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
   const editMessageImpl = useCallback(
     async ({ chatId, messageId, newText }: EditMessageParams) => {
       try {
-        await editMessage(chatRepository)({
+        await editMessage(chatRoomRepository)({
           chatId,
           messageId,
           newText,
         });
 
-        setSortedUserChats((prevChats) => {
+        setSortedChats((prevChats) => {
           return prevChats.map((chat) => {
             if (chat.id === chatId) {
               const updatedMessages = chat.messages.map((msg) =>
@@ -319,9 +228,8 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
 
   return {
     loading,
-    userChats,
+    chat,
     updateStatus,
-    createChat: createChatImpl,
     sendMessage: sendMessageImpl,
     editMessage: editMessageImpl,
     deleteMessage: deleteMessageImpl,

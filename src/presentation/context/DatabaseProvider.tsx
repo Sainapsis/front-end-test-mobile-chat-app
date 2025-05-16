@@ -8,18 +8,18 @@ interface DatabaseContextType {
   error: Error | null;
 }
 
-const DatabaseContext = createContext<DatabaseContextType>({
+const _DatabaseContext = createContext<DatabaseContextType>({
   isInitialized: false,
   error: null,
 });
 
-export const useDatabaseStatus = () => useContext(DatabaseContext);
+export const useDatabaseStatus = () => useContext(_DatabaseContext);
 
 interface DatabaseProviderProps {
   children: ReactNode;
 }
 
-export function DatabaseProvider({ children }: DatabaseProviderProps) {
+export function DatabaseContext({ children }: DatabaseProviderProps) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,9 +77,9 @@ export function DatabaseProvider({ children }: DatabaseProviderProps) {
   }
 
   return (
-    <DatabaseContext.Provider value={{ isInitialized, error }}>
+    <_DatabaseContext.Provider value={{ isInitialized, error }}>
       {children}
-    </DatabaseContext.Provider>
+    </_DatabaseContext.Provider>
   );
 }
 

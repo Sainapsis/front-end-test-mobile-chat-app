@@ -1,10 +1,7 @@
 import React, { useMemo } from 'react';
-import { View, Pressable } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View } from 'react-native';
 import styles from '@/src/presentation/components/chat-list-item/chatListItem.style';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { transformTime } from '@/src/utils/time.util';
-import { Routes } from '@/src/presentation/constants/Routes';
 import { messageFunc } from '@/src/utils/message.util';
 import { Chat } from '@/src/domain/entities/chat';
 import { MessageStatus } from '@/src/domain/entities/message';
@@ -22,10 +19,7 @@ export type RootStackParamList = {
   ChatRoom: { chatId: string };
 };
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
 export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) {
-  const navigation = useNavigation<NavigationProp>();  
   const otherParticipants = useMemo(() => {
     return chat.participants
       .filter((id: string) => id !== currentUserId)
@@ -42,13 +36,6 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
       return `${otherParticipants[0].name} & ${otherParticipants.length - 1} other${otherParticipants.length > 2 ? 's' : ''}`;
     }
   }, [otherParticipants]);
-
-  const handlePress = () => {
-    navigation.navigate(
-      Routes.CHATROOM as keyof RootStackParamList,
-      { chatId: chat.id },
-    );
-  };
   
   const lastMessage = chat.messages[0];
 
@@ -61,7 +48,7 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
   const isCurrentUserLastSender = lastMessage?.senderId === currentUserId;
 
   return (
-    <Pressable style={styles.container} onPress={handlePress}>
+    <>
       <Avatar 
         user={otherParticipants[0]} 
         size={50}
@@ -95,6 +82,6 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
           )}
         </View>
       </View>
-    </Pressable>
+    </>
   );
 }

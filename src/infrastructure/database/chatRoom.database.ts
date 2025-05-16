@@ -1,34 +1,12 @@
 import { db } from "@/src/infrastructure/queries/db";
 import { chatParticipants, chats, messages } from "@/src/infrastructure/schema";
 import {
-  ChatDataParams,
-  ChatDataResponse,
-  CreateChatParams,
-  MessageDataParams,
-  ParticipantDataResponse,
-  ParticipantRowsParams,
-  ParticipantRowsParamsResponse,
   SendMessageParams,
   UpdateStatusMessageParams,
-} from "@/src/data/interfaces/chat.interface";
+} from "@/src/data/interfaces/chatRoom.interface";
 import { and, desc, eq } from "drizzle-orm";
-import { Message, MessageStatus } from "@/src/domain/entities/message";
+import { MessageStatus } from "@/src/domain/entities/message";
 import { Chat } from "@/src/domain/entities/chat";
-
-export const createChatDB = async ({
-  chatId,
-  participantIds,
-}: CreateChatParams): Promise<void> => {
-  await db.insert(chats).values({ id: chatId });
-
-  for (const userId of participantIds) {
-    await db.insert(chatParticipants).values({
-      id: `cp-${chatId}-${userId}`,
-      chatId: chatId,
-      userId: userId,
-    });
-  }
-};
 
 export const sendMessageDB = async ({
   chatId,
@@ -73,48 +51,6 @@ export const editMessageDB = async ({
     .where(eq(messages.id, messageId));
 };
 
-export const participantRowsDB = async ({
-  currentUserId,
-}: ParticipantRowsParams): Promise<ParticipantRowsParamsResponse[]> => {
-  const participantRows = await db
-    .select()
-    .from(chatParticipants)
-    .where(eq(chatParticipants.userId, currentUserId));
-
-  return participantRows;
-};
-
-export const chatDataDB = async ({
-  chatId,
-}: ChatDataParams): Promise<ChatDataResponse[]> => {
-  const chatData = await db.select().from(chats).where(eq(chats.id, chatId));
-
-  return chatData;
-};
-
-export const participantDataDB = async ({
-  chatId,
-}: ChatDataParams): Promise<ParticipantDataResponse[]> => {
-  const participantData = await db
-    .select()
-    .from(chatParticipants)
-    .where(eq(chatParticipants.chatId, chatId));
-
-  return participantData;
-};
-
-export const messagesDataDB = async ({
-  chatId,
-}: MessageDataParams): Promise<Message[]> => {
-  const messageDatatData = await db
-    .select()
-    .from(messages)
-    .where(eq(messages.chatId, chatId))
-    .orderBy(desc(messages.timestamp));
-
-  return messageDatatData as Message[];
-};
-
 export const getChatByIDDB = async ({
   chatId,
   currentUserId,
@@ -143,9 +79,7 @@ export const getChatByIDDB = async ({
 
   const chat: Chat = {
     id: chatsData[0].chatId,
-    participants: Array.from(
-      new Set(chatsData.map((row) => row.senderId))
-    ),
+    participants: Array.from(new Set(chatsData.map((row) => row.senderId))),
     messages: chatsData.map((row) => ({
       id: row.messageId,
       senderId: row.senderId,
