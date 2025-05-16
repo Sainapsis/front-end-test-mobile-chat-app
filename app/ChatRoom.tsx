@@ -88,16 +88,23 @@ export default function ChatRoomScreen() {
   }, [messages.length]);
 
   useEffect(() => {
-    if (loadingMessages || !chat || !currentUser) return;
+    const markUnreadMessages = async () => {
+      if (loadingMessages || !chat || !currentUser || messages.length === 0) return;
 
-    const unreadMessages = messages.filter(
-      msg => msg.senderId !== currentUser.id && !msg.readBy.includes(currentUser.id)
-    );
+      const unreadMessages = messages.filter(
+        msg => msg.senderId !== currentUser.id && !msg.readBy.includes(currentUser.id)
+      );
 
-    unreadMessages.forEach(msg => {
-      markMessageAsRead(msg.id, currentUser.id);
-    });
-  }, [loadingMessages, chat, currentUser, messages]);
+      for (const msg of unreadMessages) {
+        const success = await markMessageAsRead(msg, currentUser.id);
+        if (success) {
+          void refreshChats();
+        }
+      }
+    };
+
+    void markUnreadMessages();
+  }, [loadingMessages, chat, currentUser, messages, markMessageAsRead]);
 
   if (!chat || !currentUser) {
     return (
