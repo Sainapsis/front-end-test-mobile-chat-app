@@ -20,14 +20,17 @@ export const getUserChatsWithDetails = async (userId: string) => {
       originalText: messages.originalText,
     })
     .from(messages)
-    .where(
-      sql`${messages.chatId} IN (
-        SELECT ${chatParticipants.chatId}
-        FROM ${chatParticipants}
-        WHERE ${chatParticipants.userId} = ${userId}
-      )`
+    .innerJoin(
+      db
+        .select({
+          chat_id: messages.chatId,
+          max_timestamp: sql<number>`MAX(${messages.timestamp}) as max_timestamp`
+        })
+        .from(messages)
+        .groupBy(messages.chatId)
+        .as('lm'),
+      sql`lm.chat_id = ${messages.chatId} AND lm.max_timestamp = ${messages.timestamp}`
     )
-    .orderBy(asc(messages.timestamp))
     .as('last_messages');
 
   // Query principal que obtiene chats, participantes y último mensaje
