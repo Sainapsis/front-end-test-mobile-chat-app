@@ -1,24 +1,23 @@
 import React from 'react';
 import { View, StyleSheet, Pressable, Alert } from 'react-native';
 import { ThemedText } from '../ThemedText';
-import { Message } from '@/hooks/useChats';
+import { Message } from '@/hooks/useChatRoomMessage';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useMessageStatus } from '@/hooks/useMessageStatus';
 import { MessageStatusIcon } from './MessageStatus';
-import { useAppContext } from '@/hooks/AppContext';
 import { MessageContent } from './MessageContent';
 
 interface MessageBubbleProps {
   message: Message;
   isCurrentUser: boolean;
   onEditMessage?: (message: Message) => void;
+  onDeleteMessage?: (messageId: string) => void;
 }
 
-export function MessageBubble({ message, isCurrentUser, onEditMessage }: MessageBubbleProps) {
+export function MessageBubble({ message, isCurrentUser, onEditMessage, onDeleteMessage }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { getStatusIcon, shouldShowStatus } = useMessageStatus(message, isCurrentUser);
-  const { deleteMessage } = useAppContext();
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -51,7 +50,7 @@ export function MessageBubble({ message, isCurrentUser, onEditMessage }: Message
                 {
                   text: 'Delete',
                   style: 'destructive',
-                  onPress: () => deleteMessage(message.id),
+                  onPress: () => onDeleteMessage?.(message.id),
                 },
               ]
             );

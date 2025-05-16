@@ -2,13 +2,13 @@ import React from 'react';
 import { StyleSheet, FlatList, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { UserListItem } from '@/components/UserListItem';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 export default function LoginScreen() {
-  const { users, login } = useAppContext();
+  const { users, login } = useAuthContext();
   const router = useRouter();
 
   const handleUserSelect = async (userId: string) => {
