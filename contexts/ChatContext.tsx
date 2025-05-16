@@ -1,20 +1,22 @@
 import { Chat, useChats } from "@/hooks/useChats";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useCallback } from "react";
 
 interface ChatContextType {
     chats: Chat[];
     createChat: (participantIds: string[]) => Promise<Chat | null>;
     loadingChats: boolean;
+    refreshChats: () => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 function ChatContent({ children }: { children: React.ReactNode }) {
-    const { chats, loadingChats, createChat } = useChats();
+    const { chats, loadingChats, createChat, refreshChats } = useChats();
     const value = {
         chats,
         createChat,
         loadingChats,
+        refreshChats,
     };
 
     return (
