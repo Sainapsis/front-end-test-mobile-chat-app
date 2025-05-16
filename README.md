@@ -49,8 +49,8 @@ Please make sure to **document your task selection, implementation details, and 
 ### Feature Additions (rmember, we encourgae you to tackle just some challinging features instead of lots os easy ones, choose the difficult over easy the easy ones also to better showcase your skills)
 
 - [ ] Add media sharing capabilities (photos preferably, with a optimized/compressed preview instead of the original image)
-- [ ] Add read receipts for messages along with status indicators (sent, read)
-- [ ] Add message deletion and editing
+- [✅] Add read receipts for messages along with status indicators (sent, read)
+- [✅] Add message deletion and editing
 - [ ] Implement message search functionality
 
 ### Bug Fixes

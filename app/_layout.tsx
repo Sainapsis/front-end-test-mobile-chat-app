@@ -7,8 +7,10 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { AppProvider, useAppContext } from '@/hooks/AppContext';
 import { DrizzleStudioDevTool } from '@/database/DrizzleStudio';
+import { DatabaseProvider } from '@/database/DatabaseProvider';
+import { AuthProvider, useAuthContext } from '@/contexts/AuthContext';
+import { ChatProvider } from '@/contexts/ChatContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -18,9 +20,9 @@ function useProtectedRoute(isLoggedIn: boolean, loading: boolean) {
 
   useEffect(() => {
     if (loading) return; // Don't redirect during loading
-    
+
     const inAuthGroup = segments[0] === 'login';
-    
+
     if (!isLoggedIn && !inAuthGroup) {
       // Redirect to the login page if not logged in
       router.replace('/login');
@@ -32,22 +34,22 @@ function useProtectedRoute(isLoggedIn: boolean, loading: boolean) {
 }
 
 function RootLayoutNav() {
-  const { isLoggedIn, loading } = useAppContext();
+  const { isLoggedIn, userLoading } = useAuthContext();
 
   // Call the hook unconditionally
-  useProtectedRoute(isLoggedIn, loading);
+  useProtectedRoute(isLoggedIn, userLoading);
 
   return (
     <>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen 
-          name="login" 
-          options={{ headerShown: false, gestureEnabled: false }} 
+        <Stack.Screen
+          name="login"
+          options={{ headerShown: false, gestureEnabled: false }}
         />
-        <Stack.Screen 
-          name="ChatRoom" 
-          options={{ headerShown: true }} 
+        <Stack.Screen
+          name="ChatRoom"
+          options={{ headerShown: true }}
         />
         <Stack.Screen name="+not-found" />
       </Stack>
@@ -74,10 +76,14 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AppProvider>
-        <RootLayoutNav />
-        <StatusBar style="auto" />
-      </AppProvider>
+      <DatabaseProvider>
+        <AuthProvider>
+          <ChatProvider>
+            <RootLayoutNav />
+            <StatusBar style="auto" />
+          </ChatProvider>
+        </AuthProvider>
+      </DatabaseProvider>
     </ThemeProvider>
   );
 }
