@@ -12,28 +12,29 @@ export function useChats() {
   const currentUserId = !userLoading ? currentUser?.id || null : null;
   const [userChats, setUserChats] = useState<Chat[]>([]);
   const [loadingChats, setLoadingChat] = useState(true);
+  // function to load chats
+  const loadChats = useCallback(async () => {
+    if (!currentUserId) {
+      setUserChats([]);
+      setLoadingChat(false);
+      return;
+    }
 
-  useEffect(() => {
-    const loadChats = async () => {
-      if (!currentUserId) {
-        setUserChats([]);
-        setLoadingChat(false);
-        return;
-      }
-
-      try {
-        const chatsData = await getUserChatsWithDetails(currentUserId);
-        const mappedChats = chatsData.map(mapChatFromDB);
-        setUserChats(mappedChats);
-      } catch (error) {
-        console.error('Error loading chats:', error);
-      } finally {
-        setLoadingChat(false);
-      }
-    };
-
-    loadChats();
+    try {
+      setLoadingChat(true);
+      const chatsData = await getUserChatsWithDetails(currentUserId);
+      const mappedChats = chatsData.map(mapChatFromDB);
+      setUserChats(mappedChats);
+    } catch (error) {
+      console.error('Error loading chats:', error);
+    } finally {
+      setLoadingChat(false);
+    }
   }, [currentUserId]);
+  // Effect to load chats when the user is loaded
+  useEffect(() => {
+    void loadChats();
+  }, [loadChats]);
 
   // Create a new chat
   const createChat = useCallback(async (participantIds: string[]) => {
@@ -75,5 +76,6 @@ export function useChats() {
     chats: userChats,
     createChat,
     loadingChats,
+    refreshChats: loadChats,
   };
 } 
