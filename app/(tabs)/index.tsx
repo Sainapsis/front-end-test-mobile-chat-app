@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { FlatList, StyleSheet, Pressable, Modal } from 'react-native';
-import { useAppContext } from '@/hooks/AppContext';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { ChatListItem } from '@/components/ChatListItem';
