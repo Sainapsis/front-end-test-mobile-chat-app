@@ -60,14 +60,9 @@ export function useChatRoomMessage(chatId: string) {
   }, [fetchMessages]);
 
   // Function to mark a message as read
-  const markMessageAsRead = useCallback(async (messageId: string, userId: string) => {
+  const markMessageAsRead = useCallback(async (message: Message, userId: string) => {
     try {
-      console.debug('message as read:', messages);
-      const message = messages.find(m => m.id === messageId);
-      if (!message) {
-        console.warn('Message not found:', messageId);
-        return false;
-      }
+      console.debug('message to read:', message, 'userId:', userId);
 
       if (!message.readBy?.includes(userId)) {
         message.readBy?.push(userId);
@@ -79,12 +74,12 @@ export function useChatRoomMessage(chatId: string) {
           status: MESSAGE_STATUS.READ,
           readBy: JSON.stringify(message.readBy),
         })
-        .where(eq(messageSchema.id, messageId));
+        .where(eq(messageSchema.id, message.id));
 
       // Update state
       setMessages(prevMessage => {
         return prevMessage.map(msg => {
-          if (msg.id === messageId) {
+          if (msg.id === message.id) {
             return {
               ...msg,
               status: MESSAGE_STATUS.READ,
