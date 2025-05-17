@@ -8,7 +8,6 @@ import {
   Platform,
   Alert,
   ScrollView,
-  ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -22,29 +21,29 @@ import styles from "@/src/presentation/screens/chat-room/chatRoom.style";
 import { Image } from "react-native-expo-image-cache";
 import { transformTime } from "@/src/utils/time.util";
 import { Message, MessageStatus } from "@/src/domain/entities/message";
+import { useAppContext } from "@/src/presentation/hooks/AppContext";
 import { MessageBubble } from "../../components/message-bubble/MessageBubble";
+import { getChatByIDDB } from "@/src/infrastructure/database/chat.database";
 import { pickAndCompressImages } from "@/src/utils/pickAndCompressImage.util";
-import { useUserContext } from "../../context/UserContext";
-import { useAuthContext } from "../../context/AuthContext";
-import { useChatRoom } from "../../hooks/useChatRoom";
+import { Chat } from "@/src/domain/entities/chat";
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const flatListRef = useRef<FlatList>(null);
   const {
-    loading,
-    chat,
-    updateMessageStatus,
+    users,
+    currentUser,
+    updateStatus,
     deleteMessage,
     editMessage,
     sendMessage,
     handleLoadMoreMessage,
-  } = useChatRoom({ chatId });
-  const { users } = useUserContext();
-  const { currentUser } = useAuthContext();
+  } = useAppContext();
   const [messageText, setMessageText] = useState("");
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [chat, setChat] = useState<Chat | null>(null);
   const [inputSearchdVisible, setInputSearchdVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [images, setImages] = useState<
     Array<{ uri: string; previewUri: string }>
@@ -126,6 +125,16 @@ export default function ChatRoomScreen() {
     );
   };
 
+  async function loadChat() {
+    setLoading(true);
+    const chat = await getChatByIDDB({
+      chatId: chatId || "",
+      currentUserId: currentUser?.id || "",
+    });
+    setChat(chat);
+    setLoading(false);
+  }
+
   useEffect(() => {
     if (
       flatListRef.current &&
@@ -137,20 +146,11 @@ export default function ChatRoomScreen() {
   }, [chat?.messages.length]);
 
   useEffect(() => {
-    if (!chat || !currentUser) return;
-
-    const undeliveredMessages = chat.messages.filter(
-      ({ senderId, status }: Message) =>
-        senderId !== currentUser?.id && status === MessageStatus.Delivered
-    );
-
-    undeliveredMessages.forEach((msg) => {
-      updateMessageStatus(chat.id, {
-        messageId: msg.id,
-        status: MessageStatus.Read,
-      });
-    });
-  }, [chat]);
+    loadChat();
+    if (chat && currentUser) {
+      updateStatus(currentUser.id, chat, MessageStatus.Read);
+    }
+  }, []);
 
   if ((!chat || !currentUser) && !loading) {
     return (
@@ -163,7 +163,7 @@ export default function ChatRoomScreen() {
   if (loading) {
     return (
       <ThemedView style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ThemedText>Loading...</ThemedText>
       </ThemedView>
     );
   }
@@ -178,42 +178,36 @@ export default function ChatRoomScreen() {
       <Stack.Screen
         options={{
           title: "",
-          headerShown: !loading,
           headerShadowVisible: false,
-          headerBackVisible: inputSearchdVisible || loading ? false : true,
-          headerTitle: !loading
-            ? () => {
-                const chatName =
-                  chatParticipants.length === 1
-                    ? chatParticipants[0]?.name
-                    : `${chatParticipants[0]?.name || "Unknown"} & ${
-                        chatParticipants.length - 1
-                      } other${chatParticipants.length > 1 ? "s" : ""}`;
+          headerBackVisible: inputSearchdVisible ? false : true,
+          headerTitle: () => {
+            const chatName =
+              chatParticipants.length === 1
+                ? chatParticipants[0]?.name
+                : `${chatParticipants[0]?.name || "Unknown"} & ${
+                    chatParticipants.length - 1
+                  } other${chatParticipants.length > 1 ? "s" : ""}`;
 
-                return inputSearchdVisible ? (
-                  <TextInput
-                    style={styles.searchInput}
-                    value={searchText}
-                    onChangeText={setSearchText}
-                    placeholder="Search messages..."
-                  />
-                ) : (
-                  <View style={styles.headerContainer}>
-                    <Avatar
-                      user={chatParticipants[0]}
-                      size={32}
-                      showStatus={false}
-                    />
-                    <ThemedText
-                      type={TextType.DEFAULT_SEMI_BOLD}
-                      numberOfLines={1}
-                    >
-                      {chatName}
-                    </ThemedText>
-                  </View>
-                );
-              }
-            : undefined,
+            return inputSearchdVisible ? (
+              <TextInput
+                style={styles.searchInput}
+                value={searchText}
+                onChangeText={setSearchText}
+                placeholder="Search messages..."
+              />
+            ) : (
+              <View style={styles.headerContainer}>
+                <Avatar
+                  user={chatParticipants[0]}
+                  size={32}
+                  showStatus={false}
+                />
+                <ThemedText type={TextType.DEFAULT_SEMI_BOLD} numberOfLines={1}>
+                  {chatName}
+                </ThemedText>
+              </View>
+            );
+          },
           headerRight: () =>
             !inputSearchdVisible ? (
               <Pressable

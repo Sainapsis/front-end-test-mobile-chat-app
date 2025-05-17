@@ -5,18 +5,6 @@ export const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 50,
   },
-  containerItem: {
-    flexDirection: 'row',
-    padding: 12,
-    alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E1E1E1',
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

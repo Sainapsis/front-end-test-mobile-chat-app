@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable } from "react-native";
+import { FlatList, Pressable } from "react-native";
 import { TextType, ThemedText } from "@/src/presentation/components/ThemedText";
 import { ThemedView } from "@/src/presentation/components/ThemedView";
 import { IconSymbol } from "@/src/presentation/components/ui/IconSymbol";
@@ -7,30 +7,14 @@ import ModalNewChat from "@/src/presentation/components/ModalNewChat";
 import { ThemeColors } from "@/src/presentation/constants/Colors";
 import styles from "@/src/presentation/screens/chats/chats.style";
 import { MessageStatus } from "@/src/domain/entities/message";
-import {
-  ChatListItem,
-  RootStackParamList,
-} from "../../components/chat-list-item/ChatListItem";
-import { useUserContext } from "../../context/UserContext";
-import { useAuthContext } from "../../context/AuthContext";
-import { useChatsContext } from "../../context/ChatsContext";
-import { useChats } from "../../hooks/useChats";
-import { useChatRoom } from "../../hooks/useChatRoom";
-import { useNavigation } from "expo-router";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Routes } from "../../constants/Routes";
-
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+import { useAppContext } from '@/src/presentation/hooks/AppContext';
+import { ChatListItem } from '../../components/chat-list-item/ChatListItem';
 
 export default function ChatsScreen() {
-  const { createChat, chats } = useChatsContext();
-  const { updateMessageStatus } = useChatRoom({ chatId: "" });
-  const { users } = useUserContext();
-  const { currentUser } = useAuthContext();
-  const { loading } = useChats({ currentUserId: currentUser?.id || null });
+  const { users, currentUser, userChats, updateMessageStatus, createChat } =
+    useAppContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const navigation = useNavigation<NavigationProp>();
 
   const toggleUserSelection = (userId: string) => {
     if (selectedUsers.includes(userId)) {
@@ -57,8 +41,8 @@ export default function ChatsScreen() {
     </ThemedView>
   );
 
-  useEffect(() => {
-    chats.forEach((chat) => {
+  useEffect(() => {;
+    userChats.forEach((chat) => {
       const undeliveredMessages = chat.messages.filter(
         (msg) =>
           msg.senderId !== currentUser?.id && msg.status === MessageStatus.Sent
@@ -73,14 +57,6 @@ export default function ChatsScreen() {
     });
   }, [currentUser]);
 
-  if (loading) {
-    return (
-      <ThemedView style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </ThemedView>
-    );
-  }
-
   return (
     <ThemedView style={styles.container}>
       <ThemedView style={styles.header}>
@@ -94,23 +70,14 @@ export default function ChatsScreen() {
       </ThemedView>
 
       <FlatList
-        data={chats}
+        data={userChats}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <Pressable
-            style={styles.containerItem}
-            onPress={() => {
-              navigation.navigate(Routes.CHATROOM as keyof RootStackParamList, {
-                chatId: item.id,
-              });
-            }}
-          >
-            <ChatListItem
-              chat={item}
-              currentUserId={currentUser?.id || ""}
-              users={users}
-            />
-          </Pressable>
+          <ChatListItem
+            chat={item}
+            currentUserId={currentUser?.id || ""}
+            users={users}
+          />
         )}
         ListEmptyComponent={renderEmptyComponent}
         contentContainerStyle={styles.listContainer}

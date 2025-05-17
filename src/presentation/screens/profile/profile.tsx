@@ -6,10 +6,10 @@ import { Avatar } from '@/src/presentation/components/Avatar';
 import { IconSymbol } from '@/src/presentation/components/ui/IconSymbol';
 import { transformText } from '@/src/utils/text.util';
 import styles from '@/src/presentation/screens/profile/profile.style';
-import { useAuthContext } from '../../context/AuthContext';
+import { useAppContext } from '@/src/presentation/hooks/AppContext';
 
 export default function ProfileScreen() {
-  const { currentUser, logout } = useAuthContext();
+  const { currentUser, logout } = useAppContext();
 
   const handleLogout = () => {
     logout();
