@@ -8,6 +8,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'transparent',
   },
   headerContainer: {
     flexDirection: 'row',
@@ -25,12 +26,6 @@ export const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 8,
     backgroundColor: '#F9F9F9',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
   },
   inputContainer: {
     flexDirection: 'column',

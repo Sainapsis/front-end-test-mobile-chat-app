@@ -91,7 +91,7 @@ export function useChat({ currentUserId }: { currentUserId: string | null; }) {
           participants: participantIds,
           messages: [],
         };
-
+        
         setUserChats(
           [...userChats, newChat].sort((a, b) => {
             const aLast = a.messages[a.messages.length - 1];

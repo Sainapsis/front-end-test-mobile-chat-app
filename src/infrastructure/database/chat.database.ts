@@ -122,10 +122,15 @@ export const getChatByIDDB = async ({
   chatId: string;
   currentUserId: string;
 }): Promise<Chat> => {
-  const chatsData = await db
+  // Obtener participantes del chat
+  const participantsData = await getParticipantsChatDB({ chatId });
+
+  const participants = participantsData.map((p) => p.userId);
+
+  // Obtener mensajes del chat
+  const messagesData = await db
     .select({
       chatId: chats.id,
-      participantId: chatParticipants.userId,
       messageId: messages.id,
       senderId: messages.senderId,
       text: messages.text,
@@ -135,35 +140,51 @@ export const getChatByIDDB = async ({
     })
     .from(chats)
     .innerJoin(chatParticipants, eq(chats.id, chatParticipants.chatId))
-    .innerJoin(messages, eq(chats.id, messages.chatId))
+    .leftJoin(messages, eq(chats.id, messages.chatId))
     .where(
       and(eq(chatParticipants.userId, currentUserId), eq(chats.id, chatId))
     )
     .orderBy(desc(messages.timestamp));
-    // .limit(5); paginacion
+  // .limit(5) // Paginación opcional
 
-  const chat: Chat = {
-    id: chatsData[0].chatId,
-    participants: Array.from(
-      new Set(chatsData.map((row) => row.senderId))
-    ),
-    messages: chatsData.map((row) => ({
-      id: row.messageId,
-      senderId: row.senderId,
+  const _messages = messagesData
+    .filter(
+      (row) =>
+        row.messageId !== null &&
+        row.senderId !== null &&
+        row.timestamp !== null
+    )
+    .map((row) => ({
+      id: row.messageId as string,
+      senderId: row.senderId as string,
       text: row.text ?? "",
       imageUri: row.imageUri ?? undefined,
-      timestamp: row.timestamp,
+      timestamp: row.timestamp as number,
       status: row.status as MessageStatus,
-    })),
-    lastMessage: {
-      id: chatsData[0].messageId,
-      senderId: chatsData[0].senderId,
-      text: chatsData[0].text ?? undefined,
-      imageUri: chatsData[0].imageUri ?? undefined,
-      timestamp: chatsData[0].timestamp,
-      status: chatsData[0].status as MessageStatus,
-    },
+    }));
+
+  const lastMessage = _messages[0] ?? {
+    id: "",
+    senderId: "",
+    text: undefined,
+    imageUri: undefined,
+    timestamp: 0,
+    status: null,
+  };
+
+  const chat: Chat = {
+    id: chatId,
+    participants,
+    messages: _messages,
+    lastMessage,
   };
 
   return chat;
+};
+
+export const getParticipantsChatDB = async ({ chatId }: { chatId: string }) => {
+  return await db
+    .select({ userId: chatParticipants.userId })
+    .from(chatParticipants)
+    .where(eq(chatParticipants.chatId, chatId));
 };

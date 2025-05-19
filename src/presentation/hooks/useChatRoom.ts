@@ -13,29 +13,42 @@ import {
 } from "@/src/domain/usecases/chat.usecase";
 import { useCallback, useState } from "react";
 import { useChatContext } from "../context/chat-context/ChatContext";
-import { getChatByIDDB } from '@/src/infrastructure/database/chat.database';
-import { useAuthContext } from '../context/auth-context/AuthContext';
+import { getChatByIDDB } from "@/src/infrastructure/database/chat.database";
+import { useAuthContext } from "../context/auth-context/AuthContext";
+import { useUserContext } from "../context/user-context/UserContext";
+import { User } from "@/src/domain/entities/user";
 
 export function useChatRoom() {
   const { userChats, setUserChats } = useChatContext();
   const { currentUser } = useAuthContext();
+  const { users } = useUserContext();
 
+  const [chatParticipants, setChatParticipants] = useState<
+    (User | undefined)[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [chat, setChat] = useState<Chat | null>(null);
 
-  const loadChatImpl = async ({ chatId }: { chatId: string; }) => {
+  const loadChatImpl = async ({ chatId }: { chatId: string }) => {
     if (!userChats) {
       setChat(null);
       return;
     }
-    
+
     try {
       const chat = await getChatByIDDB({
-        chatId: chatId || "",
-        currentUserId: currentUser?.id || "",
+        chatId,
+        currentUserId: currentUser?.id ?? "",
       });
 
+      const participants =
+        chat?.participants
+          .filter((id: string) => id !== currentUser?.id)
+          .map((id: string) => users.find((user) => user.id === id))
+          .filter(Boolean) ?? [];
+
       setChat(chat);
+      setChatParticipants(participants);
       setLoading(false);
     } catch (error) {
       console.error("Error loading chats:", error);
@@ -43,7 +56,7 @@ export function useChatRoom() {
   };
 
   const updateMessageToReadStatusImpl = useCallback(
-    async ({ currentUserId }: { currentUserId: string; }) => {
+    async ({ currentUserId }: { currentUserId: string }) => {
       if (!chat || !currentUserId) return;
 
       try {
@@ -78,7 +91,7 @@ export function useChatRoom() {
             }
             return chat;
           });
-        })
+        });
       } catch (error) {
         console.error("Error updating to read message status:", error);
       }
@@ -252,6 +265,7 @@ export function useChatRoom() {
   return {
     loading,
     chat,
+    chatParticipants,
     loadChat: loadChatImpl,
     updateMessageToReadStatus: updateMessageToReadStatusImpl,
     sendMessage: sendMessageImpl,

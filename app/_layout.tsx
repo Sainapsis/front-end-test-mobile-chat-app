@@ -89,10 +89,8 @@ export default function RootLayout() {
         <AuthProvider>
           <UserProvider>
             <ChatProvider>
-              {/* <ChatRoomProvider> */}
               <StatusBar style="auto" />
               <RootLayoutNav />
-              {/* </ChatRoomProvider> */}
             </ChatProvider>
           </UserProvider>
         </AuthProvider>

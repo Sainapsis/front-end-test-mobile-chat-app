@@ -24,18 +24,18 @@ import { transformTime } from "@/src/utils/time.util";
 import { Message, MessageStatus } from "@/src/domain/entities/message";
 import { MessageBubble } from "../../components/message-bubble/MessageBubble";
 import { pickAndCompressImages } from "@/src/utils/pickAndCompressImage.util";
-import { useChatRoom } from '../../hooks/useChatRoom';
-import { useAuth } from '../../hooks/useAuth';
-import { useUser } from '../../hooks/useUser';
+import { useChatRoom } from "../../hooks/useChatRoom";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function ChatRoomScreen() {
-  const { chatId } = useLocalSearchParams<{ chatId: string }>();
+  const { chatId } = useLocalSearchParams<{ chatId: string; }>();
+  
   const flatListRef = useRef<FlatList>(null);
   const { currentUser } = useAuth();
-  const { users } = useUser();
   const {
     loading,
     chat,
+    chatParticipants,
     loadChat,
     updateMessageToReadStatus,
     deleteMessage,
@@ -60,14 +60,8 @@ export default function ChatRoomScreen() {
     return chat?.messages;
   }, [searchText, chat?.messages]);
 
-  const chatParticipants =
-    chat?.participants
-      .filter((id: string) => id !== currentUser?.id)
-      .map((id: string) => users.find((user) => user.id === id))
-      .filter(Boolean) || [];
-
   const handleSendMessage = async () => {
-    if ((!messageText.trim() && images.length === 0) || !currentUser || !chat)
+    if ((!messageText.trim() && images.length === 0) || !currentUser || !chat || !chat.id)
       return;
 
     // Si está editando mensaje
@@ -80,19 +74,17 @@ export default function ChatRoomScreen() {
       setEditingMessageId(null);
     } else {
       // Si hay texto, enviamos mensaje de texto
-      if (messageText.trim()) {
-        await sendMessage(chat.id, {
-          id: transformTime.generateUniqueId(),
-          senderId: currentUser.id,
-          text: messageText.trim(),
-          timestamp: Date.now(),
-          status: MessageStatus.Sent,
-        });
-      }
+      await sendMessage(chat.id, {
+        id: transformTime.generateUniqueId(),
+        senderId: currentUser.id,
+        text: messageText.trim(),
+        timestamp: Date.now(),
+        status: MessageStatus.Sent,
+      });
 
       // Si hay imágenes seleccionadas, enviamos una por una
       images.forEach(async (image) => {
-        await sendMessage(chat.id, {
+        await sendMessage((chat.id ?? ""), {
           id: transformTime.generateUniqueId(),
           senderId: currentUser.id,
           imageUri: image.uri,
@@ -138,11 +130,11 @@ export default function ChatRoomScreen() {
   }, [chat?.messages.length]);
 
   useEffect(() => {
-    loadChat({ chatId: chatId || "" });
+    loadChat({ chatId: chatId ?? "" });
   }, []);
 
-  useEffect(() => {   
-    updateMessageToReadStatus({ currentUserId: (currentUser?.id ?? "") });
+  useEffect(() => {
+    updateMessageToReadStatus({ currentUserId: currentUser?.id ?? "" });
   }, [chat]);
 
   if ((!chat || !currentUser) && !loading) {
@@ -290,7 +282,7 @@ export default function ChatRoomScreen() {
         }}
         contentContainerStyle={styles.messagesContainer}
         ListEmptyComponent={() => (
-          <ThemedView style={styles.emptyContainer}>
+          <ThemedView style={styles.centerContainer}>
             <ThemedText>No messages yet. Say hello!</ThemedText>
           </ThemedView>
         )}

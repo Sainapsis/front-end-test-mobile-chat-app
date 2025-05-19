@@ -14,9 +14,9 @@ function ChatContent({ children }: Props) {
   const loading = loadingUser;
 
   const value = {
-    setUserChats,
-    userChats,
     loading,
+    userChats,
+    setUserChats,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
