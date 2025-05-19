@@ -41,7 +41,7 @@ export const sendMessageDB = async ({
     text: message.text,
     imageUri: message.imageUri,
     timestamp: message.timestamp,
-    status: message.status,
+    status: MessageStatus.Sent,
   });
 };
 
@@ -140,6 +140,7 @@ export const getChatByIDDB = async ({
       and(eq(chatParticipants.userId, currentUserId), eq(chats.id, chatId))
     )
     .orderBy(desc(messages.timestamp));
+    // .limit(5); paginacion
 
   const chat: Chat = {
     id: chatsData[0].chatId,

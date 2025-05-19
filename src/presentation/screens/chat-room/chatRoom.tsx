@@ -8,6 +8,7 @@ import {
   Platform,
   Alert,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -21,29 +22,30 @@ import styles from "@/src/presentation/screens/chat-room/chatRoom.style";
 import { Image } from "react-native-expo-image-cache";
 import { transformTime } from "@/src/utils/time.util";
 import { Message, MessageStatus } from "@/src/domain/entities/message";
-import { useAppContext } from "@/src/presentation/hooks/AppContext";
 import { MessageBubble } from "../../components/message-bubble/MessageBubble";
-import { getChatByIDDB } from "@/src/infrastructure/database/chat.database";
 import { pickAndCompressImages } from "@/src/utils/pickAndCompressImage.util";
-import { Chat } from "@/src/domain/entities/chat";
+import { useChatRoom } from '../../hooks/useChatRoom';
+import { useAuth } from '../../hooks/useAuth';
+import { useUser } from '../../hooks/useUser';
 
 export default function ChatRoomScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const flatListRef = useRef<FlatList>(null);
+  const { currentUser } = useAuth();
+  const { users } = useUser();
   const {
-    users,
-    currentUser,
-    updateStatus,
+    loading,
+    chat,
+    loadChat,
+    updateMessageToReadStatus,
     deleteMessage,
     editMessage,
     sendMessage,
     handleLoadMoreMessage,
-  } = useAppContext();
+  } = useChatRoom();
   const [messageText, setMessageText] = useState("");
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const [chat, setChat] = useState<Chat | null>(null);
   const [inputSearchdVisible, setInputSearchdVisible] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [images, setImages] = useState<
     Array<{ uri: string; previewUri: string }>
@@ -125,16 +127,6 @@ export default function ChatRoomScreen() {
     );
   };
 
-  async function loadChat() {
-    setLoading(true);
-    const chat = await getChatByIDDB({
-      chatId: chatId || "",
-      currentUserId: currentUser?.id || "",
-    });
-    setChat(chat);
-    setLoading(false);
-  }
-
   useEffect(() => {
     if (
       flatListRef.current &&
@@ -146,11 +138,12 @@ export default function ChatRoomScreen() {
   }, [chat?.messages.length]);
 
   useEffect(() => {
-    loadChat();
-    if (chat && currentUser) {
-      updateStatus(currentUser.id, chat, MessageStatus.Read);
-    }
+    loadChat({ chatId: chatId || "" });
   }, []);
+
+  useEffect(() => {   
+    updateMessageToReadStatus({ currentUserId: (currentUser?.id ?? "") });
+  }, [chat]);
 
   if ((!chat || !currentUser) && !loading) {
     return (
@@ -163,7 +156,7 @@ export default function ChatRoomScreen() {
   if (loading) {
     return (
       <ThemedView style={styles.centerContainer}>
-        <ThemedText>Loading...</ThemedText>
+        <ActivityIndicator size="large" color="#0000ff" />
       </ThemedView>
     );
   }
@@ -178,6 +171,7 @@ export default function ChatRoomScreen() {
       <Stack.Screen
         options={{
           title: "",
+          headerShown: true,
           headerShadowVisible: false,
           headerBackVisible: inputSearchdVisible ? false : true,
           headerTitle: () => {
@@ -353,7 +347,6 @@ export default function ChatRoomScreen() {
                 styles.disabledButton,
             ]}
             onPress={handleSendMessage}
-            // disabled={!messageText.trim() && selectedImages.length === 0}
           >
             <IconSymbol
               name={

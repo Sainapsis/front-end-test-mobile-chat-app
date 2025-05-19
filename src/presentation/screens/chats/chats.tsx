@@ -6,13 +6,20 @@ import { IconSymbol } from "@/src/presentation/components/ui/IconSymbol";
 import ModalNewChat from "@/src/presentation/components/ModalNewChat";
 import { ThemeColors } from "@/src/presentation/constants/Colors";
 import styles from "@/src/presentation/screens/chats/chats.style";
-import { MessageStatus } from "@/src/domain/entities/message";
-import { useAppContext } from '@/src/presentation/hooks/AppContext';
-import { ChatListItem } from '../../components/chat-list-item/ChatListItem';
+import { ChatListItem } from "../../components/chat-list-item/ChatListItem";
+import { useSegments } from 'expo-router';
+import { useChat } from '../../hooks/useChat';
+import { useChatRoom } from '../../hooks/useChatRoom';
+import { useAuth } from '../../hooks/useAuth';
+import { useUser } from '../../hooks/useUser';
 
 export default function ChatsScreen() {
-  const { users, currentUser, userChats, updateMessageStatus, createChat } =
-    useAppContext();
+  const segments = useSegments();
+  const { currentUser } = useAuth();
+  const { users } = useUser();
+  const { userChats, createChat } = useChat({ currentUserId: currentUser?.id || null });
+  const { updateMessageToDeliveredStatus } = useChatRoom();
+
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
@@ -41,21 +48,13 @@ export default function ChatsScreen() {
     </ThemedView>
   );
 
-  useEffect(() => {;
-    userChats.forEach((chat) => {
-      const undeliveredMessages = chat.messages.filter(
-        (msg) =>
-          msg.senderId !== currentUser?.id && msg.status === MessageStatus.Sent
-      );
-
-      undeliveredMessages.forEach((msg) => {
-        updateMessageStatus(chat.id, {
-          messageId: msg.id,
-          status: MessageStatus.Delivered,
-        });
-      });
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    updateMessageToDeliveredStatus({
+      currentUserId: currentUser.id,
     });
-  }, [currentUser]);
+  }, [segments]);
 
   return (
     <ThemedView style={styles.container}>
