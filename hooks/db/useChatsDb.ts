@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../../database/db';
 import { chats, chatParticipants, messages } from '../../database/schema';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql, inArray } from 'drizzle-orm';
 
 export interface Message {
   id: string;
@@ -31,57 +31,76 @@ export function useChatsDb(currentUserId: string | null) {
       }
 
       try {
-        const participantRows = await db
-          .select()
+
+        const chatIdsRows = await db
+          .select({ chatId: chatParticipants.chatId })
           .from(chatParticipants)
           .where(eq(chatParticipants.userId, currentUserId));
-
-        const chatIds = participantRows.map(row => row.chatId);
-
+        const chatIds = chatIdsRows.map(row => row.chatId);
         if (chatIds.length === 0) {
           setUserChats([]);
           setLoading(false);
           return;
         }
+        // Consulta única con inner joins para obtener chats, participantes y último mensaje
+        const rows = await db
+          .select({
+            chatId: chats.id,
+            participantId: chatParticipants.userId,
+            messageId: messages.id,
+            senderId: messages.senderId,
+            messageText: messages.text,
+            messageTimestamp: messages.timestamp,
+          })
+          .from(chats)
+          .innerJoin(chatParticipants, eq(chats.id, chatParticipants.chatId))
+          .leftJoin(
+            messages,
+            and(
+              eq(messages.chatId, chats.id),
+              eq(
+                messages.timestamp,
+                db
+                  .select({ maxTimestamp: sql`MAX(${messages.timestamp})` })
+                  .from(messages)
+                  .where(eq(messages.chatId, chats.id))
+              )
+            )
+          )
+          .where(inArray(chats.id, chatIds));
 
-        const loadedChats: Chat[] = [];
+        // Procesar los resultados para agrupar por chat
+        // Procesar los resultados para agrupar por chat y participantes
+        const chatMap = new Map<
+          string,
+          { participants: Set<string>; lastMessage?: Message }
+        >();
 
-        for (const chatId of chatIds) {
-          const chatData = await db
-            .select()
-            .from(chats)
-            .where(eq(chats.id, chatId));
-
-          if (chatData.length === 0) continue;
-
-          const participantsData = await db
-            .select()
-            .from(chatParticipants)
-            .where(eq(chatParticipants.chatId, chatId));
-
-          const participantIds = participantsData.map(p => p.userId);
-
-          const lastMessageData = await db
-            .select()
-            .from(messages)
-            .where(eq(messages.chatId, chatId))
-            .orderBy(desc(messages.timestamp))
-            .limit(1);
-
-          const lastMessage = lastMessageData.length > 0 ? {
-            id: lastMessageData[0].id,
-            senderId: lastMessageData[0].senderId,
-            text: lastMessageData[0].text,
-            timestamp: lastMessageData[0].timestamp,
-          } : undefined;
-
-          loadedChats.push({
-            id: chatId,
-            participants: participantIds,
-            messages: [], // Messages will be loaded dynamically
-            lastMessage,
-          });
+        for (const row of rows) {
+          if (!chatMap.has(row.chatId)) {
+            chatMap.set(row.chatId, { participants: new Set(), lastMessage: undefined });
+          }
+          const chat = chatMap.get(row.chatId)!;
+          chat.participants.add(row.participantId);
+          if (row.messageId) {
+            chat.lastMessage = {
+              id: row.messageId,
+              senderId: row.senderId ?? '',
+              text: row.messageText ?? '',
+              timestamp: row.messageTimestamp ?? 0,
+            };
+          }
         }
+
+        // Ahora, para cada chat, obtenemos TODOS los participantes
+        const loadedChats: Chat[] = Array.from(chatMap.entries()).map(
+          ([id, { participants, lastMessage }]) => ({
+            id,
+            participants: Array.from(participants), // Aquí estarán todos los participantes
+            messages: [],
+            lastMessage,
+          })
+        );
 
         setUserChats(loadedChats);
       } catch (error) {
@@ -95,32 +114,32 @@ export function useChatsDb(currentUserId: string | null) {
   }, [currentUserId]);
 
   // Function to load messages for a specific chat
-  const loadMessagesForChat = useCallback(async (chatId: string) => {
-    try {
-      const messagesData = await db
-        .select()
-        .from(messages)
-        .where(eq(messages.chatId, chatId))
-        .orderBy(messages.timestamp);
+  // const loadMessagesForChat = useCallback(async (chatId: string) => {
+  //   try {
+  //     const messagesData = await db
+  //       .select()
+  //       .from(messages)
+  //       .where(eq(messages.chatId, chatId))
+  //       .orderBy(messages.timestamp);
 
-      const chatMessages = messagesData.map(m => ({
-        id: m.id,
-        senderId: m.senderId,
-        text: m.text,
-        timestamp: m.timestamp,
-      }));
+  //     const chatMessages = messagesData.map(m => ({
+  //       id: m.id,
+  //       senderId: m.senderId,
+  //       text: m.text,
+  //       timestamp: m.timestamp,
+  //     }));
 
-      setUserChats(prevChats =>
-        prevChats.map(chat =>
-          chat.id === chatId
-            ? { ...chat, messages: chatMessages }
-            : chat
-        )
-      );
-    } catch (error) {
-      console.error('Error loading messages for chat:', error);
-    }
-  }, []);
+  //     setUserChats(prevChats =>
+  //       prevChats.map(chat =>
+  //         chat.id === chatId
+  //           ? { ...chat, messages: chatMessages }
+  //           : chat
+  //       )
+  //     );
+  //   } catch (error) {
+  //     console.error('Error loading messages for chat:', error);
+  //   }
+  // }, []);
 
   const createChat = useCallback(async (participantIds: string[]) => {
     if (!currentUserId || !participantIds.includes(currentUserId)) {
@@ -286,7 +305,6 @@ export function useChatsDb(currentUserId: string | null) {
     deleteChat,
     deleteMessage,
     editMessage,
-    loadMessagesForChat,
     loading,
   };
 } 

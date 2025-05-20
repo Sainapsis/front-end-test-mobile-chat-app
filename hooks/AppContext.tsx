@@ -1,6 +1,6 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useUser, User } from './useUser';
-import { useChats, Chat } from './useChats';
+import { useChats, ChatsContextType } from './useChats';
 import { DatabaseProvider } from '../database/DatabaseProvider';
 import { useDatabase } from './useDatabase';
 
@@ -10,16 +10,9 @@ type AppContextType = {
   isLoggedIn: boolean;
   login: (userId: string) => Promise<boolean>;
   logout: () => void;
-  chats: Chat[];
-  createChat: (participantIds: string[]) => Promise<Chat | null>;
-  sendMessage: (chatId: string, text: string, senderId: string) => Promise<boolean>;
-  deleteChat: (chatId: string) => Promise<boolean>;
-  loadMessagesForChat: (chatId: string) => Promise<void>;
-  deleteMessage: (chatId: string, messageId: string) => Promise<boolean>;
-  editMessage: (chatId: string, messageId: string, newText: string) => Promise<boolean>;
   loading: boolean;
   dbInitialized: boolean;
-};
+} & ChatsContextType;
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 

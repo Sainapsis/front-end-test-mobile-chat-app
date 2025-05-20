@@ -19,18 +19,25 @@ import { Avatar } from "@/components/Avatar";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { Alert, Modal } from "react-native";
+import { useChatMessages } from '@/hooks/db/useChatMessages';
+
 
 export default function ChatRoomScreen() {
+
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const {
     currentUser,
     users,
     chats,
     sendMessage,
-    loadMessagesForChat,
     deleteMessage,
     editMessage,
   } = useAppContext();
+  const { chatMessages, loadMessagesForChat} = useChatMessages(chatId);
+
+  useEffect(() => {
+    loadMessagesForChat();
+  }, [loadMessagesForChat]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [messageText, setMessageText] = useState("");
@@ -41,7 +48,7 @@ export default function ChatRoomScreen() {
 
   useEffect(() => {
     if (chat && chat.messages.length === 0) {
-      loadMessagesForChat(chatId); // Cargar mensajes si no están en el estado
+      loadMessagesForChat(); // Cargar mensajes si no están en el estado
     }
   }, [chat, chatId, loadMessagesForChat]);
 
@@ -125,15 +132,15 @@ export default function ChatRoomScreen() {
             <Pressable onPressIn={() => router.back()}>
               <Ionicons name="chevron-back-outline" size={24} color="#007AFF" />
             </Pressable>
-          ),
-        }}
-      />
+            ),
+          }}
+          />
 
-      <FlatList
-        ref={flatListRef}
-        data={chat.messages}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
+          <FlatList
+          ref={flatListRef}
+          data={chatMessages}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
           <Pressable
             onLongPress={() => {
               Alert.alert(
