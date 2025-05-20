@@ -6,5 +6,5 @@ export interface LoginParams {
 
 export interface UserRepository {
   login: ({ userId }: LoginParams) => Promise<User>;
-  getUsers: () => Promise<User[]>;
+  getUsers: ({ page }: { page?: number }) => Promise<User[]>;
 }

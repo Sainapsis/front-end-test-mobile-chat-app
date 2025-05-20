@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FlatList, Pressable } from "react-native";
+import { ActivityIndicator, FlatList, Pressable } from "react-native";
 import { TextType, ThemedText } from "@/src/presentation/components/ThemedText";
 import { ThemedView } from "@/src/presentation/components/ThemedView";
 import { IconSymbol } from "@/src/presentation/components/ui/IconSymbol";
@@ -17,8 +17,8 @@ export default function ChatsScreen() {
   const segments = useSegments();
   const { currentUser } = useAuth();
   const { users } = useUser();
-  const { userChats, createChat } = useChat({ currentUserId: currentUser?.id || null });
-  const { updateMessageToDeliveredStatus } = useChatRoom();;
+  const { loading, userChats, createChat } = useChat({ currentUserId: currentUser?.id || null });
+  const { updateMessageToDeliveredStatus } = useChatRoom();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
@@ -69,6 +69,22 @@ export default function ChatsScreen() {
       </ThemedView>
 
       <FlatList
+        // initialNumToRender={1}
+        // maxToRenderPerBatch={1}
+        // windowSize={1}
+        // removeClippedSubviews
+        // onEndReached={async () =>
+        //   filteredMessages.length >= 10 &&
+        //   (await handleLoadMoreMessage({ chatId }))
+        // }
+        ListHeaderComponent={() => (loading ? (
+          <ThemedView
+            // style={styles.loadingIndicatorContainer}
+          >
+            <ActivityIndicator size="large" color="#0000ff" />
+          </ThemedView>
+        ) : null)}
+        // 
         data={userChats}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (

@@ -13,6 +13,7 @@ import {
 import { desc, eq } from "drizzle-orm";
 import { Message, MessageStatus } from "@/src/domain/entities/message";
 import { Chat } from "@/src/domain/entities/chat";
+import { alias } from "drizzle-orm/sqlite-core";
 
 export const createChatDB = async ({
   chatId,
@@ -104,14 +105,17 @@ export const participantDataDB = async ({
 
 export const messagesDataDB = async ({
   chatId,
+  page = 0,
 }: MessageDataParams): Promise<Message[]> => {
+  const limit = 10;
+
   const data = await db
     .select()
     .from(messages)
     .where(eq(messages.chatId, chatId))
     .orderBy(desc(messages.timestamp))
-    .limit(10)
-    .offset(0);
+    .limit(limit)
+    .offset(page * limit);
 
   const transformedData = data.map((row) => ({
     id: row.id as string,
@@ -163,27 +167,65 @@ export const getParticipantsChatDB = async ({ chatId }: { chatId: string }) => {
 
 export const getAllUserChatsDB = async ({
   currentUserId,
+  page = 0,
 }: {
   currentUserId: string;
+  page?: number;
 }): Promise<Chat[]> => {
-  const chatIds = await participantRowsDB({ currentUserId });
+  const limit = 1;
+  const chatParticipants_2 = alias(chatParticipants, "cp2");
 
-  const loadedChats: Chat[] = [];
+  const rows = await db
+    .select({
+      chatId: chatParticipants.chatId,
+      participantUserId: chatParticipants_2.userId,
+      messageId: messages.id,
+      senderId: messages.senderId,
+      text: messages.text,
+      imageUri: messages.imageUri,
+      timestamp: messages.timestamp,
+      status: messages.status,
+    })
+    .from(chatParticipants)
+    .innerJoin(
+      chatParticipants_2,
+      eq(chatParticipants.chatId, chatParticipants_2.chatId)
+    )
+    .leftJoin(messages, eq(chatParticipants.chatId, messages.chatId))
+    .where(eq(chatParticipants.userId, currentUserId))
+    .orderBy(desc(messages.timestamp))
+    .limit(limit)
+    .offset(page * limit);
 
-  for (const { chatId } of chatIds) {
-    const [participantsData, dataMessages] = await Promise.all([
-      participantDataDB({ chatId }),
-      messagesDataDB({ chatId }),
-    ]);
+  const chatMap: Record<string, Chat> = {};
 
-    const lastMessage = dataMessages.length > 0 ? dataMessages[0] : undefined;
+  for (const row of rows) {
+    const chatId = row.chatId;
 
-    loadedChats.push({
-      id: chatId,
-      participants: participantsData.map((p) => p.userId),
-      lastMessage,
-    });
+    if (!chatMap[chatId]) {
+      chatMap[chatId] = {
+        id: chatId,
+        participants: [],
+        lastMessage: row.messageId
+          ? {
+              id: row.messageId,
+              senderId: row.senderId ?? "",
+              text: row.text ?? null,
+              imageUri: row.imageUri ?? null,
+              timestamp: row.timestamp as number,
+              status: row.status as MessageStatus,
+            }
+          : undefined,
+      };
+    }
+
+    if (
+      row.participantUserId &&
+      !chatMap[chatId].participants.includes(row.participantUserId)
+    ) {
+      chatMap[chatId].participants.push(row.participantUserId);
+    }
   }
 
-  return loadedChats;
+  return Object.values(chatMap);
 };

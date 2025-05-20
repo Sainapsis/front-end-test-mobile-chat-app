@@ -103,6 +103,9 @@ export default function ChatRoomScreen() {
       });
 
       setImages([]);
+      if (flatListRef.current && messages.length && messages.length > 0) {
+        flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+      }
     }
 
     setMessageText("");
@@ -133,12 +136,6 @@ export default function ChatRoomScreen() {
       ]
     );
   };
-
-  useEffect(() => {
-    if (flatListRef.current && messages.length && messages.length > 0) {
-      flatListRef.current.scrollToOffset({ offset: 0, animated: true });
-    }
-  }, [messages.length]);
 
   useEffect(() => {
     loadChat({ chatId: chatId ?? "" });
@@ -178,13 +175,6 @@ export default function ChatRoomScreen() {
           headerShadowVisible: false,
           headerBackVisible: inputSearchdVisible ? false : true,
           headerTitle: () => {
-            // const chatName =
-            //   chatParticipants.length === 1
-            //     ? chatParticipants[0]?.name
-            //     : `${chatParticipants[0]?.name || "Unknown"} & ${
-            //         chatParticipants.length - 1
-            //       } other${chatParticipants.length > 1 ? "s" : ""}`;
-
             return inputSearchdVisible ? (
               <TextInput
                 style={styles.searchInput}
@@ -241,10 +231,20 @@ export default function ChatRoomScreen() {
         data={filteredMessages}
         keyExtractor={(item: Message) => item.id}
         initialNumToRender={10}
-        maxToRenderPerBatch={5}
-        windowSize={5}
+        maxToRenderPerBatch={10}
+        windowSize={10}
         removeClippedSubviews
-        onEndReached={() => handleLoadMoreMessage({ chatId })}
+        onEndReached={async () =>
+          filteredMessages.length >= 10 &&
+          (await handleLoadMoreMessage({ chatId }))
+        }
+        ListHeaderComponent={() =>
+          loading ? (
+            <ThemedView>
+              <ActivityIndicator />
+            </ThemedView>
+          ) : null
+        }
         renderItem={({ item }) => {
           const isCurrentUser = item.senderId === currentUser?.id;
 

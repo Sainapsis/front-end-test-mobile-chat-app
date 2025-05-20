@@ -33,6 +33,7 @@ export function useChatRoom() {
   const [chat, setChat] = useState<Chat | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatName, setChatName] = useState<String | undefined>(undefined);
+  const [page, setPage] = useState<number>(1);
 
   const loadChatImpl = async ({ chatId }: { chatId: string }) => {
     if (!userChats) {
@@ -287,14 +288,25 @@ export function useChatRoom() {
   const handleLoadMoreMessageImpl = useCallback(
     async ({ chatId }: { chatId: string }) => {
       try {
-        console.log("handleLoadMoreMessage called");
+        const _messages = await messagesDataDB({ chatId, page });
+        
+        if (_messages) {
+          setMessages((prevMessages) => {
+            const newMessages = _messages.filter(
+              (msg) => !prevMessages.some((prevMsg) => prevMsg.id === msg.id)
+            );
+            return [...prevMessages, ...newMessages];
+          });
+          
+          setPage(page + 1);
+        }
       } catch (error) {
         console.error("Error loading older messages:", error);
       } finally {
         setLoading(false);
       }
     },
-    []
+    [page]
   );
 
   return {

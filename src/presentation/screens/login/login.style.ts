@@ -9,6 +9,15 @@ export const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 40,
   },
+  emptyContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: ThemeColors.gray,
+    textAlign: 'center',
+  },
   header: {
     alignItems: 'center',
     padding: 20,

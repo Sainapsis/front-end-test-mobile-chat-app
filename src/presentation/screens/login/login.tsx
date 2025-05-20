@@ -1,5 +1,5 @@
 import React from "react";
-import { FlatList, SafeAreaView } from "react-native";
+import { ActivityIndicator, FlatList, SafeAreaView } from "react-native";
 import { RelativePathString, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { TextType, ThemedText } from "@/src/presentation/components/ThemedText";
@@ -7,12 +7,12 @@ import { ThemedView } from "@/src/presentation/components/ThemedView";
 import { UserListItem } from "@/src/presentation/components/UserListItem";
 import styles from "@/src/presentation/screens/login/login.style";
 import { Routes } from "@/src/presentation/constants/Routes";
-import { useAuth } from '../../hooks/useAuth';
-import { useUser } from '../../hooks/useUser';
+import { useAuth } from "../../hooks/useAuth";
+import { useUser } from "../../hooks/useUser";
 
 export default function LoginScreen() {
   const { login } = useAuth();
-  const { users } = useUser();
+  const { loading, users, handleLoadMoreUsers } = useUser();
   const router = useRouter();
 
   const handleUserSelect = async (userId: string) => {
@@ -37,6 +37,13 @@ export default function LoginScreen() {
         <FlatList
           data={users}
           keyExtractor={(item) => item.id}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          removeClippedSubviews
+          onEndReached={async () =>
+            users.length >= 10 && (await handleLoadMoreUsers())
+          }
           renderItem={({ item }) => (
             <UserListItem
               user={item}
@@ -44,6 +51,20 @@ export default function LoginScreen() {
             />
           )}
           contentContainerStyle={styles.listContainer}
+          ListFooterComponent={() =>
+            loading ? (
+              <ThemedView>
+                <ActivityIndicator />
+              </ThemedView>
+            ) : null
+          }
+          ListEmptyComponent={() => (
+            <ThemedView style={styles.emptyContainer}>
+              <ThemedText style={styles.emptyText}>
+                No users found. Please try again later.
+              </ThemedText>
+            </ThemedView>
+          )}
         />
       </ThemedView>
     </SafeAreaView>

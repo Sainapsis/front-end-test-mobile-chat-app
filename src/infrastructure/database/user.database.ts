@@ -1,7 +1,7 @@
 import { db } from "@/src/infrastructure/queries/db";
 import { users } from "@/src/infrastructure/schema";
 import { LoginParams } from "@/src/data/interfaces/user.interface";
-import { User } from '@/src/domain/entities/user';
+import { User } from "@/src/domain/entities/user";
 import { eq } from "drizzle-orm";
 
 export const loginDB = async ({ userId }: LoginParams): Promise<User> => {
@@ -10,8 +10,18 @@ export const loginDB = async ({ userId }: LoginParams): Promise<User> => {
   return user[0];
 };
 
-export const getUsersDB = async (): Promise<User[]> => {
-  const usersDB = await db.select().from(users);
+export const getUsersDB = async ({
+  page = 0,
+}: {
+  page?: number;
+}): Promise<User[]> => {
+  const limit = 10;
+
+  const usersDB = await db
+    .select()
+    .from(users)
+    .limit(limit)
+    .offset(page * limit);
 
   return usersDB;
 };

@@ -2,12 +2,14 @@ import { CreateChatParams } from "@/src/data/interfaces/chat.interface";
 import { chatRepository } from "@/src/data/repositories/chat.repository";
 import { Chat } from "@/src/domain/entities/chat";
 import { createChat } from "@/src/domain/usecases/chat.usecase";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useChatContext } from "../context/chat-context/ChatContext";
 import { getAllUserChatsDB } from "@/src/infrastructure/database/chat.database";
 
-export function useChat({ currentUserId }: { currentUserId: string | null }) {
+export function useChat({ currentUserId }: { currentUserId: string | null; }) {
   const { userChats, setUserChats } = useChatContext();
+
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadChatsImpl();
@@ -27,6 +29,8 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
       setUserChats(chats);
     } catch (error) {
       console.error("Error loading chats:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -49,12 +53,15 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
       } catch (error) {
         console.error("Error creating chat:", error);
         return null;
+      } finally {
+        setLoading(false);
       }
     },
     []
   );
 
   return {
+    loading,
     userChats,
     createChat: createChatImpl,
   };

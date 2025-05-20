@@ -7,8 +7,8 @@ export const userRepository: UserRepository = {
 
     return user;
   },
-  getUsers: async () => {
-    const users = await getUsersDB();
+  getUsers: async ({ page }: { page?: number }) => {
+    const users = await getUsersDB({ page });
 
     return users;
   },

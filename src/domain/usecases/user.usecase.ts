@@ -11,8 +11,10 @@ export const userLogin =
     return user;
   };
 
-export const getUsers = (repository: UserRepository) => async () => {
-  const users = await repository.getUsers();
-  
-  return users;
-};
+export const getUsers =
+  (repository: UserRepository) =>
+  async ({ page }: { page?: number }) => {
+    const users = await repository.getUsers({ page });
+
+    return users;
+  };
