@@ -55,15 +55,17 @@ export function useChatRoom() {
 
       setChatParticipants(participants);
 
-      setChatName(
-        participants.length === 0
-          ? "No participants"
-          : participants.length === 1
-          ? participants[0]?.name
-          : `${participants[0]?.name} & ${participants.length - 1} other${
-              participants.length > 2 ? "s" : ""
-            }`
-      );
+      if (participants.length === 0) {
+        setChatName("No participants");
+      } else if (participants.length === 1) {
+        setChatName(participants[0]?.name);
+      } else {
+        setChatName(
+          `${participants[0]?.name} & ${participants.length - 1} other${
+            participants.length > 2 ? "s" : ""
+          }`
+        );
+      }
 
       const _messages = await messagesDataDB({ chatId });
 
@@ -98,17 +100,17 @@ export function useChatRoom() {
 
         setUserChats((prevChats) => {
           return prevChats.map((_chat) => {
-            if (chat && _chat.id === chat.id && _chat.lastMessage) {
+            if (
+              _chat.id === chat.id &&
+              _chat.lastMessage &&
+              _chat.lastMessage.status === MessageStatus.Delivered &&
+              _chat.lastMessage.senderId !== currentUserId
+            ) {
               return {
                 ..._chat,
                 lastMessage: {
                   ..._chat.lastMessage,
                   status: MessageStatus.Read,
-                  id: _chat.lastMessage.id,
-                  senderId: _chat.lastMessage.senderId,
-                  text: _chat.lastMessage.text,
-                  imageUri: _chat.lastMessage.imageUri,
-                  timestamp: _chat.lastMessage.timestamp,
                 },
               };
             }
@@ -130,6 +132,7 @@ export function useChatRoom() {
         await sendMessage(chatRepository)({ chatId, message });
 
         setMessages((prevMessages) => [message, ...prevMessages]);
+
         setUserChats((prevChats) => {
           return prevChats.map((chat) => {
             if (chat.id === chatId) {
@@ -158,23 +161,41 @@ export function useChatRoom() {
       try {
         await Promise.all(
           userChats.map(async (chat) => {
-            const undeliveredMessages = await messagesDataDB({
-              chatId: chat.id,
-            }).then((messages) => {
-              return messages.filter(
-                ({ senderId, status }: Message) =>
-                  senderId !== currentUserId && status === MessageStatus.Sent
-              );
-            });
+            const messages = await messagesDataDB({ chatId: chat.id });
 
             await Promise.all(
-              undeliveredMessages.map((msg) =>
-                updateStatusMessage(chatRepository)({
-                  messageId: msg.id,
-                  status: MessageStatus.Delivered,
-                })
-              )
+              messages.map(async ({ id, senderId, status }: Message) => {
+                if (
+                  senderId !== currentUserId &&
+                  status === MessageStatus.Sent
+                ) {
+                  await updateStatusMessage(chatRepository)({
+                    messageId: id,
+                    status: MessageStatus.Delivered,
+                  });
+                }
+              })
             );
+
+            setUserChats((prevChats) => {
+              return prevChats.map((_chat) => {
+                if (
+                  _chat.id === chat.id &&
+                  _chat.lastMessage &&
+                  _chat.lastMessage.status === MessageStatus.Sent &&
+                  _chat.lastMessage.senderId !== currentUserId
+                ) {
+                  return {
+                    ..._chat,
+                    lastMessage: {
+                      ..._chat.lastMessage,
+                      status: MessageStatus.Delivered,
+                    },
+                  };
+                }
+                return _chat;
+              });
+            });
           })
         );
       } catch (error) {
@@ -195,7 +216,7 @@ export function useChatRoom() {
         });
 
         // setMessages((prevMessages) =>
-          // prevMessages.filter((msg) => msg.id !== messageId)
+        // prevMessages.filter((msg) => msg.id !== messageId)
         // );
         // setUserChats((prevChats) => {
         //   return prevChats.map((chat) => {
@@ -216,7 +237,8 @@ export function useChatRoom() {
       } finally {
         setLoading(false);
       }
-    }, []
+    },
+    []
   );
 
   const editMessageImpl = useCallback(

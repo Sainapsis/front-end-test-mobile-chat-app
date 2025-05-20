@@ -1,10 +1,5 @@
 import { db } from "@/src/infrastructure/queries/db";
-import {
-  chatParticipants,
-  chats,
-  messages,
-  users,
-} from "@/src/infrastructure/schema";
+import { chatParticipants, chats, messages } from "@/src/infrastructure/schema";
 import {
   ChatDataParams,
   ChatDataResponse,
@@ -12,11 +7,10 @@ import {
   MessageDataParams,
   ParticipantDataResponse,
   ParticipantRowsParams,
-  ParticipantRowsParamsResponse,
   SendMessageParams,
   UpdateStatusMessageParams,
 } from "@/src/data/interfaces/chat.interface";
-import { and, desc, eq, inArray, max } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { Message, MessageStatus } from "@/src/domain/entities/message";
 import { Chat } from "@/src/domain/entities/chat";
 

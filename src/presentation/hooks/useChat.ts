@@ -20,11 +20,11 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
     }
 
     try {
-      const test = await getAllUserChatsDB({
+      const chats = await getAllUserChatsDB({
         currentUserId,
       });
 
-      setUserChats(test);
+      setUserChats(chats);
     } catch (error) {
       console.error("Error loading chats:", error);
     }
