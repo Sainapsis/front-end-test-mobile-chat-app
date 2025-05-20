@@ -36,38 +36,41 @@ const initialChats = [
   {
     id: 'chat1',
     participants: ['1', '2'],
-    messages: [
-      {
-        id: 'msg1',
-        senderId: '2',
-        text: 'Hey, how are you?',
-        imageUri: null,
-        timestamp: Date.now() - 3600000,
-        status: MessageStatus.Read,
-      },
-      {
-        id: 'msg2',
-        senderId: '1',
-        text: 'I\'m good, thanks for asking!',
-        imageUri: null,
-        timestamp: Date.now() - 1800000,
-        status: MessageStatus.Read,
-      },
-    ],
+
   },
   {
     id: 'chat2',
     participants: ['1', '3'],
-    messages: [
-      {
-        id: 'msg3',
-        senderId: '3',
-        text: 'Did you check the project?',
-        imageUri: null,
-        timestamp: Date.now() - 86400000,
-        status: MessageStatus.Read,
-      },
-    ],
+  },
+];
+
+const initialMessages = [
+  {
+    id: 'msg1',
+    chatId: 'chat1',
+    senderId: '2',
+    text: 'Hey, how are you?',
+    imageUri: null,
+    timestamp: Date.now() - 3600000,
+    status: MessageStatus.Read,
+  },
+  {
+    id: 'msg2',
+    chatId: 'chat1',
+    senderId: '1',
+    text: "I'm good, thanks for asking!",
+    imageUri: null,
+    timestamp: Date.now() - 1800000,
+    status: MessageStatus.Read,
+  },
+  {
+    id: 'msg3',
+    chatId: 'chat2',
+    senderId: '3',
+    text: 'Did you check the project?',
+    imageUri: null,
+    timestamp: Date.now() - 86400000,
+    status: MessageStatus.Read,
   },
 ];
 
@@ -117,7 +120,9 @@ export async function seedDatabase() {
       
       // Insert messages
       console.log(`Adding messages for chat ${chat.id}...`);
-      for (const message of chat.messages) {
+      for (const message of initialMessages) {
+        if (message.chatId !== chat.id) continue;
+        
         await db.insert(messages).values({
           id: message.id,
           chatId: chat.id,

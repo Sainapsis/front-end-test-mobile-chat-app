@@ -63,7 +63,7 @@ export interface ChatRepository {
     messageId,
     newText,
   }: EditMessageParams) => Promise<void>;
-  participantRows: ({ currentUserId }: ParticipantRowsParams) => Promise<ParticipantRowsParamsResponse[]>;
+  participantRows: ({ currentUserId }: ParticipantRowsParams) => Promise<ChatDataParams[]>;
   chatData: ({ chatId }: ParticipantDataParams) => Promise<ChatDataResponse[]>;
   participantData: ({ chatId }: ChatDataParams) => Promise<ParticipantDataResponse[]>;
   messagesData: ({ chatId }: MessageDataParams) => Promise<Message[]>;

@@ -24,8 +24,9 @@ export type RootStackParamList = {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) {
-  const navigation = useNavigation<NavigationProp>();  
+export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) {  
+  const navigation = useNavigation<NavigationProp>();
+  
   const otherParticipants = useMemo(() => {
     return chat.participants
       .filter((id: string) => id !== currentUserId)
@@ -33,7 +34,7 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
       .filter(Boolean) as User[];
   }, [chat.participants, currentUserId, users]);
 
-  const chatName = useMemo(() => {
+  const userChat = useMemo(() => {
     if (otherParticipants.length === 0) {
       return 'No participants';
     } else if (otherParticipants.length === 1) {
@@ -49,16 +50,14 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
       { chatId: chat.id },
     );
   };
-  
-  const lastMessage = chat.messages[0];
 
   const timeString = useMemo(() => {
-    if (!lastMessage) return '';
+    if (!chat.lastMessage) return '';
     
-    return transformTime.getDiffInDays(lastMessage.timestamp);
-  }, [lastMessage]);
+    return transformTime.getDiffInDays(chat.lastMessage.timestamp);
+  }, [chat.lastMessage]);
 
-  const isCurrentUserLastSender = lastMessage?.senderId === currentUserId;
+  const isCurrentUserLastSender = chat.lastMessage?.senderId === currentUserId;
 
   return (
     <Pressable style={styles.container} onPress={handlePress}>
@@ -69,28 +68,28 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
       <View style={styles.contentContainer}>
         <View style={styles.topRow}>
           <ThemedText type={TextType.DEFAULT_SEMI_BOLD} numberOfLines={1} style={styles.name}>
-            {chatName}
+            {userChat}
           </ThemedText>
           {timeString && (
             <ThemedText style={styles.time}>{timeString}</ThemedText>
           )}
         </View>
         <View style={styles.bottomRow}>
-          {lastMessage && (
+          {chat.lastMessage && (
             <ThemedText 
               numberOfLines={1}
               style={[
                 styles.lastMessage,
                 isCurrentUserLastSender && styles.currentUserMessage,
-                (lastMessage.status === MessageStatus.Delivered && !isCurrentUserLastSender) && styles.unreadMessage,
+                (chat.lastMessage.status === MessageStatus.Delivered && !isCurrentUserLastSender) && styles.unreadMessage,
               ]}
             >
-              {isCurrentUserLastSender && 'You: '}{lastMessage.imageUri ? '📷' : lastMessage.text}
+              {isCurrentUserLastSender && 'You: '}{chat.lastMessage.imageUri ? '📷' : chat.lastMessage.text}
             </ThemedText>
           )}
-          {lastMessage && isCurrentUserLastSender && (
+          {chat.lastMessage && isCurrentUserLastSender && (
             <ThemedText style={styles.time}>
-              {messageFunc.getMessageStatusIcon(lastMessage.status, true)}
+              {messageFunc.getMessageStatusIcon(chat.lastMessage.status, true)}
             </ThemedText>
           )}
         </View>

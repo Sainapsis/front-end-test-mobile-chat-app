@@ -26,11 +26,9 @@ export function useChat({ currentUserId }: { currentUserId: string | null; }) {
     }
 
     try {
-      const rowsParticipant = await participantRows(chatRepository)({
+      const chatIds = await participantRows(chatRepository)({
         currentUserId,
       });
-
-      const chatIds = rowsParticipant.map((row) => row.chatId);
 
       if (chatIds.length === 0) {
         setUserChats([]);
@@ -40,37 +38,39 @@ export function useChat({ currentUserId }: { currentUserId: string | null; }) {
       const loadedChats: Chat[] = [];
 
       for (const chatId of chatIds) {
-        const dataChat = await chatData(chatRepository)({ chatId });
+        const dataChat = await chatData(chatRepository)({ chatId: chatId.chatId });
 
         if (dataChat.length === 0) continue;
 
-        const participantsData = await participantData(chatRepository)({
-          chatId,
-        });
+        const participantsData = await participantData(chatRepository)(
+          { chatId: chatId.chatId }
+        );
 
         const participantIds = participantsData.map((p) => p.userId);
 
-        const dataMessages = await messagesData(chatRepository)({ chatId });
+        const dataMessages = await messagesData(chatRepository)(
+          { chatId: chatId.chatId }
+        );
 
         const lastMessage =
           dataMessages.length > 0 ? dataMessages[0] : undefined;
 
         loadedChats.push({
-          id: chatId,
+          id: chatId.chatId,
           participants: participantIds,
-          messages: dataMessages as Message[],
           lastMessage: lastMessage as Message | undefined,
         });
       }
 
       setUserChats(
-        loadedChats.sort((a, b) => {
-          const aLast = a.messages[a.messages.length - 1];
-          const bLast = b.messages[b.messages.length - 1];
-          const aTime = aLast ? new Date(aLast.timestamp).getTime() : 0;
-          const bTime = bLast ? new Date(bLast.timestamp).getTime() : 0;
-          return bTime - aTime;
-        })
+        loadedChats
+        //   .sort((a, b) => {
+        //   const aLast = a.messages[a.messages.length - 1];
+        //   const bLast = b.messages[b.messages.length - 1];
+        //   const aTime = aLast ? new Date(aLast.timestamp).getTime() : 0;
+        //   const bTime = bLast ? new Date(bLast.timestamp).getTime() : 0;
+        //   return bTime - aTime;
+        // })
       );
     } catch (error) {
       console.error("Error loading chats:", error);
@@ -89,18 +89,17 @@ export function useChat({ currentUserId }: { currentUserId: string | null; }) {
         const newChat: Chat = {
           id: chatId,
           participants: participantIds,
-          messages: [],
         };
         
-        setUserChats(
-          [...userChats, newChat].sort((a, b) => {
-            const aLast = a.messages[a.messages.length - 1];
-            const bLast = b.messages[b.messages.length - 1];
-            const aTime = aLast ? new Date(aLast.timestamp).getTime() : 0;
-            const bTime = bLast ? new Date(bLast.timestamp).getTime() : 0;
-            return bTime - aTime;
-          })
-        );
+        // setUserChats(
+        //   [...userChats, newChat].sort((a, b) => {
+        //     const aLast = a.messages[a.messages.length - 1];
+        //     const bLast = b.messages[b.messages.length - 1];
+        //     const aTime = aLast ? new Date(aLast.timestamp).getTime() : 0;
+        //     const bTime = bLast ? new Date(bLast.timestamp).getTime() : 0;
+        //     return bTime - aTime;
+        //   })
+        // );
         return newChat;
       } catch (error) {
         console.error("Error creating chat:", error);

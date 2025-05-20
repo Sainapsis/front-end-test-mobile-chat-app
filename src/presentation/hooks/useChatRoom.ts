@@ -13,7 +13,10 @@ import {
 } from "@/src/domain/usecases/chat.usecase";
 import { useCallback, useState } from "react";
 import { useChatContext } from "../context/chat-context/ChatContext";
-import { getChatByIDDB } from "@/src/infrastructure/database/chat.database";
+import {
+  getChatByIDDB,
+  messagesDataDB,
+} from "@/src/infrastructure/database/chat.database";
 import { useAuthContext } from "../context/auth-context/AuthContext";
 import { useUserContext } from "../context/user-context/UserContext";
 import { User } from "@/src/domain/entities/user";
@@ -28,6 +31,8 @@ export function useChatRoom() {
   >([]);
   const [loading, setLoading] = useState(true);
   const [chat, setChat] = useState<Chat | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [chatName, setChatName] = useState<String | undefined>(undefined);
 
   const loadChatImpl = async ({ chatId }: { chatId: string }) => {
     if (!userChats) {
@@ -38,17 +43,34 @@ export function useChatRoom() {
     try {
       const chat = await getChatByIDDB({
         chatId,
-        currentUserId: currentUser?.id ?? "",
       });
 
-      const participants =
-        chat?.participants
-          .filter((id: string) => id !== currentUser?.id)
-          .map((id: string) => users.find((user) => user.id === id))
-          .filter(Boolean) ?? [];
+      if (chat) {
+        setChat(chat);
+      }
 
-      setChat(chat);
+      const participants = chat?.participants
+        .filter((id: string) => id !== currentUser?.id)
+        .map((id: string) => users.find((user) => user.id === id));
+
       setChatParticipants(participants);
+
+      setChatName(
+        participants.length === 0
+          ? "No participants"
+          : participants.length === 1
+          ? participants[0]?.name
+          : `${participants[0]?.name} & ${participants.length - 1} other${
+              participants.length > 2 ? "s" : ""
+            }`
+      );
+
+      const _messages = await messagesDataDB({ chatId });
+
+      if (_messages) {
+        setMessages(_messages);
+      }
+
       setLoading(false);
     } catch (error) {
       console.error("Error loading chats:", error);
@@ -60,36 +82,37 @@ export function useChatRoom() {
       if (!chat || !currentUserId) return;
 
       try {
-        const unreadMessages = chat.messages.filter(
-          ({ senderId, status }: Message) =>
-            senderId !== currentUserId && status === MessageStatus.Delivered
+        await Promise.all(
+          messages.map(async ({ id, senderId, status }: Message) => {
+            if (
+              senderId !== currentUserId &&
+              status === MessageStatus.Delivered
+            ) {
+              await updateStatusMessage(chatRepository)({
+                messageId: id,
+                status: MessageStatus.Read,
+              });
+            }
+          })
         );
 
-        unreadMessages.map(async (msg) => {
-          await updateStatusMessage(chatRepository)({
-            messageId: msg.id,
-            status: MessageStatus.Read,
-          });
-        });
-
-        // Actualiza la lista de chats
         setUserChats((prevChats) => {
-          return prevChats.map((chat) => {
-            if (chat.id === chat.id) {
+          return prevChats.map((_chat) => {
+            if (chat && _chat.id === chat.id && _chat.lastMessage) {
               return {
-                ...chat,
-                messages: chat.messages.map((msg) => {
-                  if (msg.senderId !== currentUserId) {
-                    return {
-                      ...msg,
-                      status: MessageStatus.Read,
-                    };
-                  }
-                  return msg;
-                }),
+                ..._chat,
+                lastMessage: {
+                  ..._chat.lastMessage,
+                  status: MessageStatus.Read,
+                  id: _chat.lastMessage.id,
+                  senderId: _chat.lastMessage.senderId,
+                  text: _chat.lastMessage.text,
+                  imageUri: _chat.lastMessage.imageUri,
+                  timestamp: _chat.lastMessage.timestamp,
+                },
               };
             }
-            return chat;
+            return _chat;
           });
         });
       } catch (error) {
@@ -106,23 +129,12 @@ export function useChatRoom() {
       try {
         await sendMessage(chatRepository)({ chatId, message });
 
-        setChat((prevChat) => {
-          if (prevChat?.id === chatId) {
-            return {
-              ...prevChat,
-              messages: [message, ...prevChat.messages],
-              lastMessage: message,
-            };
-          }
-          return prevChat;
-        });
-
+        setMessages((prevMessages) => [message, ...prevMessages]);
         setUserChats((prevChats) => {
           return prevChats.map((chat) => {
             if (chat.id === chatId) {
               return {
                 ...chat,
-                messages: [message, ...chat.messages],
                 lastMessage: message,
               };
             }
@@ -144,19 +156,27 @@ export function useChatRoom() {
   const updateMessageToDeliveredStatusImpl = useCallback(
     async ({ currentUserId }: { currentUserId: string }) => {
       try {
-        userChats.map((chat) => {
-          const undeliveredMessages = chat.messages.filter(
-            ({ senderId, status }: Message) =>
-              senderId !== currentUserId && status === MessageStatus.Sent
-          );
-
-          undeliveredMessages.map(async (msg) => {
-            await updateStatusMessage(chatRepository)({
-              messageId: msg.id,
-              status: MessageStatus.Delivered,
+        await Promise.all(
+          userChats.map(async (chat) => {
+            const undeliveredMessages = await messagesDataDB({
+              chatId: chat.id,
+            }).then((messages) => {
+              return messages.filter(
+                ({ senderId, status }: Message) =>
+                  senderId !== currentUserId && status === MessageStatus.Sent
+              );
             });
-          });
-        });
+
+            await Promise.all(
+              undeliveredMessages.map((msg) =>
+                updateStatusMessage(chatRepository)({
+                  messageId: msg.id,
+                  status: MessageStatus.Delivered,
+                })
+              )
+            );
+          })
+        );
       } catch (error) {
         console.error("Error updating message status:", error);
       } finally {
@@ -174,27 +194,20 @@ export function useChatRoom() {
           messageId,
         });
 
-        setChat((prevChat) => {
-          if (prevChat?.id === chatId) {
-            return {
-              ...prevChat,
-              messages: prevChat.messages.filter((msg) => msg.id !== messageId),
-            };
-          }
-          return prevChat;
-        });
-
-        setUserChats((prevChats) => {
-          return prevChats.map((chat) => {
-            if (chat.id === chatId) {
-              return {
-                ...chat,
-                messages: chat.messages.filter((msg) => msg.id !== messageId),
-              };
-            }
-            return chat;
-          });
-        });
+        // setMessages((prevMessages) =>
+          // prevMessages.filter((msg) => msg.id !== messageId)
+        // );
+        // setUserChats((prevChats) => {
+        //   return prevChats.map((chat) => {
+        //     if (chat.id === chatId) {
+        //       return {
+        //         ...chat,
+        //         lastMessage: undefined,
+        //       };
+        //     }
+        //     return chat;
+        //   });
+        // });
 
         return true;
       } catch (error) {
@@ -203,8 +216,7 @@ export function useChatRoom() {
       } finally {
         setLoading(false);
       }
-    },
-    []
+    }, []
   );
 
   const editMessageImpl = useCallback(
@@ -265,6 +277,8 @@ export function useChatRoom() {
   return {
     loading,
     chat,
+    chatName,
+    messages,
     chatParticipants,
     loadChat: loadChatImpl,
     updateMessageToReadStatus: updateMessageToReadStatusImpl,

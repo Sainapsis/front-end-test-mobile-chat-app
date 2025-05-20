@@ -1,5 +1,4 @@
 import { userRepository } from "@/src/data/repositories/user.repository";
-import { User } from "@/src/domain/entities/user";
 import { getUsers } from "@/src/domain/usecases/user.usecase";
 import { useCallback, useEffect, useState } from "react";
 import { useUserContext } from '../context/user-context/UserContext';

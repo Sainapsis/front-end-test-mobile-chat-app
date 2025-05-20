@@ -7,8 +7,8 @@ export enum MessageStatus {
 export interface Message {
   id: string;
   senderId: string;
-  text?: string;
-  imageUri?: string;
+  text: string | null;
+  imageUri: string | null;
   timestamp: number;
   status: MessageStatus;
 }

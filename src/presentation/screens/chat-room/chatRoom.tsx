@@ -28,13 +28,15 @@ import { useChatRoom } from "../../hooks/useChatRoom";
 import { useAuth } from "../../hooks/useAuth";
 
 export default function ChatRoomScreen() {
-  const { chatId } = useLocalSearchParams<{ chatId: string; }>();
-  
+  const { chatId } = useLocalSearchParams<{ chatId: string }>();
+
   const flatListRef = useRef<FlatList>(null);
   const { currentUser } = useAuth();
   const {
     loading,
     chat,
+    chatName,
+    messages,
     chatParticipants,
     loadChat,
     updateMessageToReadStatus,
@@ -53,15 +55,20 @@ export default function ChatRoomScreen() {
 
   const filteredMessages = useMemo(() => {
     if (searchText.trim()) {
-      return chat?.messages.filter((msg: Message) =>
+      return messages.filter((msg: Message) =>
         msg.text?.toLowerCase().includes(searchText.toLowerCase())
       );
     }
-    return chat?.messages;
-  }, [searchText, chat?.messages]);
+    return messages;
+  }, [searchText, messages]);
 
   const handleSendMessage = async () => {
-    if ((!messageText.trim() && images.length === 0) || !currentUser || !chat || !chat.id)
+    if (
+      (!messageText.trim() && images.length === 0) ||
+      !currentUser ||
+      !chat ||
+      !chat.id
+    )
       return;
 
     // Si está editando mensaje
@@ -78,15 +85,17 @@ export default function ChatRoomScreen() {
         id: transformTime.generateUniqueId(),
         senderId: currentUser.id,
         text: messageText.trim(),
+        imageUri: null,
         timestamp: Date.now(),
         status: MessageStatus.Sent,
       });
 
       // Si hay imágenes seleccionadas, enviamos una por una
       images.forEach(async (image) => {
-        await sendMessage((chat.id ?? ""), {
+        await sendMessage(chat.id ?? "", {
           id: transformTime.generateUniqueId(),
           senderId: currentUser.id,
+          text: null,
           imageUri: image.uri,
           timestamp: Date.now(),
           status: MessageStatus.Sent,
@@ -99,7 +108,13 @@ export default function ChatRoomScreen() {
     setMessageText("");
   };
 
-  const handleEditMessage = (messageId: string, currentText?: string) => {
+  const handleEditMessage = ({
+    messageId,
+    currentText,
+  }: {
+    messageId: string;
+    currentText: string | null;
+  }) => {
     setEditingMessageId(messageId);
     setMessageText(currentText || "");
   };
@@ -120,14 +135,10 @@ export default function ChatRoomScreen() {
   };
 
   useEffect(() => {
-    if (
-      flatListRef.current &&
-      chat?.messages.length &&
-      chat?.messages.length > 0
-    ) {
+    if (flatListRef.current && messages.length && messages.length > 0) {
       flatListRef.current.scrollToOffset({ offset: 0, animated: true });
     }
-  }, [chat?.messages.length]);
+  }, [messages.length]);
 
   useEffect(() => {
     loadChat({ chatId: chatId ?? "" });
@@ -167,12 +178,12 @@ export default function ChatRoomScreen() {
           headerShadowVisible: false,
           headerBackVisible: inputSearchdVisible ? false : true,
           headerTitle: () => {
-            const chatName =
-              chatParticipants.length === 1
-                ? chatParticipants[0]?.name
-                : `${chatParticipants[0]?.name || "Unknown"} & ${
-                    chatParticipants.length - 1
-                  } other${chatParticipants.length > 1 ? "s" : ""}`;
+            // const chatName =
+            //   chatParticipants.length === 1
+            //     ? chatParticipants[0]?.name
+            //     : `${chatParticipants[0]?.name || "Unknown"} & ${
+            //         chatParticipants.length - 1
+            //       } other${chatParticipants.length > 1 ? "s" : ""}`;
 
             return inputSearchdVisible ? (
               <TextInput
@@ -225,9 +236,9 @@ export default function ChatRoomScreen() {
       />
 
       <FlatList
-        inverted={filteredMessages && filteredMessages?.length > 0}
+        inverted={filteredMessages?.length > 0}
         ref={flatListRef}
-        data={[...(filteredMessages || [])]}
+        data={filteredMessages}
         keyExtractor={(item: Message) => item.id}
         initialNumToRender={10}
         maxToRenderPerBatch={5}
@@ -248,7 +259,10 @@ export default function ChatRoomScreen() {
                           {
                             text: "Edit",
                             onPress: () =>
-                              handleEditMessage(item.id, item.text),
+                              handleEditMessage({
+                                messageId: item.id,
+                                currentText: item.text,
+                              }),
                           },
                         ]),
                     {

@@ -75,11 +75,18 @@ export const editMessageDB = async ({
 
 export const participantRowsDB = async ({
   currentUserId,
-}: ParticipantRowsParams): Promise<ParticipantRowsParamsResponse[]> => {
+}: ParticipantRowsParams): Promise<ChatDataParams[]> => {
   const participantRows = await db
-    .select()
+    .select({ chatId: chatParticipants.chatId })
     .from(chatParticipants)
     .where(eq(chatParticipants.userId, currentUserId));
+  
+    // const result = await db
+    // .select({ chatId: chatParticipants.chatId })
+    // .from(chatParticipants)
+    // .innerJoin(chats, eq(chatParticipants.chatId, chats.id))
+    // .where(eq(chatParticipants.userId, currentUserId));
+    // console.log("result", result);
 
   return participantRows;
 };
@@ -88,6 +95,7 @@ export const chatDataDB = async ({
   chatId,
 }: ChatDataParams): Promise<ChatDataResponse[]> => {
   const chatData = await db.select().from(chats).where(eq(chats.id, chatId));
+  console.log("chatData", chatData);
 
   return chatData;
 };
@@ -106,76 +114,47 @@ export const participantDataDB = async ({
 export const messagesDataDB = async ({
   chatId,
 }: MessageDataParams): Promise<Message[]> => {
-  const messageDatatData = await db
+  const data = await db
     .select()
     .from(messages)
     .where(eq(messages.chatId, chatId))
     .orderBy(desc(messages.timestamp));
-
-  return messageDatatData as Message[];
+  
+  const transformedData = data.map((row) => ({
+    id: row.id as string,
+    senderId: row.senderId as string,
+    text: row.text ?? null,
+    imageUri: row.imageUri ?? null,
+    timestamp: row.timestamp as number,
+    status: row.status as MessageStatus,
+  }));
+  
+  return transformedData;
 };
 
 export const getChatByIDDB = async ({
   chatId,
-  currentUserId,
 }: {
   chatId: string;
-  currentUserId: string;
 }): Promise<Chat> => {
-  // Obtener participantes del chat
   const participantsData = await getParticipantsChatDB({ chatId });
 
   const participants = participantsData.map((p) => p.userId);
 
-  // Obtener mensajes del chat
-  const messagesData = await db
-    .select({
-      chatId: chats.id,
-      messageId: messages.id,
-      senderId: messages.senderId,
-      text: messages.text,
-      imageUri: messages.imageUri,
-      timestamp: messages.timestamp,
-      status: messages.status,
-    })
-    .from(chats)
-    .innerJoin(chatParticipants, eq(chats.id, chatParticipants.chatId))
-    .leftJoin(messages, eq(chats.id, messages.chatId))
-    .where(
-      and(eq(chatParticipants.userId, currentUserId), eq(chats.id, chatId))
-    )
-    .orderBy(desc(messages.timestamp));
-  // .limit(5) // Paginación opcional
-
-  const _messages = messagesData
-    .filter(
-      (row) =>
-        row.messageId !== null &&
-        row.senderId !== null &&
-        row.timestamp !== null
-    )
-    .map((row) => ({
-      id: row.messageId as string,
-      senderId: row.senderId as string,
-      text: row.text ?? "",
-      imageUri: row.imageUri ?? undefined,
-      timestamp: row.timestamp as number,
-      status: row.status as MessageStatus,
-    }));
+  const _messages = await messagesDataDB({ chatId });
 
   const lastMessage = _messages[0] ?? {
     id: "",
     senderId: "",
-    text: undefined,
-    imageUri: undefined,
+    text: null,
+    imageUri: null,
     timestamp: 0,
-    status: null,
+    status: MessageStatus.Sent,
   };
 
   const chat: Chat = {
     id: chatId,
     participants,
-    messages: _messages,
     lastMessage,
   };
 

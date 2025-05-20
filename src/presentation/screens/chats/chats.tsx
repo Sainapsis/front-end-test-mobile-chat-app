@@ -18,7 +18,7 @@ export default function ChatsScreen() {
   const { currentUser } = useAuth();
   const { users } = useUser();
   const { userChats, createChat } = useChat({ currentUserId: currentUser?.id || null });
-  const { updateMessageToDeliveredStatus } = useChatRoom();
+  const { updateMessageToDeliveredStatus } = useChatRoom();;
 
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
