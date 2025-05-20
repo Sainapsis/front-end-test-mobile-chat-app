@@ -1,5 +1,10 @@
 import { db } from "@/src/infrastructure/queries/db";
-import { chatParticipants, chats, messages } from "@/src/infrastructure/schema";
+import {
+  chatParticipants,
+  chats,
+  messages,
+  users,
+} from "@/src/infrastructure/schema";
 import {
   ChatDataParams,
   ChatDataResponse,
@@ -11,7 +16,7 @@ import {
   SendMessageParams,
   UpdateStatusMessageParams,
 } from "@/src/data/interfaces/chat.interface";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, max } from "drizzle-orm";
 import { Message, MessageStatus } from "@/src/domain/entities/message";
 import { Chat } from "@/src/domain/entities/chat";
 
@@ -80,13 +85,6 @@ export const participantRowsDB = async ({
     .select({ chatId: chatParticipants.chatId })
     .from(chatParticipants)
     .where(eq(chatParticipants.userId, currentUserId));
-  
-    // const result = await db
-    // .select({ chatId: chatParticipants.chatId })
-    // .from(chatParticipants)
-    // .innerJoin(chats, eq(chatParticipants.chatId, chats.id))
-    // .where(eq(chatParticipants.userId, currentUserId));
-    // console.log("result", result);
 
   return participantRows;
 };
@@ -95,7 +93,6 @@ export const chatDataDB = async ({
   chatId,
 }: ChatDataParams): Promise<ChatDataResponse[]> => {
   const chatData = await db.select().from(chats).where(eq(chats.id, chatId));
-  console.log("chatData", chatData);
 
   return chatData;
 };
@@ -119,7 +116,7 @@ export const messagesDataDB = async ({
     .from(messages)
     .where(eq(messages.chatId, chatId))
     .orderBy(desc(messages.timestamp));
-  
+
   const transformedData = data.map((row) => ({
     id: row.id as string,
     senderId: row.senderId as string,
@@ -128,7 +125,7 @@ export const messagesDataDB = async ({
     timestamp: row.timestamp as number,
     status: row.status as MessageStatus,
   }));
-  
+
   return transformedData;
 };
 
@@ -166,4 +163,31 @@ export const getParticipantsChatDB = async ({ chatId }: { chatId: string }) => {
     .select({ userId: chatParticipants.userId })
     .from(chatParticipants)
     .where(eq(chatParticipants.chatId, chatId));
+};
+
+export const getAllUserChatsDB = async ({
+  currentUserId,
+}: {
+  currentUserId: string;
+}): Promise<Chat[]> => {
+  const chatIds = await participantRowsDB({ currentUserId });
+
+  const loadedChats: Chat[] = [];
+
+  for (const { chatId } of chatIds) {
+    const [participantsData, dataMessages] = await Promise.all([
+      participantDataDB({ chatId }),
+      messagesDataDB({ chatId }),
+    ]);
+
+    const lastMessage = dataMessages.length > 0 ? dataMessages[0] : undefined;
+
+    loadedChats.push({
+      id: chatId,
+      participants: participantsData.map((p) => p.userId),
+      lastMessage,
+    });
+  }
+
+  return loadedChats;
 };
