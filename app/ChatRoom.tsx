@@ -52,22 +52,6 @@ export default function ChatRoomScreen() {
     }
   }, [chat, chatId, loadMessagesForChat]);
 
-  // const pickImage = async () => {
-  //   const result = await ImagePicker.launchImageLibraryAsync({
-  //     mediaTypes: ImagePicker.MediaTypeOptions.Images,
-  //     allowsEditing: true,
-  //     aspect: [4, 3],
-  //     quality: 1,
-  //   });
-
-  //   if (!result.canceled) {
-  //     console.log(result.assets[0]);
-  //     if (chat && currentUser) {
-  //       sendMessage(chat.id, result.assets[0].uri, currentUser.id);
-  //     }
-  //   }
-  // };
-
   const chatParticipants =
     chat?.participants
       .filter((id) => id !== currentUser?.id)
