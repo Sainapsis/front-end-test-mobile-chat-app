@@ -109,7 +109,9 @@ export const messagesDataDB = async ({
     .select()
     .from(messages)
     .where(eq(messages.chatId, chatId))
-    .orderBy(desc(messages.timestamp));
+    .orderBy(desc(messages.timestamp))
+    .limit(10)
+    .offset(0);
 
   const transformedData = data.map((row) => ({
     id: row.id as string,

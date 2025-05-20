@@ -215,20 +215,23 @@ export function useChatRoom() {
           messageId,
         });
 
-        // setMessages((prevMessages) =>
-        // prevMessages.filter((msg) => msg.id !== messageId)
-        // );
-        // setUserChats((prevChats) => {
-        //   return prevChats.map((chat) => {
-        //     if (chat.id === chatId) {
-        //       return {
-        //         ...chat,
-        //         lastMessage: undefined,
-        //       };
-        //     }
-        //     return chat;
-        //   });
-        // });
+        setMessages((prevMessages) =>
+          prevMessages.filter((msg) => msg.id !== messageId)
+        );
+
+        const _messages = await messagesDataDB({ chatId });
+
+        setUserChats((prevChats) => {
+          return prevChats.map((_chat) => {
+            if (_chat.id === chatId) {
+              return {
+                ..._chat,
+                lastMessage: _messages[0] ?? undefined,
+              };
+            }
+            return _chat;
+          });
+        });
 
         return true;
       } catch (error) {
@@ -250,27 +253,25 @@ export function useChatRoom() {
           newText,
         });
 
-        //         setSortedUserChats((prevChats) => {
-        //           return prevChats.map((chat) => {
-        //             if (chat.id === chatId) {
-        //               const updatedMessages = chat.messages.map((msg) =>
-        //                 msg.id === messageId ? { ...msg, text: newText } : msg
-        //               );
-        //
-        //               const lastMessage =
-        //                 updatedMessages.length > 0
-        //                   ? updatedMessages[updatedMessages.length - 1]
-        //                   : undefined;
-        //
-        //               return {
-        //                 ...chat,
-        //                 messages: updatedMessages,
-        //                 lastMessage,
-        //               };
-        //             }
-        //             return chat;
-        //           });
-        //         });
+        setMessages((prevMessages) =>
+          prevMessages.map((msg) =>
+            msg.id === messageId ? { ...msg, text: newText } : msg
+          )
+        );
+
+        setUserChats((prevChats) => {
+          return prevChats.map((chat) => {
+            if (chat.id === chatId) {
+              if (chat.lastMessage?.id === messageId) {
+                return {
+                  ...chat,
+                  lastMessage: { ...chat.lastMessage, text: newText },
+                };
+              }
+            }
+            return chat;
+          });
+        });
 
         return true;
       } catch (error) {
