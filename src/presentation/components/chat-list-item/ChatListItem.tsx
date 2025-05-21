@@ -15,7 +15,6 @@ import { ThemedText, TextType } from '../ThemedText';
 interface ChatListItemProps {
   chat: Chat;
   currentUserId: string;
-  users: User[];
 }
 
 export type RootStackParamList = {
@@ -24,15 +23,11 @@ export type RootStackParamList = {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) {  
+export function ChatListItem({ chat, currentUserId }: ChatListItemProps) {  
   const navigation = useNavigation<NavigationProp>();
-  
-  const otherParticipants = useMemo(() => {
-    return chat.participants
-      .filter((id: string) => id !== currentUserId)
-      .map((id: string) => users.find(user => user.id === id))
-      .filter(Boolean) as User[];
-  }, [chat.participants, currentUserId, users]);
+
+  const lastMessage = chat.messages[chat.messages.length - 1];
+  const otherParticipants = chat.participants;
 
   const userChat = useMemo(() => {
     if (otherParticipants.length === 0) {
@@ -52,12 +47,12 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
   };
 
   const timeString = useMemo(() => {
-    if (!chat.lastMessage) return '';
+    if (!lastMessage) return '';
     
-    return transformTime.getDiffInDays(chat.lastMessage.timestamp);
-  }, [chat.lastMessage]);
+    return transformTime.getDiffInDays(lastMessage.timestamp);
+  }, [lastMessage]);
 
-  const isCurrentUserLastSender = chat.lastMessage?.senderId === currentUserId;
+  const isCurrentUserLastSender = lastMessage?.senderId === currentUserId;
 
   return (
     <Pressable style={styles.container} onPress={handlePress}>
@@ -75,21 +70,21 @@ export function ChatListItem({ chat, currentUserId, users }: ChatListItemProps) 
           )}
         </View>
         <View style={styles.bottomRow}>
-          {chat.lastMessage && (
+          {lastMessage && (
             <ThemedText 
               numberOfLines={1}
               style={[
                 styles.lastMessage,
                 isCurrentUserLastSender && styles.currentUserMessage,
-                (chat.lastMessage.status === MessageStatus.Delivered && !isCurrentUserLastSender) && styles.unreadMessage,
+                (lastMessage.status === MessageStatus.Delivered && !isCurrentUserLastSender) && styles.unreadMessage,
               ]}
             >
-              {isCurrentUserLastSender && 'You: '}{chat.lastMessage.imageUri ? '📷' : chat.lastMessage.text}
+              {isCurrentUserLastSender && 'You: '}{lastMessage.imageUri ? '📷' : lastMessage.text}
             </ThemedText>
           )}
-          {chat.lastMessage && isCurrentUserLastSender && (
+          {lastMessage && isCurrentUserLastSender && (
             <ThemedText style={styles.time}>
-              {messageFunc.getMessageStatusIcon(chat.lastMessage.status, true)}
+              {messageFunc.getMessageStatusIcon(lastMessage.status, true)}
             </ThemedText>
           )}
         </View>

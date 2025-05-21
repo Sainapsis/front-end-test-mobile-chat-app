@@ -7,50 +7,47 @@ import ModalNewChat from "@/src/presentation/components/ModalNewChat";
 import { ThemeColors } from "@/src/presentation/constants/Colors";
 import styles from "@/src/presentation/screens/chats/chats.style";
 import { ChatListItem } from "../../components/chat-list-item/ChatListItem";
-import { useSegments } from 'expo-router';
-import { useChat } from '../../hooks/useChat';
-import { useChatRoom } from '../../hooks/useChatRoom';
-import { useAuth } from '../../hooks/useAuth';
-import { useUser } from '../../hooks/useUser';
+import { useSegments } from "expo-router";
+import { useChat } from "../../hooks/useChat";
+import { useChatRoom } from "../../hooks/useChatRoom";
+import { useAuth } from "../../hooks/useAuth";
+import { useUser } from "../../hooks/useUser";
+import { User } from '@/src/domain/entities/user';
 
 export default function ChatsScreen() {
   const segments = useSegments();
   const { currentUser } = useAuth();
   const { users } = useUser();
-  const { loading, userChats, createChat } = useChat({ currentUserId: currentUser?.id || null });
+  const { loading, userChats, handleLoadMoreChats } = useChat({
+    currentUserId: currentUser?.id || null,
+  });
   const { updateMessageToDeliveredStatus } = useChatRoom();
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
 
   const toggleUserSelection = (userId: string) => {
-    if (selectedUsers.includes(userId)) {
-      setSelectedUsers(selectedUsers.filter((id) => id !== userId));
+    const user = users.find((user) => user.id === userId);
+    if (!user) return;
+
+    if (selectedUsers.includes(user)) {
+      setSelectedUsers(selectedUsers.filter((user) => user.id !== userId));
     } else {
-      setSelectedUsers([...selectedUsers, userId]);
+      setSelectedUsers([...selectedUsers, user]);
     }
   };
 
-  const handleCreateChat = () => {
-    if (currentUser && selectedUsers.length > 0) {
-      const chatId = `chat${Date.now()}`;
-      const participants = [currentUser.id, ...selectedUsers];
-      createChat({ chatId, participantIds: participants });
-      setModalVisible(false);
-      setSelectedUsers([]);
-    }
-  };
-
-  const renderEmptyComponent = () => (
-    <ThemedView style={styles.emptyContainer}>
-      <ThemedText style={styles.emptyText}>No chats yet</ThemedText>
-      <ThemedText>Tap the + button to start a new conversation</ThemedText>
-    </ThemedView>
-  );
+  const renderEmptyComponent = () =>
+    !loading && (
+      <ThemedView style={styles.emptyContainer}>
+        <ThemedText style={styles.emptyText}>No chats yet</ThemedText>
+        <ThemedText>Tap the + button to start a new conversation</ThemedText>
+      </ThemedView>
+    );
 
   useEffect(() => {
     if (!currentUser) return;
-    
+
     updateMessageToDeliveredStatus({
       currentUserId: currentUser.id,
     });
@@ -69,43 +66,34 @@ export default function ChatsScreen() {
       </ThemedView>
 
       <FlatList
-        // initialNumToRender={1}
-        // maxToRenderPerBatch={1}
-        // windowSize={1}
-        // removeClippedSubviews
-        // onEndReached={async () =>
-        //   filteredMessages.length >= 10 &&
-        //   (await handleLoadMoreMessage({ chatId }))
-        // }
-        ListHeaderComponent={() => (loading ? (
-          <ThemedView
-            // style={styles.loadingIndicatorContainer}
-          >
-            <ActivityIndicator size="large" color="#0000ff" />
-          </ThemedView>
-        ) : null)}
-        // 
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        removeClippedSubviews
+        onEndReached={async () =>
+          userChats.length >= 10 && (await handleLoadMoreChats())
+        }
+        ListHeaderComponent={() =>
+          loading ? (
+            <ThemedView>
+              <ActivityIndicator />
+            </ThemedView>
+          ) : null
+        }
         data={userChats}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <ChatListItem
-            chat={item}
-            currentUserId={currentUser?.id || ""}
-            users={users}
-          />
+          <ChatListItem chat={item} currentUserId={currentUser?.id || ""} />
         )}
         ListEmptyComponent={renderEmptyComponent}
         contentContainerStyle={styles.listContainer}
       />
 
       <ModalNewChat
-        users={users}
-        currentUser={currentUser}
         modalVisible={modalVisible}
         selectedUsers={selectedUsers}
         setModalVisible={setModalVisible}
         setSelectedUsers={setSelectedUsers}
-        handleCreateChat={handleCreateChat}
         toggleUserSelection={toggleUserSelection}
       />
     </ThemedView>

@@ -1,30 +1,27 @@
-import {
-  DeleteMessageParams,
-  EditMessageParams,
-} from "@/src/data/interfaces/chat.interface";
-import { chatRepository } from "@/src/data/repositories/chat.repository";
 import { Chat } from "@/src/domain/entities/chat";
 import { Message, MessageStatus } from "@/src/domain/entities/message";
+import { useCallback, useState } from "react";
+import { useChatContext } from "../context/chat-context/ChatContext";
+import { useAuthContext } from "../context/auth-context/AuthContext";
+import { User } from "@/src/domain/entities/user";
 import {
   deleteMessage,
   editMessage,
+  getChatByID,
   sendMessage,
   updateStatusMessage,
-} from "@/src/domain/usecases/chat.usecase";
-import { useCallback, useState } from "react";
-import { useChatContext } from "../context/chat-context/ChatContext";
+} from "@/src/domain/usecases/chatRoom.usecase";
+import { chatRoomRepository } from "@/src/data/repositories/chatRoom.repository";
+import { messagesData } from "@/src/domain/usecases/chat.usecase";
+import { chatRepository } from "@/src/data/repositories/chat.repository";
 import {
-  getChatByIDDB,
-  messagesDataDB,
-} from "@/src/infrastructure/database/chat.database";
-import { useAuthContext } from "../context/auth-context/AuthContext";
-import { useUserContext } from "../context/user-context/UserContext";
-import { User } from "@/src/domain/entities/user";
+  DeleteMessageParams,
+  EditMessageParams,
+} from "@/src/data/interfaces/chatRoom.interface";
 
 export function useChatRoom() {
   const { userChats, setUserChats } = useChatContext();
   const { currentUser } = useAuthContext();
-  const { users } = useUserContext();
 
   const [chatParticipants, setChatParticipants] = useState<
     (User | undefined)[]
@@ -42,7 +39,7 @@ export function useChatRoom() {
     }
 
     try {
-      const chat = await getChatByIDDB({
+      const chat = await getChatByID(chatRoomRepository)({
         chatId,
       });
 
@@ -50,9 +47,10 @@ export function useChatRoom() {
         setChat(chat);
       }
 
-      const participants = chat?.participants
-        .filter((id: string) => id !== currentUser?.id)
-        .map((id: string) => users.find((user) => user.id === id));
+      const participants =
+        chat?.participants.filter(
+          (participant) => participant.id !== currentUser?.id
+        ) ?? [];
 
       setChatParticipants(participants);
 
@@ -68,7 +66,7 @@ export function useChatRoom() {
         );
       }
 
-      const _messages = await messagesDataDB({ chatId });
+      const _messages = await messagesData(chatRepository)({ chatId });
 
       if (_messages) {
         setMessages(_messages);
@@ -85,34 +83,37 @@ export function useChatRoom() {
       if (!chat || !currentUserId) return;
 
       try {
-        await Promise.all(
-          messages.map(async ({ id, senderId, status }: Message) => {
-            if (
-              senderId !== currentUserId &&
-              status === MessageStatus.Delivered
-            ) {
-              await updateStatusMessage(chatRepository)({
-                messageId: id,
-                status: MessageStatus.Read,
-              });
-            }
-          })
-        );
+        const data = await updateStatusMessage(chatRoomRepository)({
+          currentUserId,
+          statusToUpdate: MessageStatus.Read,
+          currentStatus: MessageStatus.Delivered,
+        });
+
+        if (!data) return;
 
         setUserChats((prevChats) => {
           return prevChats.map((_chat) => {
             if (
               _chat.id === chat.id &&
-              _chat.lastMessage &&
-              _chat.lastMessage.status === MessageStatus.Delivered &&
-              _chat.lastMessage.senderId !== currentUserId
+              _chat.messages[_chat.messages.length - 1] &&
+              _chat.messages[_chat.messages.length - 1].status ===
+                MessageStatus.Delivered &&
+              _chat.messages[_chat.messages.length - 1].senderId !==
+                currentUserId
             ) {
               return {
                 ..._chat,
-                lastMessage: {
-                  ..._chat.lastMessage,
-                  status: MessageStatus.Read,
-                },
+                messages: _chat.messages.map((msg) => {
+                  if (
+                    msg.id === _chat.messages[_chat.messages.length - 1].id
+                  ) {
+                    return {
+                      ...msg,
+                      status: MessageStatus.Read,
+                    };
+                  }
+                  return msg;
+                }),
               };
             }
             return _chat;
@@ -130,7 +131,7 @@ export function useChatRoom() {
       if (!message.text?.trim() && !message.imageUri) return false;
 
       try {
-        await sendMessage(chatRepository)({ chatId, message });
+        await sendMessage(chatRoomRepository)({ chatId, message });
 
         setMessages((prevMessages) => [message, ...prevMessages]);
 
@@ -139,7 +140,7 @@ export function useChatRoom() {
             if (chat.id === chatId) {
               return {
                 ...chat,
-                lastMessage: message,
+                messages: [...chat.messages, message],
               };
             }
             return chat;
@@ -162,36 +163,37 @@ export function useChatRoom() {
       try {
         await Promise.all(
           userChats.map(async (chat) => {
-            const messages = await messagesDataDB({ chatId: chat.id });
+            const data = await updateStatusMessage(chatRoomRepository)({
+              currentUserId,
+              statusToUpdate: MessageStatus.Delivered,
+              currentStatus: MessageStatus.Sent,
+            });
 
-            await Promise.all(
-              messages.map(async ({ id, senderId, status }: Message) => {
-                if (
-                  senderId !== currentUserId &&
-                  status === MessageStatus.Sent
-                ) {
-                  await updateStatusMessage(chatRepository)({
-                    messageId: id,
-                    status: MessageStatus.Delivered,
-                  });
-                }
-              })
-            );
+            if (!data) return;
 
             setUserChats((prevChats) => {
               return prevChats.map((_chat) => {
                 if (
                   _chat.id === chat.id &&
-                  _chat.lastMessage &&
-                  _chat.lastMessage.status === MessageStatus.Sent &&
-                  _chat.lastMessage.senderId !== currentUserId
+                  _chat.messages[_chat.messages.length - 1] &&
+                  _chat.messages[_chat.messages.length - 1].status ===
+                    MessageStatus.Sent &&
+                  _chat.messages[_chat.messages.length - 1].senderId !==
+                    currentUserId
                 ) {
                   return {
                     ..._chat,
-                    lastMessage: {
-                      ..._chat.lastMessage,
-                      status: MessageStatus.Delivered,
-                    },
+                    messages: _chat.messages.map((msg) => {
+                      if (
+                        msg.id === _chat.messages[_chat.messages.length - 1].id
+                      ) {
+                        return {
+                          ...msg,
+                          status: MessageStatus.Delivered,
+                        };
+                      }
+                      return msg;
+                    }),
                   };
                 }
                 return _chat;
@@ -211,7 +213,7 @@ export function useChatRoom() {
   const deleteMessageImpl = useCallback(
     async ({ chatId, messageId }: DeleteMessageParams) => {
       try {
-        await deleteMessage(chatRepository)({
+        await deleteMessage(chatRoomRepository)({
           chatId,
           messageId,
         });
@@ -220,14 +222,14 @@ export function useChatRoom() {
           prevMessages.filter((msg) => msg.id !== messageId)
         );
 
-        const _messages = await messagesDataDB({ chatId });
+        const _messages = await messagesData(chatRepository)({ chatId });
 
         setUserChats((prevChats) => {
           return prevChats.map((_chat) => {
             if (_chat.id === chatId) {
               return {
                 ..._chat,
-                lastMessage: _messages[0] ?? undefined,
+                messages: _messages.reverse() ?? [],
               };
             }
             return _chat;
@@ -248,7 +250,7 @@ export function useChatRoom() {
   const editMessageImpl = useCallback(
     async ({ chatId, messageId, newText }: EditMessageParams) => {
       try {
-        await editMessage(chatRepository)({
+        await editMessage(chatRoomRepository)({
           chatId,
           messageId,
           newText,
@@ -263,10 +265,18 @@ export function useChatRoom() {
         setUserChats((prevChats) => {
           return prevChats.map((chat) => {
             if (chat.id === chatId) {
-              if (chat.lastMessage?.id === messageId) {
+              if (chat.messages[chat.messages.length - 1]?.id === messageId) {
                 return {
                   ...chat,
-                  lastMessage: { ...chat.lastMessage, text: newText },
+                  messages: chat.messages.map((msg) => {
+                    if (msg.id === messageId) {
+                      return {
+                        ...msg,
+                        text: newText,
+                      };
+                    }
+                    return msg;
+                  }),
                 };
               }
             }
@@ -288,16 +298,17 @@ export function useChatRoom() {
   const handleLoadMoreMessageImpl = useCallback(
     async ({ chatId }: { chatId: string }) => {
       try {
-        const _messages = await messagesDataDB({ chatId, page });
-        
-        if (_messages) {
+        const _messages = await messagesData(chatRepository)({ chatId, page });
+
+        if (_messages.length > 0) {
           setMessages((prevMessages) => {
             const newMessages = _messages.filter(
-              (msg) => !prevMessages.some((prevMsg) => prevMsg.id === msg.id)
+              ({ id }: Message) =>
+                !prevMessages.some((prevMsg) => prevMsg.id === id)
             );
             return [...prevMessages, ...newMessages];
           });
-          
+
           setPage(page + 1);
         }
       } catch (error) {

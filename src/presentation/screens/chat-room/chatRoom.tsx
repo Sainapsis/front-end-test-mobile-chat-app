@@ -53,7 +53,7 @@ export default function ChatRoomScreen() {
     Array<{ uri: string; previewUri: string }>
   >([]);
 
-  const filteredMessages = useMemo(() => {
+  const filteredMessages = useMemo(() => {    
     if (searchText.trim()) {
       return messages.filter((msg: Message) =>
         msg.text?.toLowerCase().includes(searchText.toLowerCase())
@@ -295,11 +295,13 @@ export default function ChatRoomScreen() {
           );
         }}
         contentContainerStyle={styles.messagesContainer}
-        ListEmptyComponent={() => (
-          <ThemedView style={styles.centerContainer}>
-            <ThemedText>No messages yet. Say hello!</ThemedText>
-          </ThemedView>
-        )}
+        ListEmptyComponent={() =>
+          !loading && (
+            <ThemedView style={styles.centerContainer}>
+              <ThemedText>No messages yet. Say hello!</ThemedText>
+            </ThemedView>
+          )
+        }
       />
 
       <ThemedView style={styles.inputContainer}>

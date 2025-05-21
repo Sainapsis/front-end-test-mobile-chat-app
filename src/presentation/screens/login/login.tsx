@@ -35,7 +35,7 @@ export default function LoginScreen() {
         </ThemedView>
 
         <FlatList
-          data={users}
+          data={loading ? [] : users}
           keyExtractor={(item) => item.id}
           initialNumToRender={10}
           maxToRenderPerBatch={10}
@@ -58,13 +58,15 @@ export default function LoginScreen() {
               </ThemedView>
             ) : null
           }
-          ListEmptyComponent={() => (
-            <ThemedView style={styles.emptyContainer}>
-              <ThemedText style={styles.emptyText}>
-                No users found. Please try again later.
-              </ThemedText>
-            </ThemedView>
-          )}
+          ListEmptyComponent={() =>
+            !loading && (
+              <ThemedView style={styles.emptyContainer}>
+                <ThemedText style={styles.emptyText}>
+                  No users found. Please try again later.
+                </ThemedText>
+              </ThemedView>
+            )
+          }
         />
       </ThemedView>
     </SafeAreaView>

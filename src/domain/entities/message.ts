@@ -1,3 +1,5 @@
+import { User } from './user';
+
 export enum MessageStatus {
   Sent = 'sent',
   Read = 'read',
@@ -11,4 +13,5 @@ export interface Message {
   imageUri: string | null;
   timestamp: number;
   status: MessageStatus;
+  sender?: User;
 }

@@ -15,13 +15,23 @@ export const getUsersDB = async ({
 }: {
   page?: number;
 }): Promise<User[]> => {
-  const limit = 10;
+  const LIMIT = 10;
 
   const usersDB = await db
     .select()
     .from(users)
-    .limit(limit)
-    .offset(page * limit);
+    .limit(LIMIT)
+    .offset(page * LIMIT);
 
   return usersDB;
+};
+
+export const getUserByIdDB = async ({
+  userId,
+}: {
+  userId: string;
+}): Promise<User | null> => {
+  const user = await db.select().from(users).where(eq(users.id, userId));
+
+  return user[0] || null;
 };

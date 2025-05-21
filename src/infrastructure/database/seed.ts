@@ -151,7 +151,6 @@ const mockUsers = [
   },
 ];
 
-// Initial chat data (similar to useChats)
 const initialChats = [
   {
     id: "chat1",

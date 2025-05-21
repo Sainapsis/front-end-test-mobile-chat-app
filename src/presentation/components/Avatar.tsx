@@ -30,7 +30,7 @@ export function Avatar({ user, size = 40, showStatus = true }: AvatarProps) {
           },
         ]}
       >
-        {user?.avatar && user.avatar !== "" && useImage && (
+        {user && user?.avatar && user.avatar !== "" && useImage && (
           <Image
             source={{ uri: user.avatar }}
             resizeMode="cover"
@@ -40,7 +40,7 @@ export function Avatar({ user, size = 40, showStatus = true }: AvatarProps) {
             style={{ width: size, height: size, borderRadius: size / 2 }}
           />
         )}
-        {(!useImage || user?.avatar === "") && (
+        {(!user || !user.avatar || !useImage || user?.avatar === "") && (
           <ThemedText
             style={[
               styles.initials,
