@@ -22,22 +22,42 @@ export const createChatDB = async ({
   participants,
 }: CreateChatParams): Promise<boolean> => {
   try {
-    const chat = await db.insert(chats).values({ id: chatId }).returning();
-    if (chat.length === 0) return false;
+    const existingChat = await db
+      .select({ chatId: chatParticipants.chatId })
+      .from(chatParticipants)
+      .where(
+        inArray(
+          chatParticipants.userId,
+          participants.map((user) => user.id)
+        )
+      )
+      .groupBy(chatParticipants.chatId)
+      .having(sql`COUNT(${chatParticipants.userId}) = ${participants.length}`)
+      .limit(1);
 
-    const participantRows = participants.map((user) => ({
-      id: `cp-${chatId}-${user.id}`,
-      chatId,
-      userId: user.id,
-    }));
+    if (existingChat.length > 0) {
+      console.warn("Chat with the same participants already exists.");
+      return false;
+    } else {
+      const chat = await db.insert(chats).values({ id: chatId }).returning();
 
-    const insertedParticipants = await db
-      .insert(chatParticipants)
-      .values(participantRows)
-      .returning();
-    if (insertedParticipants.length !== participants.length) return false;
+      if (chat.length === 0) return false;
 
-    return true;
+      const participantRows = participants.map((user) => ({
+        id: `cp-${chatId}-${user.id}`,
+        chatId,
+        userId: user.id,
+      }));
+
+      const insertedParticipants = await db
+        .insert(chatParticipants)
+        .values(participantRows)
+        .returning();
+
+      if (insertedParticipants.length !== participants.length) return false;
+
+      return true;
+    }
   } catch (error) {
     console.error("Error creating chat:", error);
     return false;
@@ -78,7 +98,7 @@ export const messagesDataDB = async ({
   chatId,
   page = 0,
 }: MessageDataParams): Promise<Message[]> => {
-  const LIMIT = 10;  
+  const LIMIT = 10;
 
   const data = await db
     .select({
@@ -138,7 +158,7 @@ export const getAllUserChatsDB = async ({
       status: messages.status,
     })
     .from(chatParticipants)
-    .innerJoin(
+    .leftJoin(
       latestMessages,
       eq(chatParticipants.chatId, latestMessages.chatId)
     )
@@ -151,6 +171,7 @@ export const getAllUserChatsDB = async ({
     )
     .where(eq(chatParticipants.userId, currentUserId))
     .orderBy(desc(messages.timestamp))
+    // .orderBy(sql`${messages.timestamp} DESC NULLS LAST`)
     .limit(LIMIT)
     .offset(page * LIMIT);
 

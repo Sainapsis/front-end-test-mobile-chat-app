@@ -32,6 +32,7 @@ export default function ModalNewChat({
 }: ModalNewChatProps) {
   const { currentUser } = useAuth();
   const { loading, users, handleLoadMoreUsers } = useUser();
+  const { userChats } = useChat({ currentUserId: currentUser?.id || null });
   const { createChat } = useChat({
     currentUserId: currentUser?.id || null,
   });
@@ -39,7 +40,7 @@ export default function ModalNewChat({
   const handleCreateChat = () => {
     if (currentUser && selectedUsers.length > 0) {
       const chatId = `chat${Date.now()}`;
-      const participants = [currentUser, ...selectedUsers];
+      const participants = [...selectedUsers, currentUser];
       createChat({ chatId, participants });
       setModalVisible(false);
       setSelectedUsers([]);

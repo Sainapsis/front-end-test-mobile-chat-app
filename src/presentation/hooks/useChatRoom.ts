@@ -104,9 +104,7 @@ export function useChatRoom() {
               return {
                 ..._chat,
                 messages: _chat.messages.map((msg) => {
-                  if (
-                    msg.id === _chat.messages[_chat.messages.length - 1].id
-                  ) {
+                  if (msg.id === _chat.messages[_chat.messages.length - 1].id) {
                     return {
                       ...msg,
                       status: MessageStatus.Read,
@@ -136,15 +134,17 @@ export function useChatRoom() {
         setMessages((prevMessages) => [message, ...prevMessages]);
 
         setUserChats((prevChats) => {
-          return prevChats.map((chat) => {
-            if (chat.id === chatId) {
-              return {
-                ...chat,
-                messages: [...chat.messages, message],
-              };
-            }
-            return chat;
-          });
+          const newChat = prevChats.find((chat) => chat.id === chatId);
+          if (newChat) {
+            return [
+              {
+                ...newChat,
+                messages: [...newChat.messages, message],
+              },
+              ...prevChats.filter((chat) => chat.id !== chatId),
+            ];
+          }
+          return prevChats;
         });
 
         return true;

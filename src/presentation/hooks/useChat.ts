@@ -46,11 +46,15 @@ export function useChat({ currentUserId }: { currentUserId: string | null }) {
       }
 
       try {
-        await createChat(chatRepository)({ chatId, participants });
+        const res = await createChat(chatRepository)({ chatId, participants });
+
+        if (!res) return null;
 
         const newChat: Chat = {
           id: chatId,
-          participants,
+          participants: participants.filter(
+            (user) => user.id !== currentUserId
+          ),
           messages: [],
         };
 
