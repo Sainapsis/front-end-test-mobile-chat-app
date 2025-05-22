@@ -1,55 +1,66 @@
-import React, { useEffect } from 'react';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack, usePathname, useSegments, useRouter } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import React, { useEffect } from "react";
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+} from "@react-navigation/native";
+import { useFonts } from "expo-font";
+import { RelativePathString, Stack, useRouter, useSegments } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import "react-native-reanimated";
 
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { AppProvider, useAppContext } from '@/hooks/AppContext';
-import { DrizzleStudioDevTool } from '@/database/DrizzleStudio';
+import { DrizzleStudioDevTool } from "@/src/infrastructure/DrizzleStudio";
+import { Routes } from "@/src/presentation/constants/Routes";
+import { useAuth } from "@/src/presentation/hooks/useAuth";
+import { useColorScheme } from "react-native";
+import { AppProvider } from "@/src/presentation/context/app-context/AppProvider";
+import { UserProvider } from "@/src/presentation/context/user-context/UserProvider";
+import { ChatProvider } from "@/src/presentation/context/chat-context/ChatProvider";
+import { AuthProvider } from "@/src/presentation/context/auth-context/AuthProvider";
 
 SplashScreen.preventAutoHideAsync();
 
-function useProtectedRoute(isLoggedIn: boolean, loading: boolean) {
+function useProtectedRoute() {
+  const { currentUser } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    if (loading) return; // Don't redirect during loading
-    
-    const inAuthGroup = segments[0] === 'login';
-    
-    if (!isLoggedIn && !inAuthGroup) {
-      // Redirect to the login page if not logged in
-      router.replace('/login');
-    } else if (isLoggedIn && inAuthGroup) {
-      // Redirect to the home page if logged in and trying to access login page
-      router.replace('/(tabs)');
+    const inAuthGroup = segments[0] === Routes.LOGIN;
+
+    if (!currentUser && !inAuthGroup) {
+      router.replace(`/${Routes.LOGIN}` as RelativePathString);
+    } else if (currentUser && inAuthGroup) {
+      router.replace(`/${Routes.TABS}` as RelativePathString);
     }
-  }, [isLoggedIn, segments, loading]);
+  }, [currentUser]);
 }
 
 function RootLayoutNav() {
-  const { isLoggedIn, loading } = useAppContext();
-
-  // Call the hook unconditionally
-  useProtectedRoute(isLoggedIn, loading);
+  useProtectedRoute();
 
   return (
     <>
       <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen 
-          name="login" 
-          options={{ headerShown: false, gestureEnabled: false }} 
+        <Stack.Screen name={Routes.TABS} options={{ headerShown: false }} />
+        <Stack.Screen
+          name={Routes.LOGIN}
+          options={{
+            headerShown: false,
+            gestureEnabled: false,
+            animation: "fade_from_bottom",
+          }}
         />
-        <Stack.Screen 
-          name="ChatRoom" 
-          options={{ headerShown: true }} 
+        <Stack.Screen
+          name={Routes.CHATROOM}
+          options={{
+            headerShown: false,
+            animation: "fade_from_bottom",
+            gestureEnabled: false,
+          }}
         />
-        <Stack.Screen name="+not-found" />
+        <Stack.Screen name={Routes.NOTFOUND} />
       </Stack>
       {__DEV__ && <DrizzleStudioDevTool />}
     </>
@@ -59,7 +70,7 @@ function RootLayoutNav() {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
   useEffect(() => {
@@ -73,10 +84,16 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <AppProvider>
-        <RootLayoutNav />
-        <StatusBar style="auto" />
+        <AuthProvider>
+          <UserProvider>
+            <ChatProvider>
+              <StatusBar style="auto" />
+              <RootLayoutNav />
+            </ChatProvider>
+          </UserProvider>
+        </AuthProvider>
       </AppProvider>
     </ThemeProvider>
   );
