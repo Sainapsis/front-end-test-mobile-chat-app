@@ -58,7 +58,7 @@ export function Avatar({ user, size = 40, showStatus = true }: AvatarProps) {
       >
         <ThemedText style={[
           styles.initials,
-          { fontSize: size * 0.4 }
+          { fontSize: size * 0.2 }
         ]}>
           {initials}
         </ThemedText>
@@ -85,6 +85,8 @@ export function Avatar({ user, size = 40, showStatus = true }: AvatarProps) {
 const styles = StyleSheet.create({
   container: {
     position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatar: {
     alignItems: 'center',

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useUser, User } from './useUser';
-import { useChats, Chat } from './useChats';
+import { useChats, ChatsContextType } from './useChats';
 import { DatabaseProvider } from '../database/DatabaseProvider';
 import { useDatabase } from './useDatabase';
 
@@ -10,14 +10,12 @@ type AppContextType = {
   isLoggedIn: boolean;
   login: (userId: string) => Promise<boolean>;
   logout: () => void;
-  chats: Chat[];
-  createChat: (participantIds: string[]) => Promise<Chat | null>;
-  sendMessage: (chatId: string, text: string, senderId: string) => Promise<boolean>;
   loading: boolean;
   dbInitialized: boolean;
-};
+} & ChatsContextType;
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
+
 
 function AppContent({ children }: { children: ReactNode }) {
   const { isInitialized } = useDatabase();
@@ -50,4 +48,9 @@ export function useAppContext() {
     throw new Error('useAppContext must be used within an AppProvider');
   }
   return context;
+
+  
 } 
+
+
+
