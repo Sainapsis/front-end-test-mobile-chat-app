@@ -42,7 +42,6 @@ export function useChatsDb(currentUserId: string | null) {
           setLoading(false);
           return;
         }
-        // Consulta única con inner joins para obtener chats, participantes y último mensaje
         const rows = await db
           .select({
             chatId: chats.id,
@@ -92,7 +91,6 @@ export function useChatsDb(currentUserId: string | null) {
           }
         }
 
-        // Ahora, para cada chat, obtenemos TODOS los participantes
         const loadedChats: Chat[] = Array.from(chatMap.entries()).map(
           ([id, { participants, lastMessage }]) => ({
             id,
@@ -112,34 +110,6 @@ export function useChatsDb(currentUserId: string | null) {
 
     loadChats();
   }, [currentUserId]);
-
-  // Function to load messages for a specific chat
-  // const loadMessagesForChat = useCallback(async (chatId: string) => {
-  //   try {
-  //     const messagesData = await db
-  //       .select()
-  //       .from(messages)
-  //       .where(eq(messages.chatId, chatId))
-  //       .orderBy(messages.timestamp);
-
-  //     const chatMessages = messagesData.map(m => ({
-  //       id: m.id,
-  //       senderId: m.senderId,
-  //       text: m.text,
-  //       timestamp: m.timestamp,
-  //     }));
-
-  //     setUserChats(prevChats =>
-  //       prevChats.map(chat =>
-  //         chat.id === chatId
-  //           ? { ...chat, messages: chatMessages }
-  //           : chat
-  //       )
-  //     );
-  //   } catch (error) {
-  //     console.error('Error loading messages for chat:', error);
-  //   }
-  // }, []);
 
   const createChat = useCallback(async (participantIds: string[]) => {
     if (!currentUserId || !participantIds.includes(currentUserId)) {
